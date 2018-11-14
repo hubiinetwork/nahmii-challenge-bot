@@ -1,0 +1,36 @@
+{
+  "name": "nahmii-challenge-bot",
+  "version": "1.0.0",
+  "description": "Bot that challenges nahmii settlements",
+  "main": "index.js",
+  "scripts": {
+    "test": "nyc mocha 'src/**/*.spec.js' --exit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hubiinetwork/nahmii-challenge-bot.git"
+  },
+  "keywords": [
+    "nahmii"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hubiinetwork/nahmii-challenge-bot/issues"
+  },
+  "homepage": "https://github.com/hubiinetwork/nahmii-challenge-bot#readme",
+  "devDependencies": {
+    "@hubiinetwork/eslint-config": "github:hubiinetwork/eslint-config",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "eslint": "^5.9.0",
+    "mocha": "^5.2.0",
+    "nyc": "^13.1.0",
+    "sinon": "^7.1.1",
+    "sinon-chai": "^3.2.0"
+  },
+  "dependencies": {
+    "@hubiinetwork/logger": "github:hubiinetwork/logger",
+    "yargs": "^12.0.2"
+  }
+}
