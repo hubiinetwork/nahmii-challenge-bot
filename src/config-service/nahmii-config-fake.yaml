@@ -1,0 +1,6 @@
+apiRoot: a
+appId: b
+appSecret: c
+wallet:
+  address: d
+  secret: e
