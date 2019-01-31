@@ -6,7 +6,7 @@ const nahmii = require('nahmii-sdk');
 const NestedError = require('../utils/nested-error');
 const { acquireNahmiiProvider } = require('./nahmii-provider');
 
-async function getBalance (address, ct) {
+async function getNahmiiBalance (address, ct) {
   try {
     const nahmiiPrv = await acquireNahmiiProvider();
     const balances = await nahmiiPrv.getNahmiiBalances(address);
@@ -19,7 +19,7 @@ async function getBalance (address, ct) {
   }
 }
 
-async function getReceipts (wallet) {
+async function getWalletReceipts (wallet) {
   try {
     const nahmiiPrv = await acquireNahmiiProvider();
     return await nahmiiPrv.getWalletReceipts(wallet);
@@ -30,6 +30,6 @@ async function getReceipts (wallet) {
 }
 
 module.exports = {
-  getBalance,
-  getReceipts
+  getNahmiiBalance,
+  getWalletReceipts
 };
