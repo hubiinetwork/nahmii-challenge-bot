@@ -14,6 +14,10 @@ const ChallengeHandler = require('./challenge-handler');
   logger.info('ethereum URL : ' + await ClusterInformation.aquireEthereumUrl());
   logger.info('');
 
+  logger.info('Validating config ...');
+
+  config.validateConfig();
+
   logger.info('Attaching event handlers ...');
 
   const driipSettlementChallengeContract = await ContractFactory.create('DriipSettlementChallenge');
