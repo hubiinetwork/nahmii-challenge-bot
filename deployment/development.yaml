@@ -51,7 +51,7 @@ spec:
         - name: CHALLENGER_WALLET_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: challenger-wallet-private_key
+              name: challenger-wallet-private-key
               key: CHALLENGER_WALLET_PRIVATE_KEY
         resources:
           requests:
