@@ -1,15 +1,14 @@
 'use strict';
 
-const { acquireNahmiiConfig } = require('../config-service/nahmii-config');
+const config = require('../config');
 const nahmii = require('nahmii-sdk');
 
 let nahmiiProvider;
 
 function acquireNahmiiProvider () {
-  if (!nahmiiProvider) {
-    const config = acquireNahmiiConfig();
-    nahmiiProvider = nahmii.NahmiiProvider.from(config.apiRoot, config.appId, config.appSecret);
-  }
+  if (!nahmiiProvider)
+    nahmiiProvider = nahmii.NahmiiProvider.from(config.services.baseUrl, config.identity.appId, config.identity.appSecret);
+
   return nahmiiProvider;
 }
 

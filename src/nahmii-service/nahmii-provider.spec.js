@@ -10,10 +10,6 @@ const { given, req } = require('../utils/gwt');
 const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 
-const nahmiiConfigStub = {
-  acquireNahmiiConfig: sinon.stub().returns({})
-};
-
 class NahmiiProvider {
   static from () {
     return Promise.resolve(new NahmiiProvider());
@@ -21,7 +17,6 @@ class NahmiiProvider {
 }
 
 const { acquireNahmiiProvider } = proxyquire('./nahmii-provider', {
-  '../config-service/nahmii-config': nahmiiConfigStub,
   'nahmii-sdk': { NahmiiProvider }
 });
 
@@ -31,7 +26,7 @@ describe('nahmii-provider', function () {
     return '';
   })
 
-    .when('accessed', given => {
+    .when('accessed', () => {
       return { provider: acquireNahmiiProvider() };
     })
 
