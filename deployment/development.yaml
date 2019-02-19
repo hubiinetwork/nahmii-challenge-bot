@@ -60,9 +60,3 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "1"
-
-echo "export NAHMII_API_ROOT='https://api2.dev.hubii.net'"
-echo "export IDENTITY_SERVER_APPID='5bab2d857f327e00101b54b0'"
-echo "export IDENTITY_SERVER_SECRET='$2a$10$Zl.thSYhXEthzW8GOgiQV.rGi3ZGwr/nw6a3bReiuS.2TA9ZGr3KC'"
-echo "export CHALLENGER_WALLET_ADDRESS='0xcc1719c983ec13dde631a4671e8e591b8a10e3a9'"
-echo "export CHALLENGER_WALLET_PRIVATE_KEY='0x0e29864d0e4d4576b5084ce4f388ce0b80d397666b2616c6f892740181ac7055'"
