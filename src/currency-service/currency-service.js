@@ -1,6 +1,6 @@
 'use strict';
 
-const { acquireNahmiiConfig } = require('../config-service/nahmii-config');
+const config = require('../config');
 const nahmii = require('nahmii-sdk');
 const prefix0x = nahmii.utils.prefix0x;
 
@@ -27,14 +27,13 @@ function throwIfNotValid (currency, symbol) {
 
   if (currency.symbol !== symbol)
     throw new Error(`${symbol}: 'currency.symbol' has unexpected value. Found '${currency.symbol}'`);
-};
+}
 
 let currencies;
 
 async function acquireCurrencies () {
   if (!currencies) {
-    const nahmiiConfig = acquireNahmiiConfig();
-    const provider = new nahmii.NahmiiProvider(nahmiiConfig.apiRoot, nahmiiConfig.appId, nahmiiConfig.appSecret);
+    const provider = nahmii.NahmiiProvider.from(config.services.baseUrl, config.identity.appId, config.identity.appSecret);
 
     currencies = {};
 

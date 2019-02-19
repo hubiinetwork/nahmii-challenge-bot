@@ -1,6 +1,9 @@
 'use strict';
 
-const config = require('../config-service/config');
+const config = require('../config');
+const ClusterInformation = require('../cluster-information/cluster-information');
+
+/*
 const { logger } = require('@hubiinetwork/logger');
 const nahmii = require('nahmii-sdk');
 const NestedError = require('../utils/nested-error');
@@ -28,8 +31,9 @@ async function getWalletReceipts (wallet) {
     throw new NestedError(err, `Failed to retrieve receipts: ${err.message}`);
   }
 }
+*/
 
 module.exports = {
-  getNahmiiBalance,
-  getWalletReceipts
+//  getNahmiiBalance,
+//  getWalletReceipts
 };

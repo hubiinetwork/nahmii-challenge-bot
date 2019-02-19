@@ -1,0 +1,62 @@
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: challenge-bot
+  namespace: test
+  labels:
+    app: challenge-bot
+    role: agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: challenge-bot
+      role: agent
+  template:
+    metadata:
+      labels:
+        app: challenge-bot
+        role: agent
+    spec:
+      containers:
+      - name: challenge-bot
+        image: 856572510817.dkr.ecr.eu-west-1.amazonaws.com/challenge-bot:develop
+        imagePullPolicy: Always
+        env:
+        - name: NAHMII_API_ROOT
+          value: api2.dev.hubii.net
+        - name: NODE_ENV
+          value: development
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: identity-server-secrets
+              key: JWT_SECRET
+        - name: IDENTITY_SERVER_APPID
+          valueFrom:
+            secretKeyRef:
+              name: identity-server-appid
+              key: IDENTITY_SERVER_APPID
+        - name: IDENTITY_SERVER_APPSECRET
+          valueFrom:
+            secretKeyRef:
+              name: identity-server-appsecret
+              key: IDENTITY_SERVER_APPSECRET
+        - name: CHALLENGER_WALLET_ADDRESS
+          valueFrom:
+            secretKeyRef:
+              name: challenger-wallet-address
+              key: CHALLENGER_WALLET_ADDRESS
+        - name: CHALLENGER_WALLET_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: challenger-wallet-private-key
+              key: CHALLENGER_WALLET_PRIVATE_KEY
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
