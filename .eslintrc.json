@@ -11,7 +11,7 @@
         }
     },
     "rules": {
-        "indent": ["error", 2],
+        "indent": ["error", 2, { "MemberExpression": "off" }],
         "curly": ["error", "multi-or-nest", "consistent"],
         "strict": ["error", "global"],
         "eqeqeq" : ["error"],

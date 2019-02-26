@@ -19,12 +19,12 @@ function then (str, fn) {
   this.gwt.spec.when = null;
 
   describe(spec.given.str + ', ' + _when.str + ', ' + str, function () {
-    before(function () {
-      const given = spec.given.fn.call(this);
-      const resulting = _when.fn.call(this, given);
+    before(async function () {
+      const given = await (async () => spec.given.fn.call(this))();
+      const resulting = await (async () => _when.fn.call(this, given))();
       this.test.parent.gwt = { given, resulting };
     });
-    fn.call(this);
+    return fn.call(this);
   });
 
   return { when: when.bind(this) };
