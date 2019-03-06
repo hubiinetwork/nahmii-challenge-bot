@@ -9,13 +9,35 @@ const nahmii = require('nahmii-sdk');
 const io = require('socket.io-client');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
+const { execSync } = require('child_process');
 
 // Hack until we figure out how to make https protocol work
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 
+function getAbiPath (contractName) {
+  return new Promise((resolve, reject) =>{
+    const abiPaths = execSync(
+      `find ./node_modules/nahmii-sdk -type f -name ${contractName}.json | grep 'abis/ropsten'`,
+      { encoding: 'utf8' }
+    ).split('\n');
+
+    if (abiPaths.length < 1)
+      reject(new Error('Could not find ABI of contract: ' + contractName));
+    else
+      resolve(abiPaths[0]);
+  });
+}
+
 async function createContract (contractName, provider) {
-  const { abi } = require(`../src/contract-factory/abi/${contractName}.json`);
   const contractAddress = await minikube.getContractAddress(contractName);
+  const code = await provider.getCode(contractAddress);
+
+  if ((typeof code !=='string') || (code.length <= 2))
+    return Promise.reject('Contract is missing code.');
+
+  const abiPath = await getAbiPath(contractName);
+  const { abi } = require('../' + abiPath);
+
   return new ethers.Contract(contractAddress, abi, provider);
 }
 
@@ -86,20 +108,14 @@ function promiseNextReceiptFromEvent () {
   });
 }
 
-function promiseNextDepositFromEvent() {
-  return new Promise(resolve => {
-    clientFundContract.once('ReceiveEvent', (wallet, balanceType, value, currencyCt, currencyId, standard) => {
-      resolve({ wallet, balanceType, value, currencyCt, currencyId, standard });
-    });
-  });
-}
-
 // Resources
-let provider, Faucet, Miner, Alice, Bob, Charles;
+let provider, Faucet, Miner;
 let clientFundContract;
+let nullSettlementChallengeContract, nullSettlementContract;
+let driipSettlementChallengeContract, driipSettlementContract;
 let eth;
 
-describe('Acquire resources', () => {
+describe('Resources', () => {
   step('Nahmii provider', () => {
     provider = new nahmii.NahmiiProvider(minikube.baseUrl, minikube.appId, minikube.appSecret, minikube.nodeUrl, 'ropsten');
     return provider.should.be.instanceof(nahmii.NahmiiProvider);
@@ -115,26 +131,34 @@ describe('Acquire resources', () => {
     return Miner.should.be.instanceof(nahmii.Wallet);
   });
 
-  step('ClientFund contract accessible', async () => {
-    const contractAddress = await minikube.getContractAddress('ClientFund');
-    const code = await provider.getCode(contractAddress);
-    (typeof code).should.be.equal('string');
-    code.length.should.be.gt(2);
-    return true;
-  });
-
-  step('ClientFund contract create', async () => {
+  step('ClientFund contract', async () => {
     clientFundContract = await createContract('ClientFund', provider);
-    return true;
+    return clientFundContract.should.be.instanceof(ethers.Contract);
   });
 
-  step('Get currency eth', async () => {
+  step('NullSettlement contract', async () => {
+    nullSettlementContract = await createContract('NullSettlement', provider);
+    return nullSettlementContract.should.be.instanceof(ethers.Contract);
+  });
+
+  step('NullSettlementChallenge contract', async () => {
+    nullSettlementChallengeContract = await createContract('NullSettlementChallenge', provider);
+    return nullSettlementChallengeContract.should.be.instanceof(ethers.Contract);
+  });
+
+  step('DriipSettlement contract', async () => {
+    driipSettlementContract = await createContract('DriipSettlement', provider);
+    return driipSettlementContract.should.be.instanceof(ethers.Contract);
+  });
+
+  step('DriipSettlementChallenge contract', async () => {
+    driipSettlementChallengeContract = await createContract('DriipSettlementChallenge', provider);
+    return driipSettlementChallengeContract.should.be.instanceof(ethers.Contract);
+  });
+
+  step('Currency ETH', async () => {
     eth = await minikube.getCurrency('ETH');
     return eth.should.have.property('symbol', 'ETH');
-  });
-
-  step('Ensure initial block-chain confirmation cover', async () => {
-    return mineOneBlock(Miner).should.eventually.be.fulfilled;
   });
 });
 
@@ -180,10 +204,18 @@ function createRandomWallet (ctx, walletName) {
   });
 }
 
+function isRevertContractException(error) {
+  return error.code === 'CALL_EXCEPTION' || error.code === -32000;
+}
+
 function makeDeposit(ctx, walletName, depositEth) {
 
   step('Create deposit listener', async () => {
-    ctx.nextDepositPromise = promiseNextDepositFromEvent();
+    ctx.nextDepositPromise = new Promise(resolve => {
+      clientFundContract.once('ReceiveEvent', (wallet, balanceType, value, currencyCt, currencyId, standard) => {
+        resolve({ wallet, balanceType, value, currencyCt, currencyId, standard });
+      });
+    });
   });
 
   step('Create receipt listener', () => {
@@ -207,16 +239,13 @@ function makeDeposit(ctx, walletName, depositEth) {
     return purse.receipt.should.not.be.undefined.and.not.be.instanceof(Error);
   });
 
-  xstep('Deposit event is emitted', async function () {
-    // Must be done before any 'evm_mine' since that vaporizes events
+  step('Deposit event is emitted', async function () {
+    // Do not force mining before this test. Ganache will wipe the event !!!
     this.timeout(5000);
-    return Promise.race([
-      ctx.nextDepositPromise,
-      mineUntil(Miner, () => false, 200, 100)
-    ]).should.eventually.be.fulfilled;
+    ctx.nextDepositPromise.should.eventually.be.fulfilled;
   });
 
-  step(`${walletName} has updated block chain balance`, async () => {
+  step(`${walletName} has an updated block chain balance`, async () => {
     const purse = ctx[walletName].purse;
 
     purse.finalBalance = await ctx[walletName].getBalance();
@@ -253,30 +282,78 @@ function makeDeposit(ctx, walletName, depositEth) {
   });
 }
 
-describe('Successful null settlement', () => {
+function initiateNullSettlementChallenge(ctx, walletName, stageAmount) {
+
+  step('Alice has no proposal status', done => {
+    nullSettlementChallengeContract.proposalStatus(ctx[walletName].address, eth.currency, 0)
+    .then(res => done(res))
+    .catch(err => isRevertContractException(err) ? done() : done(err));
+  });
+
+  step('Create challenge listener', async () => {
+    ctx.nextStartChallengePromise = new Promise(resolve => {
+      nullSettlementChallengeContract.on('StartChallengeEvent', (initiatorWallet, stagedAmount, stagedCt, stageId) => {
+        resolve({ initiatorWallet, stagedAmount, stagedCt, stageId });
+      });
+    });
+  });
+
+  step('Alice starts challenge process', async () => {
+    const purse = ctx[walletName].purse;
+    const settlement = new nahmii.Settlement(provider);
+    purse.stagedAmount = new nahmii.MonetaryAmount(parseEther(stageAmount), eth.currency, 0);
+
+    const txs = await settlement.startChallenge(purse.stagedAmount, ctx[walletName]);
+
+    txs.length.should.equal(1);
+    txs[0].type.should.equal('null');
+  });
+
+  step('Alice has proposal status "Qualified"', done => {
+    nullSettlementChallengeContract.proposalStatus(ctx[walletName].address, eth.currency, 0)
+    .then(res => (res === 0) ? done() : done(res))
+    .catch(err => done(err));
+  });
+
+  step('Alice has valid staged amount', async () => {
+    const proposalStageAmount = await nullSettlementChallengeContract.proposalStageAmount(ctx[walletName].address, eth.currency, 0);
+    formatEther(proposalStageAmount).should.equal(stageAmount);
+  });
+
+  step('StartChallenge event is emitted', async function () {
+    // Do not force mining before this test. Ganache will wipe the event !!!
+    this.timeout(5000);
+    ctx.nextStartChallengePromise.should.eventually.be.fulfilled;
+  });
+
+  step('StartChallenge event is valid', async function () {
+    const { initiatorWallet, stagedAmount, stagedCt, stageId } = await ctx.nextStartChallengePromise;
+    initiatorWallet.should.equal(ctx[walletName].address);
+    formatEther(stagedAmount).should.equal(stageAmount);
+    stagedCt.should.equal(eth.currency);
+    stageId.toString().should.equal('0');
+  });
+}
+
+function withdrawNullSettlementChallenge(ctx, walletName) {
+}
+
+describe('Qualified null settlement challenge', () => {
   const ctx = {};
 
-  describe('0) Create actor Alice', () => {
+  describe('A. Given user actor Alice', () => {
     createRandomWallet(ctx, 'Alice');
   });
 
-  describe('2) Deposit phase', () => {
+  describe('B. When Alice deposits into nahmii', () => {
     makeDeposit(ctx, 'Alice', '0.002');
   });
 
-  describe('3) Challenge phase', () => {
-    step('Alice\'s proposal status should be null', async () => {
-      const driipSettlementChallengeContract = new nahmii.DriipSettlementChallenge(provider);
-      const status = driipSettlementChallengeContract.getCurrentProposalStatus(ctx.Alice.address, eth.currency, 0);
-      return chai.expect(status).to.eventually.equal(null);
-    });
+  describe('C. When Alice stages null settlement', () => {
+    initiateNullSettlementChallenge(ctx, 'Alice', '0.002');
+  });
 
-    step('Alice starts challenge', async () => {
-      const settlement = new nahmii.Settlement(provider);
-      const stageAmount = new nahmii.MonetaryAmount(ctx.Alice.purse.depositedEth, eth.currency, 0);
-      const txs = await settlement.startChallenge(stageAmount, ctx.Alice);
-      txs.length.should.equal(1);
-      txs[0].type.should.equal('null');
-    });
+  describe('D. When Alice withdraws qualified null settlement', () => {
+    withdrawNullSettlementChallenge(ctx, 'Alice');
   });
 });
