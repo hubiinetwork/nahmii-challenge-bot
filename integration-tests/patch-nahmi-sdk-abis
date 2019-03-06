@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# wget "https://$(minikube ip)" --no-check-certificate -q -O -
+# curl "https://$(minikube ip)" -k -s
+
+# export CLIENT_FUND_ADDR=$(wget -q http://api-root -O - | grep ClientFund | sed -r 's/[^:]+: "(0x[^"]+).*/\1/');
+# sed -i "/      \"address\": \"/c\      \"address\": \"$CLIENT_FUND_ADDR\"," ./src/ethereum/smart-contracts/abi/ropsten/ClientFund.json;
+
+# Go to project dir
+cd "$(dirname ${BASH_SOURCE[0]})/.."
+
+# Make addresses[contract_name] associative array over minikube contract addresses
+declare -A addresses
+eval $(curl "https://$(minikube ip)" -k -s | grep '": "0x' | tr -d ':,' | sed 's/^[ ]*//' | sed 's/^\([^ ]*\) \([^ ]*\)/addresses[\1]=\2/')
+
+# Make files[contract_name] associative array over files to patch
+declare -A files
+eval $(find ./node_modules -name \*\.json | grep abis | grep ropsten | sed 's/\(^.*ropsten\/\)\([^.]*\)\(.*\)/files["\2"]="\1\2\3"/')
+
+# Subtitute contract addresses in files
+for contract_name in "${!files[@]}"
+do
+  file_name="${files[$contract_name]}"
+  echo "file_name: $file_name"
+
+  old_line="$(cat $file_name | grep '"address": "0x')"
+  echo "old_line: $old_line"
+
+  old_addr="$(echo $old_line | tr -d ':," ' | sed 's/address//')"
+  new_addr="${addresses[$contract_name]}"
+
+  sed -i "s/$old_addr/$new_addr/" $file_name
+
+  new_line="$(cat $file_name | grep '      "address": "')"
+  echo "new_line: $new_line"
+done

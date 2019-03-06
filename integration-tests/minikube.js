@@ -1,6 +1,8 @@
 'use strict';
 
 const { execSync } = require('child_process');
+const request = require('superagent');
+const nahmii = require('nahmii-sdk');
 
 function throwIfMinikubeIsNotRunning () {
   const line = execSync('minikube status | grep host').toString().split('\n')[0];
@@ -53,6 +55,33 @@ class Minikube {
 
   static get network () {
     return 'ropsten';
+  }
+
+  static async getContractAddress (contractName) {
+    if (! global.contracts) {
+      process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
+      const response = await request.get(`http://${Minikube.baseUrl}`);
+      global.contracts = response.body.ethereum.contracts;
+    }
+
+    return global.contracts[contractName];
+  }
+
+  static async getCurrency (symbol) {
+    if (! global.currencies) {
+      process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
+      const provider = await new nahmii.NahmiiProvider(Minikube.baseUrl, Minikube.appId, Minikube.appSecret, Minikube.nodeUrl, 'ropsten');
+      const accessToken = await provider.getApiAccessToken();
+
+      const response = await request
+        .get(`http://${Minikube.baseUrl}/ethereum/supported-tokens`)
+        .set('Content-Type', 'application/json')
+        .set('authorization', `Bearer ${accessToken}`);
+
+      global.currencies = response.body;
+    }
+
+    return global.currencies.find(currency => currency.symbol === symbol);
   }
 }
 
