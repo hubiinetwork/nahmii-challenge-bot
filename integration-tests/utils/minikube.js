@@ -11,6 +11,7 @@ function throwIfMinikubeIsNotRunning () {
     throw new Error('Testing failed. minikube is not running.');
 }
 
+// See mini-cluster ganache-cli deployment spec for special accounts
 const accounts = [
   { address: '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1', privateKey: '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d' },
   { address: '0xffcf8fdee72ac11b5c542428b35eef5769c409f0', privateKey: '0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1' },
@@ -46,9 +47,10 @@ class Minikube {
   }
 
   static get accounts () {
+    // Must be configured in mini-cluster
     return {
-      faucet: global.accounts[0],
-      miner: global.accounts[1]
+      faucet: accounts[0],
+      miner:  accounts[1]
     };
   }
 
@@ -62,16 +64,6 @@ class Minikube {
 
   static get network () {
     return 'ropsten';
-  }
-
-  static async getContractAddress (contractName) {
-    if (! global.contracts) {
-      process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
-      const response = await request.get(`http://${Minikube.baseUrl}`);
-      global.contracts = response.body.ethereum.contracts;
-    }
-
-    return global.contracts[contractName];
   }
 
   static async getCurrency (symbol) {

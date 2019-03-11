@@ -8,16 +8,23 @@ const BigNumber = require('bignumber.js');
 
 const { logger } = require('@hubiinetwork/logger');
 
+let driipSettelementChallengeCallback;
+
 class ChallengeHandler {
 
   static handleDriipSettlementChallenge (initiatorWallet, paymentHash, stagedAmount) {
     logger.info(`wallet: ${initiatorWallet}, hash: ${paymentHash}, staged amount: ${stagedAmount}`);
+    if (driipSettelementChallengeCallback)
+      driipSettelementChallengeCallback(initiatorWallet, paymentHash, stagedAmount);
   }
 
   static handleNullSettlementChallenge (initiatorWallet, stagedAmount, ct, id) {
     logger.info(`wallet: ${initiatorWallet}, staged amount: ${stagedAmount}, ct: ${ct}, id: ${id}`);
   }
 
+  static onDriipSettelentChallenge (callback) {
+    driipSettelementChallengeCallback = callback;
+  }
 }
 
 module.exports = ChallengeHandler;
