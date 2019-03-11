@@ -4,7 +4,7 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 
-const minikube = require('./minikube');
+const minikube = require('./utils/minikube');
 
 const nahmii = require('nahmii-sdk');
 const io = require('socket.io-client');
@@ -338,103 +338,6 @@ function verifyStagedBalancesChange(ctx, walletName, symbol, expectedChange) {
   });
 }
 
-/*
-function captureWalletBalancesBeforeAction(ctx, walletName, symbol) {
-
-  step(`Capture ${walletName}'s on-chain balance before action`, async function () {
-    const purse = ctx.purses[walletName];
-    purse.onchainBalanceBeforeAction = await ctx.wallets[walletName].getBalance();
-    expect(purse.onchainBalanceBeforeAction).to.not.be.undefined.and.not.be.instanceof(Error);
-  });
-
-  step(`Capture ${walletName}'s nahmii balance before action`, async () => {
-    const purse = ctx.purses[walletName];
-    purse.nahmiiBalanceBeforeAction = await getUpdatedNahmiiBalance(ctx.wallets[walletName], null, symbol);
-    expect(purse.nahmiiBalanceBeforeAction).to.not.be.undefined.and.not.be.instanceof(Error);
-    expect(purse.nahmiiBalanceBeforeAction).to.have.property(symbol);
-  });
-
-  step(`Capture ${walletName}'s staged balance before action`, async () => {
-    const purse = ctx.purses[walletName];
-
-    purse.stagedBalanceBeforeAction = purse.stagedBalanceBeforeAction || {};
-    purse.stagedBalanceBeforeAction[symbol] = await ctx.wallets[walletName].getNahmiiStagedBalance(symbol);
-
-    expect(purse.stagedBalanceBeforeAction[symbol]).to.not.be.undefined.and.not.be.instanceof(Error);
-  });
-}
-
-function captureWalletBalancesAfterAction(ctx, walletName, symbol, options) {
-
-  step(`Capture ${walletName}'s nahmii balance after action`, async () => {
-    const purse = ctx.purses[walletName];
-    const oldBalanceValue = (options && options.expectNahmiiBalanceChange) ? purse.nahmiiBalanceBeforeAction[symbol] : null;
-
-    await mineUntil(Miner, async () => {
-      purse.nahmiiBalanceAfterAction = await ctx.wallets[walletName].getNahmiiBalance();
-      purse.nahmiiBalanceAfterAction[symbol] = purse.nahmiiBalanceAfterAction[symbol] || '0.0';
-      return purse.nahmiiBalanceAfterAction[symbol] !== oldBalanceValue;
-    }, 200, 100);
-
-    expect(purse.nahmiiBalanceAfterAction).to.not.be.undefined.and.not.be.instanceof(Error);
-    expect(purse.nahmiiBalanceAfterAction).to.have.property(symbol);
-  });
-
-  step(`Capture ${walletName}'s on-chain balance after action`, async function () {
-    const purse = ctx.purses[walletName];
-    const oldBalanceValue = (options && options.expectNahmiiBalanceChange) ? purse.onchainBalanceBeforeAction : null;
-
-    await mineUntil(Miner, async () => {
-      purse.onchainBalanceAfterAction = await ctx.wallets[walletName].getBalance();
-      return purse.onchainBalanceAfterAction !== oldBalanceValue;
-    }, 200, 100);
-
-    expect(purse.onchainBalanceAfterAction).to.not.be.undefined.and.not.be.instanceof(Error);
-  });
-
-  step(`Capture ${walletName}'s staged balance after action`, async () => {
-    const purse = ctx.purses[walletName];
-    const oldBalanceValue = (options && options.expectStagedBalanceChange) ? purse.stagedBalanceBeforeAction[symbol] : null;
-
-    purse.stagedBalanceAfterAction = purse.stagedBalanceAfterAction || {};
-
-    await mineUntil(Miner, async () => {
-      purse.stagedBalanceAfterAction[symbol] = await ctx.wallets[walletName].getNahmiiStagedBalance(symbol);
-      return purse.stagedBalanceAfterAction[symbol] !== oldBalanceValue;
-    }, 200, 100);
-
-    expect(purse.stagedBalanceAfterAction[symbol]).to.not.be.undefined.and.not.be.instanceof(Error);
-  });
-
-  step(`${walletName}'s staged balance change: ${options.expectStagedBalanceChange}`, async () => {
-    if (options.expectStagedBalanceChange === null)
-      return;
-
-    const purse = ctx.purses[walletName];
-    const stagedBalanceDiff = subEth(purse.stagedBalanceBeforeAction[symbol], purse.stagedBalanceAfterAction[symbol]);
-    expect(stagedBalanceDiff).to.be.equal(options.expectStagedBalanceChange);
-  });
-
-  step(`${walletName}'s nahmii balance change: ${options.expectNahmiiBalanceChange}`, async () => {
-    if (options.expectNahmiiBalanceChange === null)
-      return;
-
-    const purse = ctx.purses[walletName];
-    const nahmiiBalanceDiff = subEth(purse.nahmiiBalanceAfterAction[symbol], purse.nahmiiBalanceBeforeAction[symbol]);
-    expect(nahmiiBalanceDiff).to.be.equal(options.expectNahmiiBalanceChange);
-  });
-
-  step(`${walletName} on-chain balance change: ${options.expectOnchainBalanceChange}`, async function () {
-    if (options.expectOnchainBalanceChange === null)
-      return;
-
-    const purse = ctx.purses[walletName];
-    const nahmiiBalanceDiff = subEth(purse.onchainBalanceAfterAction, purse.onchainBalanceBeforeAction);
-    expect(nahmiiBalanceDiff).to.be.equal(options.expectOnchainBalanceChange);
-  });
-}
-*/
-
 /*****************************************************************************/
 
 function makeDeposit(ctx, walletName, depositAmount, symbol) {
@@ -519,6 +422,13 @@ function stageNullSettlementChallenge(ctx, walletName, stageAmount, symbol) {
   captureNahmiiBalancesBeforeAction(ctx, walletName, symbol);
   captureStagedBalanceBeforeAction(ctx, walletName, symbol);
 
+  step(`${walletName} has no proposal nonce (throws)`, async () => {
+    const wallet = ctx.wallets[walletName];
+    expect(
+      nullSettlementChallengeContract.proposalNonce(wallet.address, currency.ct, 0)
+    ).to.eventually.rejectedWith('VM Exception while processing transaction: revert');
+  });
+
   step(`${walletName} starts challenge process`, async () => {
     const purse = ctx.purses[walletName];
     purse.settlement = new nahmii.Settlement(provider);
@@ -530,13 +440,13 @@ function stageNullSettlementChallenge(ctx, walletName, stageAmount, symbol) {
     expect(txs[0].type).to.equal('null');
   });
 
-  step(`${walletName} has proposal with status "Qualified"`, done => {
+  step(`${walletName} has proposal with status: Qualified`, done => {
     nullSettlementChallengeContract.proposalStatus(ctx.wallets[walletName].address, currency.ct, 0)
     .then(res => (res === 0) ? done() : done(res))
     .catch(err => done(err));
   });
 
-  step(`${walletName} has proposal with valid staged amount`, async () => {
+  step(`${walletName} has proposal with staged amount: ${stageAmount}`, async () => {
     const wallet = ctx.wallets[walletName];
     const proposalStageAmount = await nullSettlementChallengeContract.proposalStageAmount(wallet.address, currency.ct, 0);
     expect(formatEther(proposalStageAmount)).to.equal(stageAmount);
@@ -639,48 +549,12 @@ function withdrawQualifiedNullSettlementChallenge(ctx, walletName, withdrawAmoun
   });
 
   captureOnchainBalanceAfterAction(ctx, walletName, symbol);
-  captureStagedBalanceAfterAction(ctx, walletName, symbol);
+  captureStagedBalanceAfterAction(ctx, walletName, symbol, null);
 
-  verifyOnchainBalanceChange(ctx, walletName, symbol, withdrawAmount);
-  verifyStagedBalancesChange(ctx, walletName, symbol, '-' + withdrawAmount);
+  verifyOnchainBalanceChange(ctx, walletName, symbol, '0.0');
+  verifyStagedBalancesChange(ctx, walletName, symbol, '0.0');
 }
 
-/*
-
-  step('Currency ETH', async () => {
-    const eth = await minikube.getCurrency('ETH');
-    return eth.should.have.property('symbol', 'ETH');
-  });
-
-            describe('after null settlement challenge period ended', () => {
-                before(async() => {
-                    await sender.wallet.provider.send('evm_increaseTime', [300]);
-                    await sender.wallet.provider.send('evm_mine');
-                })
-            });
-
-            describe('settle null', () => {
-                before(async() => {
-                    try {
-                        await settlement.settle(transfer.currency, transfer.currencyId, sender.wallet, {gasLimit: 6e6});
-                    } catch (error) {
-                        console.error(error.asStringified());
-                        throw error;
-                    }
-                })
-                it('deposted balance should be updated', async () => {
-                    const nahmiiBalance = await getBalance('depositedBalanceType', sender.wallet, transfer);
-
-                    assert.equal(formatEther(nahmiiBalance), '0.0')
-                });
-                it('staged balance should be updated', async () => {
-                    const stagedBalance = await sender.wallet.getNahmiiStagedBalance(transfer.symbol);
-
-                    assert.equal(formatEther(stagedBalance), formatEther(intendedStageAmount));
-                });
-            });
-
-*/
 describe('Qualified null settlement challenge', () => {
   const ctx = {
     wallets: {},
