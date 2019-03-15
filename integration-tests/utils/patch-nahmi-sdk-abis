@@ -7,7 +7,7 @@
 # sed -i "/      \"address\": \"/c\      \"address\": \"$CLIENT_FUND_ADDR\"," ./src/ethereum/smart-contracts/abi/ropsten/ClientFund.json;
 
 # Go to project dir
-cd "$(dirname ${BASH_SOURCE[0]})/.."
+cd "$(dirname ${BASH_SOURCE[0]})/../.."
 
 # Make addresses[contract_name] associative array over minikube contract addresses
 declare -A addresses

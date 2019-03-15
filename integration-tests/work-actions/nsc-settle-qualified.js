@@ -3,7 +3,7 @@
 const chai = require('chai');
 const expect = chai.expect;
 
-const minikube = require('../../utils/minikube');
+const minikube = require('../utils/minikube');
 
 module.exports = function (ctx, walletName, settleAmount, symbol) {
   let nextStageEventPromise, nextSettleNullEventPromise;
@@ -29,9 +29,9 @@ module.exports = function (ctx, walletName, settleAmount, symbol) {
     });
   });
 
-  require('../balances/clear-all-balances-from-purse')(ctx, walletName);
-  require('../balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
-  require('../balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
+  require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
 
 
   step(`${walletName} settles staged amount`, async () => {
@@ -53,9 +53,9 @@ module.exports = function (ctx, walletName, settleAmount, symbol) {
     expect(nextSettleNullEventPromise).to.eventually.be.fulfilled;
   });
 
-  require('../balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol, null);
-  require('../balances/capture-staged-balance-after-action')(ctx, walletName, symbol, null);
+  require('../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol, null);
+  require('../work-steps/balances/capture-staged-balance-after-action')(ctx, walletName, symbol, null);
 
-  require('../balances/verify-nahmii-balance-change')(ctx, walletName, symbol, '0.0');
-  require('../balances/verify-staged-balance-change')(ctx, walletName, symbol, '0.0');
+  require('../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, symbol, '0.0');
+  require('../work-steps/balances/verify-staged-balance-change')(ctx, walletName, symbol, '0.0');
 };
