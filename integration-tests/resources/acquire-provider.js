@@ -1,7 +1,7 @@
 'use strict';
 
 const chai = require('chai');
-const minikube = require('../../utils/minikube');
+const minikube = require('../utils/minikube');
 const nahmii = require('nahmii-sdk');
 
 module.exports = function (ctx) {

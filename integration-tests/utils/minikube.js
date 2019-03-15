@@ -49,8 +49,8 @@ class Minikube {
   static get accounts () {
     // Must be configured in mini-cluster
     return {
-      faucet: accounts[0],
-      miner:  accounts[1]
+      faucet: { address: '0x3135613dd7a8e109fe530788a6fbd006e8590988', privateKey: '0x29d32d06b0e97709a33c8108ac9da28aa7a8239a7cf3b7a4d12b2050af9209f5' },
+      miner:  { address: '0xbcda4cbbeec5927235f6191ac9322f1514616e96', privateKey: '0x9ef705cd31370112cbc3d0c88d401f2397f3fe1e530306e5a572d57a196199d6' }
     };
   }
 

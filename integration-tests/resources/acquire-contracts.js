@@ -12,7 +12,6 @@ const global = {};
 
 async function getContractAddress (contractName) {
   if (! global.contracts) {
-    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
     const response = await request.get(`http://omphalos.mini.cluster`);
     global.contracts = response.body.ethereum.contracts;
   }
@@ -42,7 +41,7 @@ async function createContract (contractName, provider) {
     return Promise.reject('Contract is missing code.');
 
   const abiPath = await getAbiPath(contractName);
-  const { abi } = require('../../../' + abiPath);
+  const { abi } = require('../../' + abiPath);
 
   return new ethers.Contract(contractAddress, abi, provider);
 }
