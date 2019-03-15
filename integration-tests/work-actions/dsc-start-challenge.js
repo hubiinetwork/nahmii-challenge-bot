@@ -6,41 +6,43 @@ const expect = chai.expect;
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
-const minikube = require('../../utils/minikube');
+const minikube = require('../utils/minikube');
 
 function isRevertContractException(error) {
   return error.code === 'CALL_EXCEPTION' || error.code === -32000;
 }
 
-module.exports = function (ctx, walletName, stageAmount, symbol) {
+module.exports = function (ctx, challengerName, walletName, stageAmount, symbol) {
   let currency;
 
   before(async () => {
     currency = await minikube.getCurrency(symbol);
   });
 
-  step('Create StartChallengeEvent listener', async () => {
+  step(`${challengerName} expects a StartChallengeEvent`, async () => {
     ctx.nextStartChallengePromise = new Promise(resolve => {
-      ctx.contracts.nullSettlementChallenge.on('StartChallengeEvent', (initiatorWallet, stagedAmount, stagedCt, stageId) => {
+      const challenger = ctx.wallets[challengerName].asChallenger;
+      challenger.onDriipSettlementChallenge((initiatorWallet, stagedAmount, stagedCt, stageId) => {
+        challenger.onDriipSettlementChallenge(null);
         resolve({ initiatorWallet, stagedAmount, stagedCt, stageId });
       });
     });
   });
 
   step(`${walletName} has no proposal status`, done => {
-    ctx.contracts.nullSettlementChallenge.proposalStatus(ctx.wallets[walletName].address, currency.ct, 0)
+    ctx.contracts.driipSettlementChallenge.proposalStatus(ctx.wallets[walletName].address, currency.ct, 0)
     .then(res => done(res))
     .catch(err => isRevertContractException(err) ? done() : done(err));
   });
 
-  require('../balances/clear-all-balances-from-purse')(ctx, walletName);
-  require('../balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
-  require('../balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
+  require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
 
   step(`${walletName} has no proposal nonce (throws)`, async () => {
     const wallet = ctx.wallets[walletName];
     expect(
-      ctx.contracts.nullSettlementChallenge.proposalNonce(wallet.address, currency.ct, 0)
+      ctx.contracts.driipSettlementChallenge.proposalNonce(wallet.address, currency.ct, 0)
     ).to.eventually.rejectedWith('VM Exception while processing transaction: revert');
   });
 
@@ -56,26 +58,27 @@ module.exports = function (ctx, walletName, stageAmount, symbol) {
   });
 
   step(`${walletName} has proposal with status: Qualified`, done => {
-    ctx.contracts.nullSettlementChallenge.proposalStatus(ctx.wallets[walletName].address, currency.ct, 0)
+    ctx.contracts.driipSettlementChallenge.proposalStatus(ctx.wallets[walletName].address, currency.ct, 0)
     .then(res => (res === 0) ? done() : done(res))
     .catch(err => done(err));
   });
 
   step(`${walletName} has proposal with staged amount: ${stageAmount}`, async () => {
     const wallet = ctx.wallets[walletName];
-    const proposalStageAmount = await ctx.contracts.nullSettlementChallenge.proposalStageAmount(wallet.address, currency.ct, 0);
+    const proposalStageAmount = await ctx.contracts.driipSettlementChallenge.proposalStageAmount(wallet.address, currency.ct, 0);
     expect(formatEther(proposalStageAmount)).to.equal(stageAmount);
   });
 
   step(`${walletName} has proposal with updated a nonce`, async () => {
     const wallet = ctx.wallets[walletName];
-    const nonce = await ctx.contracts.nullSettlementChallenge.proposalNonce(wallet.address, currency.ct, 0);
+    const nonce = await ctx.contracts.driipSettlementChallenge.proposalNonce(wallet.address, currency.ct, 0);
     expect(nonce.toNumber()).to.be.gt(0);
   });
 
-  step('StartChallengeEvent is emitted', async function () {
+  step(`${challengerName} observed a StartChallengeEvent`, async function () {
     // Do not force mining before this test. Ganache will wipe the event !!!
-    this.timeout(5000);
+    this.timeout(50000);
+    const deleteme = await ctx.nextStartChallengePromise;
     expect(ctx.nextStartChallengePromise).to.eventually.be.fulfilled;
   });
 
@@ -88,9 +91,9 @@ module.exports = function (ctx, walletName, stageAmount, symbol) {
     expect(stageId.toString()).to.equal('0');
   });
 
-  require('../balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol, null);
-  require('../balances/capture-staged-balance-after-action')(ctx, walletName, symbol, null);
+  require('../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol, null);
+  require('../work-steps/balances/capture-staged-balance-after-action')(ctx, walletName, symbol, null);
 
-  require('../balances/verify-nahmii-balance-change')(ctx, walletName, symbol, '0.0');
-  require('../balances/verify-staged-balance-change')(ctx, walletName, symbol, '0.0');
+  require('../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, symbol, '0.0');
+  require('../work-steps/balances/verify-staged-balance-change')(ctx, walletName, symbol, '0.0');
 };

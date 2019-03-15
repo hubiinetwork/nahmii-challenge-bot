@@ -3,7 +3,7 @@
 const chai = require('chai');
 const expect = chai.expect;
 const ethers = require('ethers');
-const { addEth, subEth } = require('../../../src/utils/mixed-big-number-ops');
+const { addEth, subEth } = require('../../src/utils/mixed-big-number-ops');
 const io = require('socket.io-client');
 
 function promiseNextReceiptFromEvent () {
@@ -49,9 +49,9 @@ module.exports = function (ctx, walletName, depositAmount, symbol) {
     return true;
   });
 
-  require('../balances/clear-all-balances-from-purse')(ctx, walletName);
-  require('../balances/capture-onchain-balance-before-action')(ctx, walletName, symbol);
-  require('../balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
+  require('../work-steps/balances/capture-onchain-balance-before-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
 
   step(`${walletName} deposits an amount`, async () => {
     depositTransaction = await ctx.wallets[walletName].depositEth(depositAmount, { gasLimit: 2000000 });
@@ -70,9 +70,9 @@ module.exports = function (ctx, walletName, depositAmount, symbol) {
     expect(ctx.nextDepositPromise).to.eventually.be.fulfilled;
   });
 
-  require('../balances/capture-onchain-balance-after-action')(ctx, walletName, symbol);
-  require('../balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
-  require('../balances/verify-nahmii-balance-change')(ctx, walletName, symbol, depositAmount);
+  require('../work-steps/balances/capture-onchain-balance-after-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, symbol, depositAmount);
 
   step(`${walletName} has an reduced block chain balance`, async () => {
     const purse = ctx.purses[walletName];

@@ -3,7 +3,7 @@
 const chai = require('chai');
 const expect = chai.expect;
 
-const minikube = require('../../utils/minikube');
+const minikube = require('../utils/minikube');
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
@@ -15,7 +15,7 @@ module.exports = function (ctx) {
   });
 };
 
-module.exports = function (ctx, walletName) {
+module.exports = function (ctx, walletName, assignedEth) {
   step(`${walletName} has new wallet`, () => {
     ctx.purses[walletName] = {};
     ctx.wallets[walletName] = new nahmii.Wallet(ethers.Wallet.createRandom().privateKey, ctx.provider);
@@ -28,9 +28,9 @@ module.exports = function (ctx, walletName) {
     expect(balance.toString()).to.equal('0');
   });
 
-  step(`${walletName} receives ETH from Faucet`, async () => {
+  step(`${walletName} receives ${assignedEth} ETH from Faucet`, async () => {
     await ctx.Faucet.sendTransaction({
-      to: ctx.wallets[walletName].address, value: parseEther('1.0'), gasLimit: 6000000
+      to: ctx.wallets[walletName].address, value: parseEther(assignedEth), gasLimit: 6000000
     });
 
     ctx.Miner.mineOneBlock();
