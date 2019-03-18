@@ -22,6 +22,10 @@ spec:
       - name: challenge-bot
         image: 856572510817.dkr.ecr.eu-west-1.amazonaws.com/challenge-bot:v38
         imagePullPolicy: Always
+        volumeMounts:
+        - name: challenge-bot-keystore
+          mountPath: /app/keystore
+          readOnly: true
         env:
         - name: NODE_ENV
           value: production
@@ -29,11 +33,13 @@ spec:
           value: api.nahmii.io
         - name: ETHEREUM_NODE_URL
           value: http://ethereum.hubii.com
-        - name: CHALLENGE_BOT_PRIVATE_KEY
+        - name: CHALLENGE_BOT_UTCADDRESS
+          value: 0xXXXXXXXXXXXXXXXXXX?
+        - name: CHALLENGE_BOT_UTCSECRET
           valueFrom:
             secretKeyRef:
               name: challenge-bot
-              key: privatekey
+              key: utcsecret
         - name: CHALLENGE_BOT_APPID
           valueFrom:
             secretKeyRef:
@@ -51,3 +57,10 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "1"
+        volumeMounts:
+        - name: challenge-bot-keystore
+          mountPath: /app/keystore
+      volumes:
+      - name: challenge-bot-keystore
+        secret:
+          secretName: challenge-bot-utcfile

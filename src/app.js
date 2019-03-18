@@ -23,9 +23,10 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.info('Validating config ...');
   config.validateConfig();
 
+  logger.info('');
   logger.info(`   nahmi URL : '${config.services.baseUrl}'`);
   logger.info(`ethereum URL : '${config.ethereum.nodeUrl}'`);
-  logger.info(` wallet addr : '${config.wallet.utcAddress}' for signing.`);
+  logger.info(` wallet addr : '${config.wallet.utcAddress}'`);
 
   const ethereum = await ClusterInformation.getEthereum();
 
@@ -61,6 +62,7 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
     logger.info(`wallet: ${initiatorWallet}, staged amount: ${stagedAmount}, ct: ${ct}, id: ${id}`)
   );
 
-  logger.info('Waiting for events ...');
+  logger.info('');
+  logger.info('We are in business! Waiting for events ...');
 
 })();
