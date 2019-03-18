@@ -44,13 +44,13 @@ module.exports = function (ctx, walletName, settleAmount, symbol) {
   step('StageEvent event is emitted', async function () {
     // Do not force mining before this test. Ganache will wipe the event !!!
     this.timeout(5000);
-    expect(nextStageEventPromise).to.eventually.be.fulfilled;
+    return expect(nextStageEventPromise).to.eventually.be.fulfilled;
   });
 
   step('SettleNullEvent event is emitted', async function () {
     // Do not force mining before this test. Ganache will wipe the event !!!
     this.timeout(5000);
-    expect(nextSettleNullEventPromise).to.eventually.be.fulfilled;
+    return expect(nextSettleNullEventPromise).to.eventually.be.fulfilled;
   });
 
   require('../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol, null);

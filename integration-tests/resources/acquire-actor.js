@@ -3,17 +3,9 @@
 const chai = require('chai');
 const expect = chai.expect;
 
-const minikube = require('../utils/minikube');
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
-
-module.exports = function (ctx) {
-  step('Provider', async () => {
-    ctx.provider = new nahmii.NahmiiProvider(minikube.baseUrl, minikube.appId, minikube.appSecret, minikube.nodeUrl, 'ropsten');
-    chai.expect(ctx.provider).to.be.instanceof(nahmii.NahmiiProvider);
-  });
-};
 
 module.exports = function (ctx, walletName, assignedEth) {
   step(`${walletName} has new wallet`, () => {

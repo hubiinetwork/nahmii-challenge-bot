@@ -28,31 +28,16 @@ spec:
           value: api2.dev.hubii.net
         - name: NODE_ENV
           value: development
-        - name: JWT_SECRET
+        - name: CHALLENGE_BOT_ADDRESS
           valueFrom:
             secretKeyRef:
-              name: identity-server-secrets
-              key: JWT_SECRET
-        - name: IDENTITY_SERVER_APPID
+              name: challenge-bot
+              key: appid
+        - name: CHALLENGE_BOT_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: identity-server-appid
-              key: IDENTITY_SERVER_APPID
-        - name: IDENTITY_SERVER_APPSECRET
-          valueFrom:
-            secretKeyRef:
-              name: identity-server-appsecret
-              key: IDENTITY_SERVER_APPSECRET
-        - name: CHALLENGER_WALLET_ADDRESS
-          valueFrom:
-            secretKeyRef:
-              name: challenger-wallet-address
-              key: CHALLENGER_WALLET_ADDRESS
-        - name: CHALLENGER_WALLET_PRIVATE_KEY
-          valueFrom:
-            secretKeyRef:
-              name: challenger-wallet-private-key
-              key: CHALLENGER_WALLET_PRIVATE_KEY
+              name: challenge-bot
+              key: appsecret
         resources:
           requests:
             memory: "500Mi"
