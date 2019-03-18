@@ -9,7 +9,6 @@ function validateConfig () {
   validateEnvVar('NODE_ENV');
   validateEnvVar('NAHMII_BASE_URL');
   validateEnvVar('ETHEREUM_NODE_URL');
-  validateEnvVar('CHALLENGE_BOT_ADDRESS');
   validateEnvVar('CHALLENGE_BOT_PRIVATE_KEY');
   validateEnvVar('CHALLENGE_BOT_APPID');
   validateEnvVar('CHALLENGE_BOT_APPSECRET');
@@ -25,7 +24,6 @@ module.exports = {
     baseUrl: process.env['NAHMII_BASE_URL'] || ''
   },
   wallet: {
-    address: process.env['CHALLENGE_BOT_ADDRESS'] || '',
     privateKey: process.env['CHALLENGE_BOT_PRIVATE_KEY'] || ''
   },
   identity: {
