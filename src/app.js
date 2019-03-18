@@ -7,13 +7,13 @@ const ContractFactory = require('./contract-factory');
 const ChallengeHandler = require('./challenge-handler');
 const NestedError = require('./utils/nested-error');
 const nahmii = require('nahmii-sdk');
-
+const keythereum = require('keythereum');
+const path = require('path');
 
 process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.error(NestedError.asStringified(reason));
   setTimeout(() => process.exit(-1), 2000);
 });
-
 
 (async () => {
   const now = new Date(Date.now()).toISOString();
@@ -25,6 +25,7 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
 
   logger.info(`   nahmi URL : '${config.services.baseUrl}'`);
   logger.info(`ethereum URL : '${config.ethereum.nodeUrl}'`);
+  logger.info(` wallet addr : '${config.wallet.utcAddress}' for signing.`);
 
   const ethereum = await ClusterInformation.getEthereum();
 
@@ -37,13 +38,20 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
     config.ethereum.nodeUrl, ethereum.net
   );
 
-  logger.info('Attaching event handlers ...');
+  logger.info('Reading utc keystore ...');
+
+  const keyObject = keythereum.importFromFile(config.wallet.utcAddress, path.resolve(__dirname, '../'));
+  const privateKey = keythereum.recover(config.wallet.utcSecret, keyObject).toString('hex');
+
+  logger.info('Creating challenge handler ...');
 
   const challenge_handler = new ChallengeHandler(
-    new nahmii.Wallet(config.wallet.privateKey, provider),
+    new nahmii.Wallet(privateKey, provider),
     await ContractFactory.create('DriipSettlementChallenge', provider),
     await ContractFactory.create('NullSettlementChallenge', provider)
   );
+
+  logger.info('Attaching event handlers ...');
 
   challenge_handler.onStartChallengeFromPaymentEvent((initiatorWallet, paymentHash, stagedAmount) =>
     logger.info(`wallet: ${initiatorWallet}, hash: ${paymentHash}, staged amount: ${stagedAmount}`)
