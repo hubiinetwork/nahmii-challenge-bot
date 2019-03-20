@@ -6,7 +6,7 @@ const expect = chai.expect;
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
-const minikube = require('../utils/minikube');
+const minikube = require('../../../utils/minikube');
 
 function isRevertContractException(error) {
   return error.code === 'CALL_EXCEPTION' || error.code === -32000;
@@ -35,7 +35,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
     .catch(err => isRevertContractException(err) ? done() : done(err));
   });
 
-  require('../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
+  require('../../../../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
   require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
   require('../work-steps/balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
 
