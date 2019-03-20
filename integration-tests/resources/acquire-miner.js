@@ -10,7 +10,7 @@ function poll(predicate, times, delay) {
 
     async function check() {
       if (!times)
-        reject(new Error('Polling failed: exhausted retries!'));
+        reject(new Error('Polling exhausted retries!'));
 
       if (await predicate.call()) {
         resolve();
@@ -25,36 +25,78 @@ function poll(predicate, times, delay) {
   });
 }
 
+// This number must match the polling speed of the ethers provider.
+// Ensure that there are no more than max 12 blocks mined per ethers provider poll.
+// Otherwise ethers will start to drop events.
+
+const minMiningInterval = 300;
+
 class Miner extends nahmii.Wallet {
 
   constructor(privateKey, provider) {
     super(privateKey, provider);
   }
 
-  async mineOneBlock() {
-    const address = await this.getAddress();
-    const oldBlockNum = await this.provider.getBlockNumber();
-
-    await this.sendTransaction({
-      to: address, value: ethers.utils.parseEther('0'), gasLimit: 6000000
-    });
-
-    await poll(async () => {
-      return await this.provider.getBlockNumber() > oldBlockNum;
-    }, 10, 500);
+  async advanceTime (timeDiff) {
+    this.provider.send('evm_increaseTime', [timeDiff]);
+    this.provider.send('evm_mine', []);
+    await new Promise(resolve => this.provider.once('block', resolve));
   }
 
-  async mineUntil(predicate, times, delay) {
+  async mineOnce () {
+    // Send one transaction which triggers ganache mining
+    await this.sendTransaction({
+      to: await this.getAddress(), value: ethers.utils.parseEther('0'), gasLimit: 6000000
+    });
+  }
+
+  async mineOneBlock () {
+    await this.mineOnce();
+    await new Promise(resolve => this.provider.once('block', resolve));
+  }
+
+  async mineUntil (predicate) {
+    const ethersBlockLimit = 12; // Ethers discards events more than 12 blocks old
+    const maxBlocksPerInterval = ethersBlockLimit / 2;
+    const timeoutMs = 15000;
+    const retryCount = maxBlocksPerInterval * timeoutMs / this.provider.pollingInterval;
+    const miningInterval = this.provider.pollingInterval / maxBlocksPerInterval;
+
     return poll(async () => {
-      await this.mineOneBlock();
-      return await predicate();
-    }, times, 100, delay);
+      const isDone = await predicate();
+
+      if (! isDone)
+        await this.mineOnce();
+
+      process.stdout.write(`${await this.provider.getBlockNumber()}\r`);
+
+      return isDone;
+
+    }, retryCount, miningInterval)
+    .catch(async err => {
+      err.message += ` Gave up mining at block no: ${await this.provider.getBlockNumber()}`;
+      return Promise.reject(err);
+    });
+  }
+
+  async mineCount (count = 1) {
+    await this.mineOnce();
+
+    for (let i = 1; i < count; ++i) {
+      await this.mineOnce();
+
+      // Slow down according to Ethers polling capacity.
+      // Ethers drops log/events that has more than 12 blocks coverage per poll.
+      await new Promise(resolve => setTimeout(resolve, this.provider.pollingInterval / 6));
+    }
   }
 }
 
 module.exports = function (ctx) {
-  step('Miner driving blockchain forward', () => {
+  step('Miner driving blockchain forward', async function () {
     ctx.Miner = new Miner(minikube.accounts.miner.privateKey, ctx.provider);
+    const balance = ethers.utils.formatEther(await ctx.Miner.getBalance());
+    this.test.title += `\n        ${ctx.Miner.address}, ${balance} ETH`;
     chai.expect(ctx.Miner).to.be.instanceof(nahmii.Wallet);
     chai.expect(ctx.Miner).to.be.instanceof(Miner);
   });

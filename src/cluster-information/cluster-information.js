@@ -2,34 +2,35 @@
 
 const request = require('superagent');
 const config = require('../config');
+const NestedError = require('../utils/nested-error');
 
 let clusterInfo;
 let timeToRefresh = 0;
 
-class ClusterInformation {
-
-  static async aquireInfo() {
+async function acquireInfo () {
+  try {
     if (timeToRefresh < Date.now()) {
-      clusterInfo = await request.get(`https://${config.services.baseUrl}`)
-        .then(res => res.body)
-        .catch(err => {
-          throw new Error('Unable to retrieve cluster information: ' + err);
-        });
-
+      clusterInfo = (await request.get(`https://${config.services.baseUrl}`)).body;
       timeToRefresh = Date.now() + 10000; // 10 sec
     }
 
     return clusterInfo;
   }
-
-  static async aquireEthereumUrl () {
-    const { ethereum } = await ClusterInformation.aquireInfo();
-    return ethereum.node;
+  catch (err) {
+    throw new NestedError(err, 'Failed to retrieve cluster information. ' + err.message);
   }
+}
 
-  static async aquireContractAddress (contractName) {
-    const { ethereum } = await ClusterInformation.aquireInfo();
-    return ethereum.contracts[contractName];
+class ClusterInformation {
+
+  static async getEthereum () {
+    try {
+      const { ethereum } = await acquireInfo();
+      return ethereum;
+    }
+    catch (err) {
+      throw new NestedError(err, 'Failed to retrieve ethereum info. ' + err.message);
+    }
   }
 }
 

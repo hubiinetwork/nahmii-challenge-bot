@@ -2,23 +2,38 @@
 
 const ethers = require('ethers');
 const ClusterInformation = require('../cluster-information');
+const { execSync } = require('child_process');
 
-let ethProvider;
+function getAbiPath (contractName, network) {
+  return new Promise((resolve, reject) =>{
+    const abiPaths = execSync(
+      `find ./node_modules/nahmii-sdk -type f -name ${contractName}.json | grep 'abis/${network}'`,
+      { encoding: 'utf8' }
+    ).split('\n');
 
-async function aquireEthProvider () {
-  if (! ethProvider) {
-    const ethereumUrl = await ClusterInformation.aquireEthereumUrl();
-    ethProvider = new ethers.providers.JsonRpcProvider(ethereumUrl);
-  }
-
-  return ethProvider;
+    if (abiPaths.length < 1)
+      reject(new Error('Could not find ABI of contract: ' + contractName));
+    else
+      resolve(abiPaths[0]);
+  });
 }
 
 class ContractFactory {
-  static async create (contractName) {
-    const { abi } = require(`./abi/${contractName}.json`);
-    const contractAddress = await ClusterInformation.aquireContractAddress(contractName);
-    return new ethers.Contract(contractAddress, abi, await aquireEthProvider());
+  static async create (contractName, provider) {
+    const ethereum = await ClusterInformation.getEthereum();
+    const contractAddress = ethereum.contracts[contractName];
+    const abiPath = await getAbiPath(contractName, ethereum.net);
+    const deployment = require('../../' + abiPath);
+
+    if (deployment.networks[provider.network.chainId].address !== contractAddress) {
+      const msg = 'Contract addresses do not match.\n' +
+      `        ${contractName}\n` +
+      `        meta service : ${contractAddress}\n` +
+      `        abi address  : ${deployment.address}`;
+      throw new Error(msg);
+    }
+
+    return new ethers.Contract(contractAddress, deployment.abi, provider);
   }
 }
 

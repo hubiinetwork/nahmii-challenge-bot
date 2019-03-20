@@ -37,13 +37,21 @@ async function createContract (contractName, provider) {
   const contractAddress = await getContractAddress(contractName);
   const code = await provider.getCode(contractAddress);
 
-  if ((typeof code !=='string') || (code.length <= 2))
-    return Promise.reject('Contract is missing code.');
+  if ((typeof code !=='string') || (code.length <= 10))
+    return Promise.reject(new Error(`Contract ${contractName} ${contractAddress} is missing code.`));
 
   const abiPath = await getAbiPath(contractName);
-  const { abi } = require('../../' + abiPath);
+  const deployment = require('../../' + abiPath);
 
-  return new ethers.Contract(contractAddress, abi, provider);
+  if (deployment.networks['3'].address !== contractAddress) {
+    const msg = 'Contract addresses do not match.\n' +
+    `        ${contractName}\n` +
+    `        meta service : ${contractAddress}\n` +
+    `        abi address  : ${deployment.address}`;
+    throw new Error(msg);
+  }
+
+  return new ethers.Contract(contractAddress, deployment.abi, provider);
 }
 
 module.exports = function (ctx) {
