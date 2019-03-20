@@ -41,7 +41,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
 
   step(`${walletName} has no proposal nonce (throws)`, async () => {
     const wallet = ctx.wallets[walletName];
-    expect(
+    return expect(
       ctx.contracts.driipSettlementChallenge.proposalNonce(wallet.address, currency.ct, 0)
     ).to.eventually.rejectedWith('VM Exception while processing transaction: revert');
   });
@@ -79,7 +79,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
     // Do not force mining before this test. Ganache will wipe the event !!!
     this.timeout(50000);
     const deleteme = await ctx.nextStartChallengePromise;
-    expect(ctx.nextStartChallengePromise).to.eventually.be.fulfilled;
+    return expect(ctx.nextStartChallengePromise).to.eventually.be.fulfilled;
   });
 
   step('StartChallengeEvent payload is valid', async function () {

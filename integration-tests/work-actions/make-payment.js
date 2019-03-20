@@ -31,7 +31,7 @@ module.exports = function (ctx, fromName, fromAmount, toName, toAmount, symbol) 
   step('Register payment', async () => {
     const purse = ctx.purses[fromName];
     const promisedResult = purse.payment.register();
-    expect(promisedResult).to.eventually.be.fulfilled;
+    await expect(promisedResult).to.eventually.be.fulfilled;
     expect(purse.payment.isSigned()).to.be.true;
   });
 

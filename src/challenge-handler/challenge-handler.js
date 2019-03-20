@@ -1,29 +1,58 @@
 'use strict';
-/*
-const nahmiiSrv = require('./nahmii-service');
-const currencySrv = require('./currency-service');
-const configSrv = require('./config-service/nahmii-config');
-const BigNumber = require('bignumber.js');
-*/
 
-const { logger } = require('@hubiinetwork/logger');
+const nahmii = require('nahmii-sdk');
 
-let driipSettelementChallengeCallback;
+const _wallet = new WeakMap;
+const _onStartChallengeEventFromPaymentCallback = new WeakMap;
+const _onStartChallengeEventCallback = new WeakMap;
+const _driipSettlementChallengeContract = new WeakMap;
+const _nullSettlementChallengeContract= new WeakMap;
+
 
 class ChallengeHandler {
 
-  static handleDriipSettlementChallenge (initiatorWallet, paymentHash, stagedAmount) {
-    logger.info(`wallet: ${initiatorWallet}, hash: ${paymentHash}, staged amount: ${stagedAmount}`);
-    if (driipSettelementChallengeCallback)
-      driipSettelementChallengeCallback(initiatorWallet, paymentHash, stagedAmount);
+  constructor(wallet, driipSettlementChallengeContract, nullSettlementChallengeContract) {
+    // ISSUE: Some nodes (e.g. ganache) is pecky about address format in filters.
+    //        https://github.com/ethers-io/ethers.js/issues/165
+    //        https://github.com/trufflesuite/ganache-cli/issues/494
+
+    _wallet.set(this, wallet);
+    _driipSettlementChallengeContract.set(this, driipSettlementChallengeContract);
+    _nullSettlementChallengeContract.set(this, nullSettlementChallengeContract);
+
+    driipSettlementChallengeContract.on('StartChallengeFromPaymentEvent', (initiatorWallet, paymentHash, stagedAmount) => {
+      this.handleStartChallengeFromPaymentEvent(initiatorWallet, paymentHash, stagedAmount);
+    });
+
+    driipSettlementChallengeContract.on('StartChallengeFromPaymentByProxyEvent', (_proxy, initiatorWallet, paymentHash, stagedAmount) => {
+      this.handleStartChallengeFromPaymentEvent(initiatorWallet, paymentHash, stagedAmount);
+    });
+
+    nullSettlementChallengeContract.on('StartChallengeEvent', (initiatorWallet, stagedAmount, stagedCt, stageId) => {
+      this.handleStartChallengeEvent(initiatorWallet, stagedAmount, stagedCt, stageId);
+    });
+
+    nullSettlementChallengeContract.on('StartChallengeByProxyEvent', (_proxy, initiatorWallet, stagedAmount, stagedCt, stageId) => {
+      this.handleStartChallengeEvent(initiatorWallet, stagedAmount, stagedCt, stageId);
+    });
   }
 
-  static handleNullSettlementChallenge (initiatorWallet, stagedAmount, ct, id) {
-    logger.info(`wallet: ${initiatorWallet}, staged amount: ${stagedAmount}, ct: ${ct}, id: ${id}`);
+  handleStartChallengeFromPaymentEvent (initiatorWallet, paymentHash, stagedAmount) {
+    if (_onStartChallengeEventFromPaymentCallback.get(this))
+      _onStartChallengeEventFromPaymentCallback.get(this)(initiatorWallet, paymentHash, stagedAmount);
   }
 
-  static onDriipSettelentChallenge (callback) {
-    driipSettelementChallengeCallback = callback;
+  handleStartChallengeEvent (initiatorWallet, stagedAmount, ct, id) {
+    if (_onStartChallengeEventCallback.get(this))
+      _onStartChallengeEventCallback.get(this)(initiatorWallet, stagedAmount, ct, id);
+  }
+
+  onStartChallengeFromPaymentEvent (callback) {
+    _onStartChallengeEventFromPaymentCallback.set(this, callback);
+  }
+
+  onStartChallengeEvent (callback) {
+    _onStartChallengeEventCallback.set(this, callback);
   }
 }
 
