@@ -9,6 +9,16 @@ const _driipSettlementChallengeContract = new WeakMap;
 const _nullSettlementChallengeContract= new WeakMap;
 
 
+function handleStartChallengeFromPaymentEvent (initiatorWallet, paymentHash, stagedAmount) {
+  if (_onStartChallengeEventFromPaymentCallback.get(this))
+    _onStartChallengeEventFromPaymentCallback.get(this)(initiatorWallet, paymentHash, stagedAmount);
+}
+
+function handleStartChallengeEvent (initiatorWallet, stagedAmount, ct, id) {
+  if (_onStartChallengeEventCallback.get(this))
+    _onStartChallengeEventCallback.get(this)(initiatorWallet, stagedAmount, ct, id);
+}
+
 class ChallengeHandler {
 
   constructor(wallet, driipSettlementChallengeContract, nullSettlementChallengeContract) {
@@ -21,30 +31,20 @@ class ChallengeHandler {
     _nullSettlementChallengeContract.set(this, nullSettlementChallengeContract);
 
     driipSettlementChallengeContract.on('StartChallengeFromPaymentEvent', (initiatorWallet, paymentHash, stagedAmount) => {
-      this.handleStartChallengeFromPaymentEvent(initiatorWallet, paymentHash, stagedAmount);
+      handleStartChallengeFromPaymentEvent.call(this, initiatorWallet, paymentHash, stagedAmount);
     });
 
     driipSettlementChallengeContract.on('StartChallengeFromPaymentByProxyEvent', (_proxy, initiatorWallet, paymentHash, stagedAmount) => {
-      this.handleStartChallengeFromPaymentEvent(initiatorWallet, paymentHash, stagedAmount);
+      handleStartChallengeFromPaymentEvent.call(this, initiatorWallet, paymentHash, stagedAmount);
     });
 
     nullSettlementChallengeContract.on('StartChallengeEvent', (initiatorWallet, stagedAmount, stagedCt, stageId) => {
-      this.handleStartChallengeEvent(initiatorWallet, stagedAmount, stagedCt, stageId);
+      handleStartChallengeEvent.call(this, initiatorWallet, stagedAmount, stagedCt, stageId);
     });
 
     nullSettlementChallengeContract.on('StartChallengeByProxyEvent', (_proxy, initiatorWallet, stagedAmount, stagedCt, stageId) => {
-      this.handleStartChallengeEvent(initiatorWallet, stagedAmount, stagedCt, stageId);
+      handleStartChallengeEvent.call(this, initiatorWallet, stagedAmount, stagedCt, stageId);
     });
-  }
-
-  handleStartChallengeFromPaymentEvent (initiatorWallet, paymentHash, stagedAmount) {
-    if (_onStartChallengeEventFromPaymentCallback.get(this))
-      _onStartChallengeEventFromPaymentCallback.get(this)(initiatorWallet, paymentHash, stagedAmount);
-  }
-
-  handleStartChallengeEvent (initiatorWallet, stagedAmount, ct, id) {
-    if (_onStartChallengeEventCallback.get(this))
-      _onStartChallengeEventCallback.get(this)(initiatorWallet, stagedAmount, ct, id);
   }
 
   onStartChallengeFromPaymentEvent (callback) {

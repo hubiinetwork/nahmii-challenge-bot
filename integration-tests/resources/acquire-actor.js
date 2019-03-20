@@ -31,7 +31,7 @@ module.exports = function (ctx, walletName, assignedEth) {
   step(`${walletName} has ETH in block chain balance`, async () => {
     const balance = await ctx.wallets[walletName].getBalance();
     expect(balance).to.not.be.undefined.and.not.be.instanceof(Error);
-    expect(formatEther(balance)).to.equal('1.0');
+    expect(formatEther(balance)).to.equal(assignedEth);
   });
 
   step(`${walletName} has empty Nahmii balance`, async () => {
