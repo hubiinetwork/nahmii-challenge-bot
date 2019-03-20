@@ -46,7 +46,7 @@ module.exports = function (ctx, walletName, depositAmount, symbol) {
   require('../work-steps/balances/capture-onchain-eth-balance-before-action')(ctx, walletName);
   require('../work-steps/balances/capture-nahmii-eth-balance-before-action')(ctx, walletName);
 
-  require('../work-steps/contract-events/subscribe-once-ClientFund-ReceiveEvent')(ctx);
+  require('../work-steps/contract-events/create-ClientFund-ReceiveEvent.promise')(ctx);
 
   step(`${walletName} deposits`, async function () {
     depositTransaction = await ctx.wallets[walletName].depositEth(depositAmount, { gasLimit: 2000000 });
@@ -61,7 +61,7 @@ module.exports = function (ctx, walletName, depositAmount, symbol) {
     this.test.title += ` ${depositReceipt.confirmations} transaction confirmations at ${depositReceipt.blockNumber}`;
   });
 
-  require('../work-steps/contract-events/validate-once-ClientFund-ReceiveEvent')(ctx);
+  require('../work-steps/contract-events/validate-ClientFund-ReceiveEvent-promise')(ctx);
 
   require('../work-steps/balances/capture-onchain-eth-balance-after-action')(ctx, walletName);
 
