@@ -42,28 +42,28 @@ module.exports = function (ctx, walletName, depositAmount, symbol) {
   });
 
   require('../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
-  require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
-  require('../work-steps/balances/capture-onchain-balance-before-action')(ctx, walletName, symbol);
+
+  require('../work-steps/balances/capture-onchain-eth-balance-before-action')(ctx, walletName);
+  require('../work-steps/balances/capture-nahmii-eth-balance-before-action')(ctx, walletName);
 
   require('../work-steps/contract-events/subscribe-once-ClientFund-ReceiveEvent')(ctx);
 
-  step(`${walletName} deposits @ ETH`, async function () {
-    this.test.title = this.test.title.replace('@', depositAmount);
-    this.test.title += `\n        at block ${await ctx.provider.getBlockNumber()}`;
+  step(`${walletName} deposits`, async function () {
     depositTransaction = await ctx.wallets[walletName].depositEth(depositAmount, { gasLimit: 2000000 });
     expect(depositTransaction).to.not.be.undefined.and.not.be.instanceof(Error);
     expect(ethers.utils.formatEther(depositTransaction.value)).to.equal(depositAmount);
+    this.test.title += `: ${depositAmount} ETH at ${depositTransaction.blockNumber}`;
   });
 
-  step(`${walletName} receives transaction confirmation`, async function () {
+  step(`${walletName} receives`, async function () {
     depositReceipt = await ctx.provider.getTransactionConfirmation(depositTransaction.hash);
     expect(depositReceipt).to.not.be.undefined.and.not.be.instanceof(Error);
-    this.test.title += `\n        ${depositReceipt.confirmations} confirmations at block: ${depositReceipt.blockNumber}`;
+    this.test.title += ` ${depositReceipt.confirmations} transaction confirmations at ${depositReceipt.blockNumber}`;
   });
 
   require('../work-steps/contract-events/validate-once-ClientFund-ReceiveEvent')(ctx);
 
-  require('../work-steps/balances/capture-onchain-balance-after-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/capture-onchain-eth-balance-after-action')(ctx, walletName);
 
   step(`${walletName} has a reduced block chain balance`, async function () {
     const purse = ctx.purses[walletName];
@@ -80,6 +80,7 @@ module.exports = function (ctx, walletName, depositAmount, symbol) {
     expect(Number(actualDeduction)).to.gte(Number(expectedDeduction));
   });
 
-  require('../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
-  require('../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, symbol, depositAmount);
+  require('../work-steps/balances/ensure-nahmii-eth-balance-updates')(ctx, walletName);
+  require('../work-steps/balances/capture-nahmii-eth-balance-after-action')(ctx, walletName);
+  require('../work-steps/balances/verify-nahmii-eth-balance-change')(ctx, walletName, depositAmount);
 };

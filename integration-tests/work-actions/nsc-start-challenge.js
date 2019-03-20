@@ -18,8 +18,8 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
     const purse = ctx.purses[challengerName];
     purse.StartChallengeEvent = new Promise(resolve => {
       const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onNullSettlementChallenge((initiatorWallet, stagedAmount, stagedCt, stageId) => {
-        challenger.onNullSettlementChallenge(null);
+      challenger.onStartChallengeEvent((initiatorWallet, stagedAmount, stagedCt, stageId) => {
+        challenger.onStartChallengeEvent(null);
         resolve({ initiatorWallet, stagedAmount, stagedCt, stageId });
       });
     });
@@ -32,8 +32,9 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   });
 
   require('../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
-  require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
-  require('../work-steps/balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
+  require('../work-steps/balances/capture-onchain-eth-balance-before-action')(ctx, walletName);
+  require('../work-steps/balances/capture-nahmii-eth-balance-before-action')(ctx, walletName);
+  require('../work-steps/balances/capture-staged-eth-balance-before-action')(ctx, walletName);
 
   step(`${walletName} has no proposal nonce (throws)`, async () => {
     const wallet = ctx.wallets[walletName];
@@ -65,14 +66,14 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
     expect(formatEther(proposalStageAmount)).to.equal(stageAmount);
   });
 
-  step(`${walletName} has proposal with updated a nonce`, async () => {
+  step(`${walletName} has proposal with updated a nonce`, async function () {
     const wallet = ctx.wallets[walletName];
     const nonce = await ctx.contracts.nullSettlementChallenge.proposalNonce(wallet.address, ctx.currencies[symbol].ct, 0);
     expect(nonce.toNumber()).to.be.gt(0);
+    this.test.title += `: ${nonce}`;
   });
 
   step(`${challengerName} observed a StartChallengeEvent`, async function () {
-    // Do not force mining before this test. Ganache will wipe the event !!!
     ctx.Miner.mineOneBlock();
     const purse = ctx.purses[challengerName];
     return expect(purse.StartChallengeEvent).to.eventually.be.fulfilled;
@@ -88,9 +89,10 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
     expect(stageId.toString()).to.equal('0');
   });
 
-  require('../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol, null);
-  require('../work-steps/balances/capture-staged-balance-after-action')(ctx, walletName, symbol, null);
+  require('../work-steps/balances/capture-onchain-eth-balance-after-action')(ctx, walletName);
+  require('../work-steps/balances/capture-nahmii-eth-balance-after-action')(ctx, walletName, null);
+  require('../work-steps/balances/capture-staged-eth-balance-after-action')(ctx, walletName, null);
 
-  require('../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, symbol, '0.0');
-  require('../work-steps/balances/verify-staged-balance-change')(ctx, walletName, symbol, '0.0');
+  require('../work-steps/balances/verify-nahmii-eth-balance-change')(ctx, walletName, '0.0');
+  require('../work-steps/balances/verify-staged-eth-balance-change')(ctx, walletName, '0.0');
 };

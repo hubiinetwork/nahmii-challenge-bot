@@ -37,6 +37,12 @@ class Miner extends nahmii.Wallet {
     super(privateKey, provider);
   }
 
+  async advanceTime (timeDiff) {
+    this.provider.send('evm_increaseTime', [timeDiff]);
+    this.provider.send('evm_mine', []);
+    await new Promise(resolve => this.provider.once('block', resolve));
+  }
+
   async mineOnce () {
     // Send one transaction which triggers ganache mining
     await this.sendTransaction({
@@ -50,17 +56,23 @@ class Miner extends nahmii.Wallet {
   }
 
   async mineUntil (predicate) {
+    const ethersBlockLimit = 12; // Ethers discards events more than 12 blocks old
+    const maxBlocksPerInterval = ethersBlockLimit / 2;
+    const timeoutMs = 15000;
+    const retryCount = maxBlocksPerInterval * timeoutMs / this.provider.pollingInterval;
+    const miningInterval = this.provider.pollingInterval / maxBlocksPerInterval;
+
     return poll(async () => {
       const isDone = await predicate();
 
       if (! isDone)
         await this.mineOnce();
 
-      process.stdout.write(`${await this.provider.getBlockNumber()}${isDone ? '\n' : '\r'}`);
+      process.stdout.write(`${await this.provider.getBlockNumber()}\r`);
 
       return isDone;
 
-    }, 15000 / this.provider.pollingInterval, this.provider.pollingInterval)
+    }, retryCount, miningInterval)
     .catch(async err => {
       err.message += ` Gave up mining at block no: ${await this.provider.getBlockNumber()}`;
       return Promise.reject(err);
