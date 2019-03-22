@@ -55,11 +55,11 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.info('Attaching event handlers ...');
 
   challenge_handler.onStartChallengeFromPaymentEvent((initiatorWallet, paymentHash, stagedAmount) =>
-    logger.info(`wallet: ${initiatorWallet}, hash: ${paymentHash}, staged amount: ${stagedAmount}`)
+    logger.info(`StartChallengeFromPaymentEvent wallet: ${initiatorWallet}, hash: ${paymentHash}, staged amount: ${stagedAmount}`)
   );
 
   challenge_handler.onStartChallengeEvent((initiatorWallet, stagedAmount, ct, id) =>
-    logger.info(`wallet: ${initiatorWallet}, staged amount: ${stagedAmount}, ct: ${ct}, id: ${id}`)
+    logger.info(`StartChallengeEvent wallet: ${initiatorWallet}, staged amount: ${stagedAmount}, ct: ${ct}, id: ${id}`)
   );
 
   logger.info('');
