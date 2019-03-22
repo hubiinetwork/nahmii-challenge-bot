@@ -8,10 +8,11 @@ const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
 
 module.exports = function (ctx, walletName, assignedEth) {
-  step(`${walletName} has new wallet`, () => {
+  step(`${walletName} has new wallet`, function () {
     ctx.purses[walletName] = {};
     ctx.wallets[walletName] = new nahmii.Wallet(ethers.Wallet.createRandom().privateKey, ctx.provider);
     expect(ctx.wallets[walletName]).to.be.instanceof(nahmii.Wallet);
+    this.test.title += `: ${ctx.wallets[walletName].address}`;
   });
 
   step(`${walletName} has empty block chain balance`, async function () {
