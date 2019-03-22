@@ -23,6 +23,7 @@
   "devDependencies": {
     "@hubiinetwork/eslint-config": "github:hubiinetwork/eslint-config",
     "chai": "^4.2.0",
+    "chai-almost": "^1.0.1",
     "chai-as-promised": "^7.1.1",
     "eslint": "^5.15.1",
     "mocha": "^6.0.2",

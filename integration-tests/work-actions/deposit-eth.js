@@ -33,7 +33,7 @@ function promiseNextReceiptFromEvent () {
   });
 }
 
-module.exports = function (ctx, walletName, depositAmount, symbol) {
+module.exports = function (ctx, walletName, depositAmount) {
   let depositTransaction, depositReceipt;
 
   step('Create receipt listener', () => {
@@ -44,7 +44,7 @@ module.exports = function (ctx, walletName, depositAmount, symbol) {
   require('../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
 
   require('../work-steps/balances/capture-onchain-eth-balance-before-action')(ctx, walletName);
-  require('../work-steps/balances/capture-nahmii-eth-balance-before-action')(ctx, walletName);
+  require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, 'ETH');
 
   require('../work-steps/contract-events/create-ClientFund-ReceiveEvent.promise')(ctx);
 
@@ -80,7 +80,7 @@ module.exports = function (ctx, walletName, depositAmount, symbol) {
     expect(Number(actualDeduction)).to.gte(Number(expectedDeduction));
   });
 
-  require('../work-steps/balances/ensure-nahmii-eth-balance-updates')(ctx, walletName);
-  require('../work-steps/balances/capture-nahmii-eth-balance-after-action')(ctx, walletName);
-  require('../work-steps/balances/verify-nahmii-eth-balance-change')(ctx, walletName, depositAmount);
+  require('../work-steps/balances/ensure-nahmii-balance-updates')(ctx, walletName, 'ETH');
+  require('../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, 'ETH');
+  require('../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, depositAmount, 'ETH');
 };
