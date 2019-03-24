@@ -1,4 +1,5 @@
 'use strict';
+const ethers = require('ethers');
 
 module.exports = function (ctx, challengerName, walletName, stageAmount, symbol) {
 
@@ -16,9 +17,10 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
 
   require('../work-steps/proposals/has-dsc-proposal-status-qualified')(ctx, walletName, symbol);
   require('../work-steps/proposals/has-dsc-proposal-nonce')(ctx, walletName, symbol);
-  require('../work-steps/proposals/has-dsc-proposal-staged-amount')(ctx, walletName, stageAmount, symbol);
 
-  require('../work-steps/challenger/validate-challenger-dsc-start-challenge-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/proposals/has-dsc-proposal-staged-amount')(ctx, walletName, (Number(stageAmount) * 0.999).toString(), symbol);
+
+  require('../work-steps/challenger/validate-challenger-dsc-start-challenge-callback')(ctx, challengerName, walletName, (Number(stageAmount) * 0.999).toString(), symbol);
 
   require('../../../work-steps/balances/capture-onchain-eth-balance-after-action')(ctx, walletName);
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
