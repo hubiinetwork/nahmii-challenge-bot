@@ -29,7 +29,7 @@ class ContractFactory {
       const msg = 'Contract addresses do not match.\n' +
       `        ${contractName}\n` +
       `        meta service : ${contractAddress}\n` +
-      `        abi address  : ${deployment.address}`;
+      `        abi address  : ${deployment.networks[provider.network.chainId].address}`;
       throw new Error(msg);
     }
 

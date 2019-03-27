@@ -22,7 +22,7 @@ async function getContractAddress (contractName) {
 function getAbiPath (contractName) {
   return new Promise((resolve, reject) =>{
     const abiPaths = execSync(
-      `find ./node_modules/nahmii-sdk -type f -name ${contractName}.json | grep 'abis/ropsten'`,
+      `find ./node_modules/nahmii-sdk ./integration-tests/resources -type f -name ${contractName}.json | grep 'abis/ropsten'`,
       { encoding: 'utf8' }
     ).split('\n');
 
@@ -47,7 +47,7 @@ async function createContract (contractName, provider) {
     const msg = 'Contract addresses do not match.\n' +
     `        ${contractName}\n` +
     `        meta service : ${contractAddress}\n` +
-    `        abi address  : ${deployment.address}`;
+    `        abi address  : ${deployment.networks['3'].address}`;
     throw new Error(msg);
   }
 
@@ -78,5 +78,20 @@ module.exports = function (ctx) {
   step('DriipSettlementChallenge contract', async () => {
     ctx.contracts.driipSettlementChallenge = await createContract('DriipSettlementChallenge', ctx.provider);
     expect(ctx.contracts.driipSettlementChallenge).to.be.instanceof(ethers.Contract);
+  });
+
+  step('BalanceTracker contract', async () => {
+    ctx.contracts.balanceTracker = await createContract('BalanceTracker', ctx.provider);
+    expect(ctx.contracts.balanceTracker).to.be.instanceof(ethers.Contract);
+  });
+
+  step('DriipSettlementDispute contract', async () => {
+    ctx.contracts.driipSettlementDispute = await createContract('DriipSettlementDispute', ctx.provider);
+    expect(ctx.contracts.driipSettlementDispute).to.be.instanceof(ethers.Contract);
+  });
+
+  step('NullSettlementDispute contract', async () => {
+    ctx.contracts.nullSettlementDispute = await createContract('NullSettlementDispute', ctx.provider);
+    expect(ctx.contracts.nullSettlementDispute).to.be.instanceof(ethers.Contract);
   });
 };

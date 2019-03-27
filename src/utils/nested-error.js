@@ -29,6 +29,15 @@ class NestedError extends Error {
     this.innerError = asObject(innerError);
   }
 
+  static async tryAwait (operation) {
+    try {
+      return await operation();
+    }
+    catch (err) {
+      throw new NestedError(err, 'Operation failed.');
+    }
+  }
+
   static asStringified (err) {
     return JSON.stringify(asObject(err), null, 2);
   }

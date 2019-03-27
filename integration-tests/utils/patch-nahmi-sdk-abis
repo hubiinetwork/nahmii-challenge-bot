@@ -15,7 +15,7 @@ eval $(curl "https://$(minikube ip)" -k -s | grep '": "0x' | tr -d ':,' | sed 's
 
 # Make files[contract_name] associative array over files to patch
 declare -A files
-eval $(find ./node_modules -name \*\.json | grep abis | grep ropsten | sed 's/\(^.*ropsten\/\)\([^.]*\)\(.*\)/files["\2"]="\1\2\3"/')
+eval $(find ./node_modules ./integration-tests -name \*\.json | grep abis | grep ropsten | sed 's/\(^.*ropsten\/\)\([^.]*\)\(.*\)/files["\2"]="\1\2\3"/')
 
 # Subtitute contract addresses in files
 for contract_name in "${!files[@]}"

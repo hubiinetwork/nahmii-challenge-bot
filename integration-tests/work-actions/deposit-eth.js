@@ -43,7 +43,7 @@ module.exports = function (ctx, walletName, depositAmount) {
 
   require('../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
 
-  require('../work-steps/balances/capture-onchain-eth-balance-before-action')(ctx, walletName);
+  require('../work-steps/balances/capture-l0-eth-balance-before-action')(ctx, walletName);
   require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, 'ETH');
 
   require('../work-steps/contract-events/create-ClientFund-ReceiveEvent.promise')(ctx);
@@ -63,9 +63,9 @@ module.exports = function (ctx, walletName, depositAmount) {
 
   require('../work-steps/contract-events/validate-ClientFund-ReceiveEvent-promise')(ctx);
 
-  require('../work-steps/balances/capture-onchain-eth-balance-after-action')(ctx, walletName);
+  require('../work-steps/balances/capture-l0-eth-balance-after-action')(ctx, walletName);
 
-  step(`${walletName} has a reduced block chain balance`, async function () {
+  step(`${walletName} has a reduced l0 balance`, async function () {
     const purse = ctx.purses[walletName];
     const actualDeduction = subEth(purse.onchainBalanceBeforeAction, purse.onchainBalanceAfterAction);
     const expectedDeduction = addEth(depositAmount, depositReceipt.gasUsed.mul('1000000000'));
