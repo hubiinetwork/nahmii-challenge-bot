@@ -9,9 +9,10 @@ const { bigNumberify } = ethers.utils;
 const _wallet = new WeakMap;
 const _onStartChallengeEventFromPaymentCallback = new WeakMap;
 const _onStartChallengeEventCallback = new WeakMap;
+
 const _driipSettlementChallengeContract = new WeakMap;
 const _nullSettlementChallengeContract= new WeakMap;
-
+const _balanceTrackerContract = new WeakMap;
 
 
 async function getWalletReceipts(provider, address) {
@@ -33,65 +34,64 @@ async function getInitiatorReceipt(provider, address, hash) {
   return filtered[0];
 }
 
-async function getNewSenderReceipts(receipts, initiatorReceipt) {
-  const sender = initiatorReceipt.sender.wallet;
-  const nonce = initiatorReceipt.sender.nonce;
-  const ct = initiatorReceipt.currency.ct;
-  const id = initiatorReceipt.currency.id;
-
-  if (receipts.length === 0)
-    throw new Error(`No receipts found for address ${sender}`);
+async function getResentSenderReceipts(provider, sender, ct, id, nonce, blockNo) {
+  const receipts = await getWalletReceipts(provider, sender);
 
   const filtered = receipts.filter(receipt =>
-    (receipt.sender.wallet.toLowerCase() === sender.toLowerCase()) && (receipt.nonce >= nonce) && (receipt.currency.ct === ct) && (receipt.currency.id === id)
+    (receipt.sender.wallet.toLowerCase() === sender.toLowerCase()) &&
+    (receipt.currency.ct === ct) && (receipt.currency.id === id) &&
+    (receipt.nonce >= nonce) && (receipt.blockNumber >= blockNo)
   );
-
-  if (filtered.length === 0)
-    throw new Error(`No matching receipts for address ${sender} with nonce ${nonce}, ct ${ct}, id ${id}`);
 
   return filtered;
 }
-/*
-async function getNahmiiBalance(provider, address, currency) {
-  let balances;
 
-  try {
-    balances = await provider.getNahmiiBalances(address);
+async function getActiveBalance (balanceTrackerContract, address, ct, id) {
+  const balanceTypes = NestedError.tryAwait(() => balanceTrackerContract.activeBalanceTypes());
+  let activeBalance = bigNumberify(0);
+
+  for (let i = 0; i < balanceTypes.length; ++i) {
+    const balance = NestedError.tryAwait(() => balanceTrackerContract.get(address, balanceTypes[i], ct, bigNumberify(id)));
+    activeBalance = activeBalance.add(balance);
   }
-  catch (err) {
-    throw new NestedError(err, `Could not retrieve nahmii balances for address ${address}`);
-  }
 
-  if (balances.length === 0)
-    throw new Error(`No balances found for sender with address ${address}`);
-
-  const filtered = balances.filter(balance => balance.currency.ct === currency.ct && balance.currency.id === currency.id);
-
-  if (filtered.length === 1)
-    return filtered[0];
-  else if (filtered.length < 1)
-    throw new Error(`No balances found for sender with currency { ct:${currency.ct}, id: ${currency.id} }`);
-  else
-    throw new Error(`Unexpected extra balances found for sender with currency { ct:${currency.ct}, id: ${currency.id} }`);
+  return activeBalance;
 }
-*/
-async function getDriipSettlementDisputeProof(senderReceipts, initiatorReceipt, stagedAmount) {
 
-  const lt = (a, b) => bigNumberify(a).lt(bigNumberify(b));
+async function getActiveBalanceAtBlock (balanceTrackerContract, address, ct, id, blockNo) {
+  const balanceTypes = NestedError.tryAwait(() => balanceTrackerContract.activeBalanceTypes());
+  let activeBalance = bigNumberify(0);
 
-  let runningNonce = initiatorReceipt.sender.nonce;
+  for (let i = 0; i < balanceTypes.length; ++i) {
+    const { amount } = await NestedError.tryAwait(() => balanceTrackerContract.fungibleRecordByBlockNumber(address, balanceTypes[i], ct, id, blockNo));
+    activeBalance = activeBalance.add(amount);
+  }
 
-  for (const proofCandidate of senderReceipts.sort((a, b) => a.nonce - b.nonce)) {
-    if (proofCandidate.sender.nonce !== runningNonce)
-      throw new Error(`Receipt has wrong nonce. Expected ${runningNonce}, found ${proofCandidate.nonce}`);
+  return activeBalance;
+}
 
-    if (lt(proofCandidate.sender.balances.current, stagedAmount))
-      return proofCandidate;
+async function getProofCandidate(balanceTrackerContract, senderReceipts, sender, ct, id, nonce, stagedAmount) {
+
+  const activeBalance = await getActiveBalance(balanceTrackerContract, sender, ct, id);
+
+  let runningNonce = nonce;
+  const proofCandidate = { receipt: null, targetBalance: null };
+
+  for (proofCandidate.receipt of senderReceipts.sort((a, b) => a.nonce - b.nonce)) {
+    if (proofCandidate.receipt.sender.nonce !== runningNonce)
+      throw new Error(`Receipt has wrong nonce. Expected ${runningNonce}, found ${proofCandidate.receipt.nonce}`);
+
+    const activeBalanceAtBlock = await getActiveBalanceAtBlock(balanceTrackerContract, sender, ct, id, proofCandidate.blockNumber);
+    const paymentBalanceAtBlock = proofCandidate.receipt.sender.balances.current;
+    proofCandidate.targetBalance = activeBalance.sub(activeBalanceAtBlock).add(paymentBalanceAtBlock).sub(stagedAmount);
+
+    if (proofCandidate.targetBalance.lt(0))
+      break;
 
     ++runningNonce;
   }
 
-  return null;
+  return proofCandidate;
 }
 
 async function handleDriipSettlement (initiatorAddress, paymentHash, stagedAmount) {
@@ -99,52 +99,57 @@ async function handleDriipSettlement (initiatorAddress, paymentHash, stagedAmoun
   logger.info(`StartChallengeFromPaymentEvent: initiator ${initiatorAddress}, staged ${stagedAmount}, hash ${paymentHash}`);
 
   const initiatorReceipt = await getInitiatorReceipt(_wallet.get(this).provider, initiatorAddress, paymentHash);
-  const senderReceipts = await getWalletReceipts(_wallet.get(this).provider, initiatorReceipt.sender.wallet);
-  const newSenderReceipts = await getNewSenderReceipts(senderReceipts, initiatorReceipt);
+  const sender = initiatorReceipt.sender.wallet;
+  const ct = initiatorReceipt.currency.ct;
+  const id = initiatorReceipt.currency.id;
+  const nonce = initiatorReceipt.sender.nonce;
+  const blockNo = initiatorReceipt.blockNumber;
 
-  const disputeProof = await getDriipSettlementDisputeProof(newSenderReceipts, initiatorReceipt, stagedAmount.toString());
+  const resentReceipts = await getResentSenderReceipts(_wallet.get(this).provider, sender, ct, id, nonce, blockNo);
+  const proofCandidate = await getProofCandidate(_balanceTrackerContract.get(this), resentReceipts, sender, ct, id, nonce, stagedAmount.toString());
+  const hasProof = proofCandidate.targetBalance.lt(0);
+  const finalReceipt = proofCandidate.receipt;
+  const targetBalance = proofCandidate.targetBalance.toString();
 
-  if (disputeProof)
-    _driipSettlementChallengeContract.get(this).challengeByPayment(initiatorReceipt.sender.wallet, disputeProof);
+  if (hasProof)
+    NestedError.tryAwait(() => _driipSettlementChallengeContract.get(this).challengeByPayment(sender, finalReceipt));
 
-  const finalReceipt = disputeProof || getLastSenderReceipt(senderReceipts, initiatorReceipt.sender.wallet, initiatorReceipt.currency.ct, initiatorReceipt.currency.id);
-  const margin = bigNumberify(finalReceipt.sender.balances.current).sub(stagedAmount).toString();
-
-  logger.info(`    ${disputeProof ? 'Disputed' : 'Approved'} by payment at block ${finalReceipt.blockNumber}`);
-  logger.info(`    Sender   : address ${finalReceipt.sender.wallet}, nonce ${finalReceipt.sender.nonce}, balance ${finalReceipt.sender.balances.current}, margin ${margin}`);
+  logger.info(`    ${hasProof ? 'Disputed' : 'Approved'} by payment at block ${finalReceipt.blockNumber}`);
+  logger.info(`    Sender   : address ${finalReceipt.sender.wallet}, nonce ${finalReceipt.sender.nonce}, balance ${finalReceipt.sender.balances.current}, tau ${targetBalance}`);
   logger.info(`    Recipient: address ${finalReceipt.recipient.wallet}, nonce ${finalReceipt.recipient.nonce}`);
 
   logger.info(' ');
 }
 
-function getLastSenderReceipt (receipts, address, ct, id) {
-  if (receipts.length === 0)
-    return null;
+async function handleNullSettlement (sender, stagedAmount, ct, id) {
+  logger.info(`StartChallengeEvent: initiator ${sender}, staged ${stagedAmount}, ct ${ct}, id ${id}`);
 
-  const filtered = receipts.filter(receipt =>
-    (receipt.sender.wallet.toLowerCase() === address.toLowerCase()) && (receipt.currency.ct === ct) && (receipt.currency.id === id)
-  );
+  const activeBalance = await getActiveBalance(_balanceTrackerContract.get(this), sender, ct, id);
 
-  if (filtered.length === 0)
-    return null;
+  if (activeBalance.lt(stagedAmount)) {
+    const targetBalance = activeBalance.sub(stagedAmount).toString();
+    throw new Error(`Received unexpected disqualified NSC: balance ${activeBalance.toString()}, staged ${stagedAmount.toString()}, tau ${targetBalance}`);
+  }
 
-  return filtered.sort((a, b) => b.nonce - a.nonce)[0];
-}
+  const { blockNumber } = _balanceTrackerContract.get(this).lastFungibleRecord(sender, ct, id);
+  const nonce = 0;
+  const resentReceipts = await getResentSenderReceipts(_wallet.get(this).provider, sender, ct, id, nonce, blockNumber);
+  const proofCandidate = await getProofCandidate(_balanceTrackerContract.get(this), resentReceipts, sender, ct, id, nonce, stagedAmount.toString());
+  const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
+  const finalReceipt = proofCandidate.receipt;
 
-async function handleNullSettlement (address, stagedAmount, ct, id) {
-  logger.info(`StartChallengeEvent: initiator ${address}, staged ${stagedAmount}, ct ${ct}, id ${id}`);
+  if (hasProof)
+    NestedError.tryAwait(() => _nullSettlementChallengeContract.get(this).challengeByPayment(sender, proofCandidate.receipt));
 
-  const senderReceipts = await getWalletReceipts(_wallet.get(this).provider, address);
-  const lastReceipt = getLastSenderReceipt(senderReceipts, address, ct, id);
-  const margin = bigNumberify(lastReceipt.sender.balances.current).sub(stagedAmount).toString();
-  const isDisputable = bigNumberify(margin).lt(0);
-
-  if (isDisputable)
-    _nullSettlementChallengeContract.get(this).challengeByPayment(address, lastReceipt);
-
-  logger.info(`    ${isDisputable ? 'Disputed' : 'Approved'} by payment at block ${lastReceipt.blockNumber}`);
-  logger.info(`    Sender   : address ${lastReceipt.sender.wallet}, nonce ${lastReceipt.sender.nonce}, balance ${lastReceipt.sender.balances.current}, margin ${margin}`);
-  logger.info(`    Recipient: address ${lastReceipt.recipient.wallet}, nonce ${lastReceipt.recipient.nonce}`);
+  if (proofCandidate.receipt) {
+    const targetBalance = proofCandidate.targetBalance.toString();
+    logger.info(`    ${hasProof ? 'Disputed' : 'Approved'} by payment at block ${finalReceipt.blockNumber}`);
+    logger.info(`    Sender   : address ${finalReceipt.sender.wallet}, nonce ${finalReceipt.sender.nonce}, balance ${finalReceipt.sender.balances.current}, tau ${targetBalance}`);
+    logger.info(`    Recipient: address ${finalReceipt.recipient.wallet}, nonce ${finalReceipt.recipient.nonce}`);
+  }
+  else {
+    logger.info('    Approved without receipts');
+  }
 
   logger.info(' ');
 }
@@ -165,7 +170,7 @@ async function handleStartChallengeEvent (initiatorWallet, stagedAmount, ct, id)
 
 class ChallengeHandler {
 
-  constructor(wallet, driipSettlementChallengeContract, nullSettlementChallengeContract) {
+  constructor(wallet, driipSettlementChallengeContract, nullSettlementChallengeContract, balanceTrackerContract) {
     // ISSUE: Some nodes (e.g. ganache) is pecky about address format in filters.
     //        https://github.com/ethers-io/ethers.js/issues/165
     //        https://github.com/trufflesuite/ganache-cli/issues/494
@@ -173,6 +178,7 @@ class ChallengeHandler {
     _wallet.set(this, wallet);
     _driipSettlementChallengeContract.set(this, driipSettlementChallengeContract);
     _nullSettlementChallengeContract.set(this, nullSettlementChallengeContract);
+    _balanceTrackerContract.set(this, balanceTrackerContract);
 
     driipSettlementChallengeContract.on('StartChallengeFromPaymentEvent', (initiatorWallet, paymentHash, stagedAmount) => {
       handleStartChallengeFromPaymentEvent.call(this, initiatorWallet, paymentHash, stagedAmount);
@@ -201,50 +207,3 @@ class ChallengeHandler {
 }
 
 module.exports = ChallengeHandler;
-
-
-/*
-const isNewerReceipt = (initiatorReceipt, senderReceipt) => {
-  if (senderReceipt.sender.wallet !== initiatorReceipt.sender.wallet)
-    return false;
-  if (senderReceipt.sender.nounce <= initiatorReceipt.sender.nounce)
-    return false;
-  if (senderReceipt.currency.ct !== initiatorReceipt.currency.ct)
-    return false;
-  if (senderReceipt.currency.id !== initiatorReceipt.currency.id)
-    return false;
-  return true;
-};
-
-async function handleChallenge(initiatorWallet, paymentHash, stagedAmount) {
-  const initiatorReceipts = await nahmiiSrv.getWalletReceipts(initiatorWallet);
-  const initiatorReceipt = initiatorReceipts.find(receipt => receipt.seals.operator.hash === paymentHash);
-
-  if (!initiatorReceipt)
-    throw Error(`Could not find initiator receipt for challenged payment. wallet: ${initiatorWallet}, hash: ${paymentHash}, staged amount: ${stagedAmount}`);
-
-  //const senderBalance = await nahmiiSrv.getNahmiiBalance(initiatorReceipt.sender.wallet, initiatorReceipt.currency.ct);
-  const senderReceipts = await nahmiiSrv.getWalletReceipts(initiatorReceipt.sender.wallet);
-  const senderReceipt = senderReceipts.find(receipt => receipt.seals.operator.hash === paymentHash);
-
-  if (!senderReceipt)
-    throw Error(`Could not find sender receipt for challenged payment. wallet: ${initiatorWallet}, hash: ${paymentHash}, staged amount: ${stagedAmount}`);
-
-  let runningSenderBalance = senderReceipt.sender.balances.previous;
-  const newerReceipts = senderReceipts.filter(receipt => isNewerReceipt(initiatorReceipt, receipt));
-
-  let disputeProof;
-  let accFees = 0;
-  for (const newerReceipt of newerReceipts) {
-    runningSenderBalance -= newerReceipt.amount;
-    if (runningSenderBalance < stagedAmount) {
-      disputeProof = newerReceipts;
-      break;
-    }
-  }
-
-  const verdict = disputeProof ? 'DISPUTED' : 'APPROVED';
-  logger.info(`${verdict}: wallet: ${initiatorWallet}, hash: ${paymentHash}, staged amount: ${stagedAmount}`);
-
-}
-*/
