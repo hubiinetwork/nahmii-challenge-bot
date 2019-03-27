@@ -31,7 +31,7 @@ describe('Start Single DSC accepted', () => {
   });
 
   describe('G. Alice starts challenge process ETH', () => {
-    require('../work-actions/dsc-challenge-qualified')(ctx, 'Carol', 'Alice', '5.0', 'ETH');
+    require('../work-actions/dsc-challenge-disqualified')(ctx, 'Carol', 'Alice', '5.0', 'ETH');
   });
 
   describe('', () => {

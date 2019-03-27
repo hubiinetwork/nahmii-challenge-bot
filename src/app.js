@@ -49,7 +49,8 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
   const challenge_handler = new ChallengeHandler(
     new nahmii.Wallet(privateKey, provider),
     await ContractFactory.create('DriipSettlementChallenge', provider),
-    await ContractFactory.create('NullSettlementChallenge', provider)
+    await ContractFactory.create('NullSettlementChallenge', provider),
+    await ContractFactory.create('BalanceTracker', provider)
   );
 
   logger.info('Attaching event handlers ...');

@@ -22,10 +22,6 @@ spec:
       - name: challenge-bot
         image: 856572510817.dkr.ecr.eu-west-1.amazonaws.com/challenge-bot:v38
         imagePullPolicy: Always
-        volumeMounts:
-        - name: challenge-bot-keystore
-          mountPath: /app/keystore
-          readOnly: true
         env:
         - name: NODE_ENV
           value: production

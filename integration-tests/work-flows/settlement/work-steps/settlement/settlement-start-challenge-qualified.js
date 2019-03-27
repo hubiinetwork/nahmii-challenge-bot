@@ -13,7 +13,7 @@ module.exports = function (ctx, walletName, stageAmount, symbol, settlementType)
 
     const txs = await purse.settlement.startChallenge(purse.stagedAmount, ctx.wallets[walletName], {gasLimit: 2000000});
 
-    expect(txs.length).to.equal(2);
+    expect(txs.length).to.gt(0);
     expect(txs[0].type).to.equal(settlementType);
   });
 };

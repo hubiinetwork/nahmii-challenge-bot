@@ -5,7 +5,6 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   require('../work-steps/challenger/subscribe-challenger-nsc-start-challenge-callback')(ctx, challengerName);
 
   require('../../../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
-  require('../../../work-steps/balances/capture-onchain-eth-balance-before-action')(ctx, walletName);
   require('../../../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-staged-eth-balance-before-action')(ctx, walletName);
 
@@ -20,7 +19,6 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
 
   require('../work-steps/challenger/validate-challenger-nsc-start-challenge-callback')(ctx, challengerName, walletName, stageAmount, symbol);
 
-  require('../../../work-steps/balances/capture-onchain-eth-balance-after-action')(ctx, walletName);
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-staged-eth-balance-after-action')(ctx, walletName, null);
 

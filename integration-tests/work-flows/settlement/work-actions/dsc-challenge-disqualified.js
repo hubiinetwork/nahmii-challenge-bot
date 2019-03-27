@@ -6,8 +6,8 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   require('../../../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-staged-eth-balance-before-action')(ctx, walletName);
 
-  require('../work-steps/proposals/has-no-nsc-proposal-status')(ctx, walletName, symbol);
-  require('../work-steps/proposals/has-no-nsc-proposal-nonce')(ctx, walletName, symbol);
+  require('../work-steps/proposals/has-no-dsc-proposal-status')(ctx, walletName, symbol);
+  require('../work-steps/proposals/has-no-dsc-proposal-nonce')(ctx, walletName, symbol);
 
   require('../work-steps/settlement/settlement-start-challenge-disqualified')(ctx, walletName, stageAmount, symbol);
 
