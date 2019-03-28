@@ -6,7 +6,7 @@ const ethers = require('ethers');
 const { formatEther, parseEther, bigNumberify } = ethers.utils;
 const nahmii = require('nahmii-sdk');
 
-module.exports = function (ctx, senderName, recipientName, amount, symbol) {
+module.exports = function (ctx, senderName, recipientName, receiptName, amount, symbol) {
 
   require('../work-steps/balances/clear-all-balances-from-purse')(ctx, senderName);
   require('../work-steps/balances/capture-nahmii-balance-before-action')(ctx, senderName, symbol);
@@ -45,6 +45,7 @@ module.exports = function (ctx, senderName, recipientName, amount, symbol) {
   });
 
   require('../work-steps/receipts/ensure-latest-receipt-updates')(ctx, senderName, symbol);
+  require('../work-steps/receipts/capture-latest-receipt')(ctx, 'Capture latest receipt', senderName, receiptName, symbol);
 
   require('../work-steps/balances/capture-nahmii-balance-after-action')(ctx, senderName, symbol);
   require('../work-steps/balances/verify-nahmii-balance-change')(ctx, senderName, '-' + (Number(amount)*1.001).toString(), symbol);

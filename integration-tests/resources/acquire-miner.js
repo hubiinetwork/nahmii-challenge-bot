@@ -4,6 +4,7 @@ const chai = require('chai');
 const minikube = require('../utils/minikube');
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
+const NestedError = require('../../src/utils/nested-error');
 
 function poll(predicate, times, delay) {
   return new Promise(async (resolve, reject) => {
@@ -45,14 +46,24 @@ class Miner extends nahmii.Wallet {
 
   async mineOnce () {
     // Send one transaction which triggers ganache mining
-    await this.sendTransaction({
-      to: await this.getAddress(), value: ethers.utils.parseEther('0'), gasLimit: 6000000
-    });
+    try {
+      await this.sendTransaction({
+        to: await this.getAddress(), value: ethers.utils.parseEther('0'), gasLimit: 6000000
+      });
+    }
+    catch (err) {
+      throw new NestedError(err, 'Miner.mineOnce() failed. ' + err.message);
+    }
   }
 
   async mineOneBlock () {
-    await this.mineOnce();
-    await new Promise(resolve => this.provider.once('block', resolve));
+    try {
+      await this.mineOnce();
+      await new Promise(resolve => this.provider.once('block', resolve));
+    }
+    catch (err) {
+      throw new NestedError(err, 'Miner.mineOneBlock() failed. ' + err.message);
+    }
   }
 
   async mineUntil (predicate) {
@@ -65,8 +76,13 @@ class Miner extends nahmii.Wallet {
     return poll(async () => {
       const isDone = await predicate();
 
-      if (! isDone)
-        await this.mineOnce();
+      try {
+        if (! isDone)
+          await this.mineOnce();
+      }
+      catch (err) {
+        throw new NestedError(err, 'Miner.mineUntil() failed. ' + err.message);
+      }
 
       process.stdout.write(`${await this.provider.getBlockNumber()}\r`);
 
@@ -80,14 +96,19 @@ class Miner extends nahmii.Wallet {
   }
 
   async mineCount (count = 1) {
-    await this.mineOnce();
-
-    for (let i = 1; i < count; ++i) {
+    try {
       await this.mineOnce();
 
-      // Slow down according to Ethers polling capacity.
-      // Ethers drops log/events that has more than 12 blocks coverage per poll.
-      await new Promise(resolve => setTimeout(resolve, this.provider.pollingInterval / 6));
+      for (let i = 1; i < count; ++i) {
+        await this.mineOnce();
+
+        // Slow down according to Ethers polling capacity.
+        // Ethers drops log/events that has more than 12 blocks coverage per poll.
+        await new Promise(resolve => setTimeout(resolve, this.provider.pollingInterval / 6));
+      }
+    }
+    catch (err) {
+      throw new NestedError(err, 'Miner.mineCount() failed. ' + err.message);
     }
   }
 }

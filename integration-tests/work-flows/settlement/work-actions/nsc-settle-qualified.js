@@ -11,6 +11,7 @@ module.exports = function (ctx, walletName, settleAmount, symbol) {
 
   require('../work-steps/proposals/capture-nsc-proposal-expiration-time')(ctx, walletName, symbol);
   require('../work-steps/proposals/advance-blockchain-by-captured-proposal-expiration-time')(ctx, walletName);
+
   require('../work-steps/settlement/settlement-settle')(ctx, walletName, symbol);
 
   require('../../../work-steps/contract-events/validate-NullSettlement-SettleNullEvent-promise')(ctx);
