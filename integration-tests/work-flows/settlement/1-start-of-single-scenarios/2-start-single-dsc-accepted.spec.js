@@ -27,11 +27,11 @@ describe('Start Single DSC accepted', () => {
   });
 
   describe('F. Alice pays Bob', () => {
-    require('../../../work-actions/make-nahmii-payment')(ctx, 'Alice', 'Bob', '5.0', 'ETH');
+    require('../../../work-actions/make-nahmii-payment')(ctx, 'Alice', 'Bob', 'Receipt_1', '5.0', 'ETH');
   });
 
   describe('G. Alice starts challenge process ETH', () => {
-    require('../work-actions/dsc-challenge-qualified')(ctx, 'Carol', 'Alice', '2.0', 'ETH');
+    require('../work-actions/dsc-challenge-qualified')(ctx, 'Carol', 'Alice', 'receipt_1', '2.0', 'ETH');
   });
 
   describe('H. Alice settles ETH', () => {

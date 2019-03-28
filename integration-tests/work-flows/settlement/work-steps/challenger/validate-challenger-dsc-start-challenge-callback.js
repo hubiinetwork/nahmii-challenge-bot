@@ -6,9 +6,12 @@ const { formatEther } = require('ethers').utils;
 
 module.exports = function (ctx, challengerName, walletName, stageAmount) {
   step(`${challengerName} observed a StartChallengeFromPaymentEvent`, async function () {
-    ctx.Miner.mineOneBlock();
-    const purse = ctx.purses[challengerName];
-    return expect(purse.StartChallengeFromPaymentEvent).to.eventually.be.fulfilled;
+    return expect(
+      ctx.Miner.mineOneBlock().then(() => {
+        const purse = ctx.purses[challengerName];
+        return purse.StartChallengeFromPaymentEvent;
+      })
+    ).to.eventually.be.fulfilled;
   });
 
   step('StartChallengeFromPaymentEvent payload is valid', async function () {

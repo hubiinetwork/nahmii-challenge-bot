@@ -47,11 +47,11 @@ async function getResentSenderReceipts(provider, sender, ct, id, nonce, blockNo)
 }
 
 async function getActiveBalance (balanceTrackerContract, address, ct, id) {
-  const balanceTypes = NestedError.tryAwait(() => balanceTrackerContract.activeBalanceTypes());
+  const balanceTypes = await NestedError.tryAwait(() => balanceTrackerContract.activeBalanceTypes());
   let activeBalance = bigNumberify(0);
 
   for (let i = 0; i < balanceTypes.length; ++i) {
-    const balance = NestedError.tryAwait(() => balanceTrackerContract.get(address, balanceTypes[i], ct, bigNumberify(id)));
+    const balance = await NestedError.tryAwait(() => balanceTrackerContract.get(address, balanceTypes[i], ct, bigNumberify(id)));
     activeBalance = activeBalance.add(balance);
   }
 
@@ -59,7 +59,7 @@ async function getActiveBalance (balanceTrackerContract, address, ct, id) {
 }
 
 async function getActiveBalanceAtBlock (balanceTrackerContract, address, ct, id, blockNo) {
-  const balanceTypes = NestedError.tryAwait(() => balanceTrackerContract.activeBalanceTypes());
+  const balanceTypes = await NestedError.tryAwait(() => balanceTrackerContract.activeBalanceTypes());
   let activeBalance = bigNumberify(0);
 
   for (let i = 0; i < balanceTypes.length; ++i) {
@@ -68,6 +68,10 @@ async function getActiveBalanceAtBlock (balanceTrackerContract, address, ct, id,
   }
 
   return activeBalance;
+}
+
+async function getLastDepositRecord(balanceTrackerContract, sender, ct, id) {
+  return NestedError.tryAwait(() => balanceTrackerContract.lastFungibleRecord(sender, balanceTrackerContract.depositedBalanceType(), ct, id));
 }
 
 async function getProofCandidate(balanceTrackerContract, senderReceipts, sender, ct, id, nonce, stagedAmount) {
@@ -112,7 +116,7 @@ async function handleDriipSettlement (initiatorAddress, paymentHash, stagedAmoun
   const targetBalance = proofCandidate.targetBalance.toString();
 
   if (hasProof)
-    NestedError.tryAwait(() => _driipSettlementChallengeContract.get(this).challengeByPayment(sender, finalReceipt));
+    await NestedError.tryAwait(() => _driipSettlementChallengeContract.get(this).challengeByPayment(sender, finalReceipt));
 
   logger.info(`    ${hasProof ? 'Disputed' : 'Approved'} by payment at block ${finalReceipt.blockNumber}`);
   logger.info(`    Sender   : address ${finalReceipt.sender.wallet}, nonce ${finalReceipt.sender.nonce}, balance ${finalReceipt.sender.balances.current}, tau ${targetBalance}`);
@@ -131,7 +135,7 @@ async function handleNullSettlement (sender, stagedAmount, ct, id) {
     throw new Error(`Received unexpected disqualified NSC: balance ${activeBalance.toString()}, staged ${stagedAmount.toString()}, tau ${targetBalance}`);
   }
 
-  const { blockNumber } = _balanceTrackerContract.get(this).lastFungibleRecord(sender, ct, id);
+  const { blockNumber } = await getLastDepositRecord(_balanceTrackerContract.get(this), sender, ct, id);
   const nonce = 0;
   const resentReceipts = await getResentSenderReceipts(_wallet.get(this).provider, sender, ct, id, nonce, blockNumber);
   const proofCandidate = await getProofCandidate(_balanceTrackerContract.get(this), resentReceipts, sender, ct, id, nonce, stagedAmount.toString());
@@ -139,7 +143,7 @@ async function handleNullSettlement (sender, stagedAmount, ct, id) {
   const finalReceipt = proofCandidate.receipt;
 
   if (hasProof)
-    NestedError.tryAwait(() => _nullSettlementChallengeContract.get(this).challengeByPayment(sender, proofCandidate.receipt));
+    await NestedError.tryAwait(() => _nullSettlementChallengeContract.get(this).challengeByPayment(sender, proofCandidate.receipt));
 
   if (proofCandidate.receipt) {
     const targetBalance = proofCandidate.targetBalance.toString();
