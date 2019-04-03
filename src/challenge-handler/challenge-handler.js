@@ -5,6 +5,7 @@ const NestedError = require('../utils/nested-error');
 const { logger } = require('@hubiinetwork/logger');
 const ethers = require('ethers');
 const { bigNumberify } = ethers.utils;
+const { getWalletReceiptFromHash, getResentSenderReceipts } = require('./receipts-provider');
 
 const _wallet = new WeakMap;
 const _onStartChallengeEventFromPaymentCallback = new WeakMap;
@@ -14,44 +15,20 @@ const _driipSettlementChallengeContract = new WeakMap;
 const _nullSettlementChallengeContract= new WeakMap;
 const _balanceTrackerContract = new WeakMap;
 
-
-async function getWalletReceipts(provider, address) {
-  try {
-    return await provider.getWalletReceipts(address, null, 100);
-  }
-  catch (err) {
-    throw new NestedError(err, `Could not retrieve receipts for address ${address}`);
-  }
-}
-
-async function getInitiatorReceipt(provider, address, hash) {
-  const receipts = await getWalletReceipts(provider, address);
-  const filtered = receipts.filter(receipt => receipt.seals.operator.hash === hash);
-
-  if (filtered.length === 0)
-    throw new Error(`Initiator receipts for address ${address} do not contain hash ${hash}`);
-
-  return filtered[0];
-}
-
-async function getResentSenderReceipts(provider, sender, ct, id, nonce, blockNo) {
-  const receipts = await getWalletReceipts(provider, sender);
-
-  const filtered = receipts.filter(receipt =>
-    (receipt.sender.wallet.toLowerCase() === sender.toLowerCase()) &&
-    (receipt.currency.ct === ct) && (receipt.currency.id === id) &&
-    (receipt.nonce >= nonce) && (receipt.blockNumber >= blockNo)
-  );
-
-  return filtered;
+async function getActiveBalanceTypes (balanceTrackerContract) {
+  return balanceTrackerContract.activeBalanceTypes().catch(err => {
+    throw new NestedError(err, 'Failed to get active balance types. ' + err.message);
+  });
 }
 
 async function getActiveBalance (balanceTrackerContract, address, ct, id) {
-  const balanceTypes = await NestedError.tryAwait(() => balanceTrackerContract.activeBalanceTypes());
+  const balanceTypes = await getActiveBalanceTypes(balanceTrackerContract);
   let activeBalance = bigNumberify(0);
 
   for (let i = 0; i < balanceTypes.length; ++i) {
-    const balance = await NestedError.tryAwait(() => balanceTrackerContract.get(address, balanceTypes[i], ct, bigNumberify(id)));
+    const balance = await balanceTrackerContract.get(address, balanceTypes[i], ct, bigNumberify(id)).catch(err => {
+      throw new NestedError(err, 'Failed to get balance. ' + err.message);
+    });
     activeBalance = activeBalance.add(balance);
   }
 
@@ -59,11 +36,13 @@ async function getActiveBalance (balanceTrackerContract, address, ct, id) {
 }
 
 async function getActiveBalanceAtBlock (balanceTrackerContract, address, ct, id, blockNo) {
-  const balanceTypes = await NestedError.tryAwait(() => balanceTrackerContract.activeBalanceTypes());
+  const balanceTypes = getActiveBalanceTypes(balanceTrackerContract);
   let activeBalance = bigNumberify(0);
 
   for (let i = 0; i < balanceTypes.length; ++i) {
-    const { amount } = await NestedError.tryAwait(() => balanceTrackerContract.fungibleRecordByBlockNumber(address, balanceTypes[i], ct, id, blockNo));
+    const { amount } = await balanceTrackerContract.fungibleRecordByBlockNumber(address, balanceTypes[i], ct, id, blockNo).catch(err => {
+      throw new NestedError(err, 'Failed to get tracker record. ' + err.message);
+    });
     activeBalance = activeBalance.add(amount);
   }
 
@@ -71,7 +50,9 @@ async function getActiveBalanceAtBlock (balanceTrackerContract, address, ct, id,
 }
 
 async function getLastDepositRecord(balanceTrackerContract, sender, ct, id) {
-  return NestedError.tryAwait(() => balanceTrackerContract.lastFungibleRecord(sender, balanceTrackerContract.depositedBalanceType(), ct, id));
+  return balanceTrackerContract.lastFungibleRecord(sender, balanceTrackerContract.depositedBalanceType(), ct, id).catch(err => {
+    throw new NestedError(err, 'Failed to get tracker record. ' + err.message);
+  });
 }
 
 async function getProofCandidate(balanceTrackerContract, senderReceipts, sender, ct, id, nonce, stagedAmount) {
@@ -102,7 +83,7 @@ async function handleDriipSettlement (initiatorAddress, paymentHash, stagedAmoun
 
   logger.info(`StartChallengeFromPaymentEvent: initiator ${initiatorAddress}, staged ${stagedAmount}, hash ${paymentHash}`);
 
-  const initiatorReceipt = await getInitiatorReceipt(_wallet.get(this).provider, initiatorAddress, paymentHash);
+  const initiatorReceipt = await getWalletReceiptFromHash(_wallet.get(this).provider, initiatorAddress, paymentHash);
   const sender = initiatorReceipt.sender.wallet;
   const ct = initiatorReceipt.currency.ct;
   const id = initiatorReceipt.currency.id;
@@ -115,8 +96,11 @@ async function handleDriipSettlement (initiatorAddress, paymentHash, stagedAmoun
   const finalReceipt = proofCandidate.receipt;
   const targetBalance = proofCandidate.targetBalance.toString();
 
-  if (hasProof)
-    await NestedError.tryAwait(() => _driipSettlementChallengeContract.get(this).challengeByPayment(sender, finalReceipt));
+  if (hasProof) {
+    await _driipSettlementChallengeContract.get(this).challengeByPayment(sender, finalReceipt).catch(err => {
+      throw new NestedError(err, 'Failed to challenge by payment. ' + err.message);
+    });
+  }
 
   logger.info(`    ${hasProof ? 'Disputed' : 'Approved'} by payment at block ${finalReceipt.blockNumber}`);
   logger.info(`    Sender   : address ${finalReceipt.sender.wallet}, nonce ${finalReceipt.sender.nonce}, balance ${finalReceipt.sender.balances.current}, tau ${targetBalance}`);
@@ -136,14 +120,17 @@ async function handleNullSettlement (sender, stagedAmount, ct, id) {
   }
 
   const { blockNumber } = await getLastDepositRecord(_balanceTrackerContract.get(this), sender, ct, id);
-  const nonce = 0;
-  const resentReceipts = await getResentSenderReceipts(_wallet.get(this).provider, sender, ct, id, nonce, blockNumber);
-  const proofCandidate = await getProofCandidate(_balanceTrackerContract.get(this), resentReceipts, sender, ct, id, nonce, stagedAmount.toString());
+  const senderNonce = 0;
+  const resentReceipts = await getResentSenderReceipts(_wallet.get(this).provider, sender, ct, id, senderNonce, blockNumber);
+  const proofCandidate = await getProofCandidate(_balanceTrackerContract.get(this), resentReceipts, sender, ct, id, senderNonce, stagedAmount.toString());
   const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
   const finalReceipt = proofCandidate.receipt;
 
-  if (hasProof)
-    await NestedError.tryAwait(() => _nullSettlementChallengeContract.get(this).challengeByPayment(sender, proofCandidate.receipt));
+  if (hasProof) {
+    await _nullSettlementChallengeContract.get(this).challengeByPayment(sender, proofCandidate.receipt).catch(err => {
+      throw new NestedError(err, 'Failed to challenge null payment. ' + err.message);
+    });
+  }
 
   if (proofCandidate.receipt) {
     const targetBalance = proofCandidate.targetBalance.toString();
@@ -159,17 +146,17 @@ async function handleNullSettlement (sender, stagedAmount, ct, id) {
 }
 
 async function handleStartChallengeFromPaymentEvent (initiatorAddress, paymentHash, stagedAmount) {
+  await handleDriipSettlement.call(this, initiatorAddress, paymentHash, stagedAmount);
+
   if (_onStartChallengeEventFromPaymentCallback.get(this))
     _onStartChallengeEventFromPaymentCallback.get(this)(initiatorAddress, paymentHash, stagedAmount);
-
-  handleDriipSettlement.call(this, initiatorAddress, paymentHash, stagedAmount);
 }
 
 async function handleStartChallengeEvent (initiatorWallet, stagedAmount, ct, id) {
+  await handleNullSettlement.call(this, initiatorWallet, stagedAmount, ct, id.toString());
+
   if (_onStartChallengeEventCallback.get(this))
     _onStartChallengeEventCallback.get(this)(initiatorWallet, stagedAmount, ct, id);
-
-  handleNullSettlement.call(this, initiatorWallet, stagedAmount, ct, id.toString());
 }
 
 class ChallengeHandler {

@@ -3,59 +3,129 @@
 
 const chai = Object.create(require('chai'));
 chai.should();
-const { given, req } = require('./gwt');
+
 const NestedError = require('./nested-error');
 
-function nestedErrorIsValid () {
-  req('has message', (_, resulting) => {
-    resulting.nestedErr.message.should.equal('Outer error');
-  });
-  req('has stack', (_, resulting) => {
-    resulting.nestedErr.stack.should.exist;
-  });
-  req('has asStringified()', (_, resulting) => {
-    resulting.nestedErr.asStringified.should.exist;
-  });
-  req('asStringified() returns outer message', (_, resulting) => {
-    /Outer error/.test(resulting.nestedErr.asStringified()).should.be.true;
-  });
-  req('asStringified() returns inner message', (_, resulting) => {
-    const x = resulting.nestedErr.asStringified();
-    /Inner error/.test(resulting.nestedErr.asStringified()).should.be.true;
-  });
-  req('has static asStringified()', () => {
-    NestedError.asStringified.should.exist;
-  });
-}
+describe('nested-error', () => {
+  let nestedErrorFromError, nestedErrorFromStr;
 
-describe('NestedError construction', function () {
-  given('an Error as inner error', () => ({
-    innerErr: new Error('Inner error')
-  }))
-    .when('NestedError instance constructed', given => ({
-      nestedErr: new NestedError(given.innerErr, 'Outer error')
-    }))
-    .then('is valid', () => {
-      nestedErrorIsValid.call(this);
+  before(() => {
+    try {
+      const err = new Error('Inner error with code');
+      err.code = 404;
+      throw err;
+    }
+    catch (err) {
+      nestedErrorFromError = new NestedError(err, 'Outer error');
+    }
 
-      req('has innerError', (_, resulting) => {
-        resulting.nestedErr.innerError.should.exist;
-      });
-      req('has innerError.message', (_, resulting) => {
-        resulting.nestedErr.innerError.message.should.equal('Inner error');
-      });
-      req('has innerError.stack', (_, resulting) => {
-        resulting.nestedErr.innerError.stack.should.exist;
-      });
+    try {
+      throw 'Inner error string';
+    }
+    catch (err) {
+      nestedErrorFromStr = new NestedError(err, 'Outer error');
+    }
+  });
+
+  describe('new NestedError() from Error', () => {
+    let nestedErr;
+
+    before(() => {
+      nestedErr = nestedErrorFromError; // Alias
     });
 
-  given('a string as inner error', () => ({
-    innerErr: 'Inner error'
-  }))
-    .when('NestedError instance constructed', given => ({
-      nestedErr: new NestedError(given.innerErr, 'Outer error')
-    }))
-    .then('is valid', () => {
-      nestedErrorIsValid.call(this);
+    it('has message', () => {
+      nestedErr.message.should.equal('Outer error');
     });
+    it('has stack', () => {
+      nestedErr.stack.should.exist;
+    });
+    it('has innerError', () => {
+      nestedErr.innerError.should.exist;
+    });
+    it('has innerError.message', () => {
+      nestedErr.innerError.message.should.equal('Inner error with code');
+    });
+    it('has innerError.code', () => {
+      nestedErr.innerError.code.should.equal(404);
+    });
+    it('has innerError.stack', () => {
+      nestedErr.innerError.stack.should.exist;
+    });
+    it('has asStringified()', () => {
+      nestedErr.asStringified.should.exist;
+    });
+    it('has static asStringified()', () => {
+      NestedError.asStringified.should.exist;
+    });
+  });
+
+  describe('asStringified() from Error', () => {
+    let parsedErr;
+
+    before(() => {
+      parsedErr = JSON.parse(nestedErrorFromError.asStringified());
+    });
+
+    it('has message', () => {
+      parsedErr.message.should.equal('Outer error');
+    });
+    it('has stack', () => {
+      parsedErr.stack.should.exist;
+    });
+    it('has innerError', () => {
+      parsedErr.innerError.should.exist;
+    });
+    it('has innerError.message', () => {
+      parsedErr.innerError.message.should.equal('Inner error with code');
+    });
+    it('has innerError.code', () => {
+      parsedErr.innerError.code.should.equal(404);
+    });
+    it('has innerError.stack', () => {
+      parsedErr.innerError.stack.should.exist;
+    });
+  });
+
+  describe('new NestedError() from Error', () => {
+    let nestedErr;
+
+    before(() => {
+      nestedErr = nestedErrorFromStr; // Alias
+    });
+
+    it('has message', () => {
+      nestedErr.message.should.equal('Outer error');
+    });
+    it('has stack', () => {
+      nestedErr.stack.should.exist;
+    });
+    it('has innerError', () => {
+      nestedErr.innerError.should.exist;
+    });
+    it('has asStringified()', () => {
+      nestedErr.asStringified.should.exist;
+    });
+    it('has static asStringified()', () => {
+      NestedError.asStringified.should.exist;
+    });
+  });
+
+  describe('asStringified() from string', () => {
+    let parsedErr;
+
+    before(() => {
+      parsedErr = JSON.parse(nestedErrorFromStr.asStringified());
+    });
+
+    it('has message', () => {
+      parsedErr.message.should.equal('Outer error');
+    });
+    it('has stack', () => {
+      parsedErr.stack.should.exist;
+    });
+    it('has innerError', () => {
+      parsedErr.innerError.should.exist;
+    });
+  });
 });
