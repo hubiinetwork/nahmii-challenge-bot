@@ -85,7 +85,7 @@ async function getProofCandidate(balanceTrackerContract, senderReceipts, sender,
     if (proofCandidate.receipt.sender.nonce !== runningNonce)
       throw new Error(`Receipt has wrong nonce. Expected ${runningNonce}, found ${proofCandidate.receipt.nonce}`);
 
-    const activeBalanceAtBlock = await getActiveBalanceAtBlock(balanceTrackerContract, sender, ct, id, proofCandidate.blockNumber);
+    const activeBalanceAtBlock = await getActiveBalanceAtBlock(balanceTrackerContract, sender, ct, id, proofCandidate.receipt.blockNumber);
     const paymentBalanceAtBlock = proofCandidate.receipt.sender.balances.current;
     proofCandidate.targetBalance = activeBalance.sub(activeBalanceAtBlock).add(paymentBalanceAtBlock).sub(stagedAmount);
 

@@ -25,7 +25,7 @@ module.exports = function (ctx, walletName, assignedEth) {
   step(`${walletName} receives ${assignedEth} ETH from Faucet`, async () => {
     return expect(
       ctx.Faucet.sendTransaction({
-        to: ctx.wallets[walletName].address, value: parseEther(assignedEth), gasLimit: 6000000
+        to: ctx.wallets[walletName].address, value: parseEther(assignedEth), ...ctx.gasLimit
       }).then(
         () => ctx.Miner.mineOneBlock()
       )).to.eventually.be.fulfilled;
