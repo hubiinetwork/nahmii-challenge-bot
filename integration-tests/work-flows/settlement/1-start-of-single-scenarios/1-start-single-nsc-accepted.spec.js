@@ -8,7 +8,7 @@ describe('Start Single NSC accepted', () => {
 
   describe('A. Acquire resources', () => {
     require('../../../resources/acquire-resources')(ctx);
-  });4
+  });
 
   describe('B. Carol as challenger', () => {
     require('../../../resources/acquire-challenger')(ctx, 'Carol', '10.0');

@@ -10,7 +10,9 @@ module.exports = function (ctx, walletName, paymentName) {
   assert(typeof walletName === 'string');
   assert(typeof paymentName === 'string');
 
-  step (`${walletName} settles DSC`, async () => {
+  step (`${walletName} settles DSC`, async function () {
+    this.timeout(8000);
+
     const payment = ctx.purses[walletName][paymentName];
     const contract = ctx.contracts.driipSettlement.connect(ctx.wallets[walletName]);
     const promise = contract.settlePayment(payment, ctx.gasLimit);

@@ -13,7 +13,9 @@ module.exports = function (ctx, title, walletName, paymentName, stageAmount, sym
   assert(typeof symbol === 'string');
   assert(typeof expectation === 'function');
 
-  step (title, async () => {
+  step (title, async function () {
+    this.timeout(8000);
+
     const currency = ctx.currencies[symbol];
     const payment = ctx.purses[walletName][paymentName];
     const contract = ctx.contracts.driipSettlementChallenge.connect(ctx.wallets[walletName]);
