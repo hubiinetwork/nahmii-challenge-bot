@@ -13,7 +13,7 @@ module.exports = function (ctx, title, walletName, contentName, symbol) {
     const wallet = ctx.wallets[walletName];
     const purse = ctx.purses[walletName];
 
-    purse[contentName] = await NestedError.tryAwait(() => wallet.getNahmiiBalance());
+    purse[contentName] = await wallet.getNahmiiBalance();
     expect(purse[contentName]).to.not.be.undefined.and.not.be.instanceof(Error);
 
     if (purse[contentName][symbol] === undefined)
