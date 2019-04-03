@@ -34,7 +34,7 @@ class NestedError extends Error {
       return await operation();
     }
     catch (err) {
-      throw new NestedError(err, 'Operation failed.');
+      throw new NestedError(err, 'NestedError tryAwait operation failed. ' + err.message);
     }
   }
 

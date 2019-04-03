@@ -11,6 +11,6 @@ module.exports = async function (ctx, title, walletName, receiptName, symbol) {
     purse[receiptName] = filteredReceipts.length ? filteredReceipts[0] : null;
 
     const nonce = purse[receiptName] === null ? -1 : purse[receiptName].nonce;
-    this.test.title += `: ${nonce}`;
+    this.test.title += ` '${receiptName}' nonce: ${nonce}`;
   });
 };

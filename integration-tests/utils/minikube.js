@@ -87,7 +87,8 @@ class Minikube {
 
     return {
       ct: currency.currency,
-      id: 0
+      id: 0,
+      unit: symbol === 'ETH' ? 18 : 15
     };
   }
 }

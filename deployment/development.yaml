@@ -31,21 +31,21 @@ spec:
         - name: ETHEREUM_NODE_URL
           value: http://geth-ropsten.dev.hubii.net
         - name: CHALLENGE_BOT_UTCADDRESS
-          value: 0xXXXXXXXXXXXXXXXXXX?
+          value: 3caac75eaf3860ed355ca260b01b396985a40a70
         - name: CHALLENGE_BOT_UTCSECRET
           valueFrom:
             secretKeyRef:
-              name: challenge-bot
-              key: utcsecret
+              name: testnet-keyfile
+              key: secret
         - name: CHALLENGE_BOT_APPID
           valueFrom:
             secretKeyRef:
-              name: challenge-bot
+              name: payment-engine
               key: appid
         - name: CHALLENGE_BOT_APPSECRET
           valueFrom:
             secretKeyRef:
-              name: challenge-bot
+              name: payment-engine
               key: appsecret
         resources:
           requests:
@@ -55,9 +55,10 @@ spec:
             memory: "2Gi"
             cpu: "1"
         volumeMounts:
-        - name: challenge-bot-keystore
+        - name: keystore
           mountPath: /app/keystore
+
       volumes:
-      - name: challenge-bot-keystore
+      - name: keystore
         secret:
-          secretName: challenge-bot-utcfile
+          secretName: testnet-keyfile

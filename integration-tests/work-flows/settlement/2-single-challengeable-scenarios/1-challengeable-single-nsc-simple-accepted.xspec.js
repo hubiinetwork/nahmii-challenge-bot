@@ -3,7 +3,7 @@
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 
-describe('Start Single DSC accepted', () => {
+xdescribe('Start Single DSC accepted', () => {
   const ctx = {};
 
   describe('A. Acquire resources', () => {
@@ -31,11 +31,12 @@ describe('Start Single DSC accepted', () => {
   });
 
   describe('G. Alice starts challenge process ETH', () => {
-    require('../work-actions/dsc-challenge-qualified')(ctx, 'Carol', 'Alice', 'Receipt_1', '2.0', 'ETH');
+    require('../work-actions/dsc-challenge-qualified')(ctx, 'Carol', 'Alice', 'receipt_1', '2.0', 'ETH');
+    require('../work-actions/start-nsc-challenge-fulfilled')(ctx, 'Carol', 'Alice', 'receipt_1', '2.0', 'ETH');
   });
 
   describe('H. Alice settles ETH', () => {
-    require('../work-actions/dsc-settle-qualified')(ctx, 'Alice', 'Receipt_1', '2.0', 'ETH');
+    require('../work-actions/dsc-settle-qualified')(ctx, 'Alice', '2.0', 'ETH');
   });
 
   describe('I. Alice withdraws ETH', () => {

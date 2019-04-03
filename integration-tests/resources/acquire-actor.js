@@ -6,6 +6,7 @@ const expect = chai.expect;
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
+const NestedError = require('../../src/utils/nested-error');
 
 module.exports = function (ctx, walletName, assignedEth) {
   step(`${walletName} has new wallet`, function () {
@@ -22,11 +23,12 @@ module.exports = function (ctx, walletName, assignedEth) {
   });
 
   step(`${walletName} receives ${assignedEth} ETH from Faucet`, async () => {
-    await ctx.Faucet.sendTransaction({
-      to: ctx.wallets[walletName].address, value: parseEther(assignedEth), gasLimit: 6000000
-    });
-
-    ctx.Miner.mineOneBlock();
+    return expect(
+      ctx.Faucet.sendTransaction({
+        to: ctx.wallets[walletName].address, value: parseEther(assignedEth), ...ctx.gasLimit
+      }).then(
+        () => ctx.Miner.mineOneBlock()
+      )).to.eventually.be.fulfilled;
   });
 
   step(`${walletName} has ETH in block chain balance`, async () => {
