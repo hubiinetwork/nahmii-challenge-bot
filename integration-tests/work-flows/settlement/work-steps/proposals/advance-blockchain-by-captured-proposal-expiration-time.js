@@ -7,7 +7,8 @@ const NestedError = require('../../../../../src/utils/nested-error');
 module.exports = function (ctx, walletName) {
   step(`Advance blockchain by ${walletName}'s proposal expiration time`, async function () {
     const blockChainNow = (await ctx.provider.getBlock('latest')).timestamp;
-    const proposalExpire = ctx.purses[walletName].proposalExpirationTime;
+    const expirationMargin = 10; // sec
+    const proposalExpire = ctx.purses[walletName].proposalExpirationTime + expirationMargin;
 
     try {
       await ctx.Miner.mineOneBlock();

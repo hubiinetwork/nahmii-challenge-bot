@@ -8,7 +8,7 @@ describe('Start Single NSC accepted', () => {
 
   describe('A. Acquire resources', () => {
     require('../../../resources/acquire-resources')(ctx);
-  });
+  });4
 
   describe('B. Carol as challenger', () => {
     require('../../../resources/acquire-challenger')(ctx, 'Carol', '10.0');
@@ -23,7 +23,7 @@ describe('Start Single NSC accepted', () => {
   });
 
   describe('E. Alice starts challenge process ETH', () => {
-    require('../work-actions/nsc-challenge-qualified')(ctx, 'Carol', 'Alice', '2.0', 'ETH');
+    require('../work-actions/start-nsc-challenge-to-be-fulfilled')(ctx, 'Carol', 'Alice', '2.0', 'ETH');
   });
 
   describe('F. Alice settles ETH', () => {
