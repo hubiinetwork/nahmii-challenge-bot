@@ -1,9 +1,14 @@
 'use strict';
+/*global step :true*/
+
+const assert = require('assert');
 
 module.exports = function (ctx, challengerName) {
-  step(`${challengerName} expects a start DSC event`, async () => {
-    const purse = ctx.purses[challengerName];
-    purse.StartDSCEvent = new Promise(resolve => {
+  assert(typeof ctx === 'object');
+  assert(typeof challengerName === 'string');
+
+  step(`${challengerName} expects a DSC-event notification`, async () => {
+    ctx.purses[challengerName].DSCEventPromise = new Promise(resolve => {
       const challenger = ctx.wallets[challengerName].asChallenger;
       challenger.onDSCEvent((initiatorWallet, paymentHash, stagedAmount) => {
         challenger.onDSCEvent(null);
