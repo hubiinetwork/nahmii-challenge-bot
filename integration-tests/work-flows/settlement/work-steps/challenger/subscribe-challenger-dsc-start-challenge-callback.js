@@ -1,12 +1,12 @@
 'use strict';
 
 module.exports = function (ctx, challengerName) {
-  step(`${challengerName} expects a StartChallengeFromPaymentEvent`, async () => {
+  step(`${challengerName} expects a start DSC event`, async () => {
     const purse = ctx.purses[challengerName];
-    purse.StartChallengeFromPaymentEvent = new Promise(resolve => {
+    purse.StartDSCEvent = new Promise(resolve => {
       const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onStartChallengeFromPaymentEvent((initiatorWallet, paymentHash, stagedAmount) => {
-        challenger.onStartChallengeFromPaymentEvent(null);
+      challenger.onDSCEvent((initiatorWallet, paymentHash, stagedAmount) => {
+        challenger.onDSCEvent(null);
         resolve({ initiatorWallet, paymentHash, stagedAmount });
       });
     });

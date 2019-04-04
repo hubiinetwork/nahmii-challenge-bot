@@ -5,15 +5,15 @@ const expect = chai.expect;
 const { formatEther } = require('ethers').utils;
 
 module.exports = function (ctx, challengerName, walletName, stageAmount, symbol) {
-  step(`${challengerName} observed a StartChallengeEvent`, async function () {
+  step(`${challengerName} observed a start NSC event`, async function () {
     ctx.Miner.mineOneBlock();
     const purse = ctx.purses[challengerName];
-    return expect(purse.StartChallengeEvent).to.eventually.be.fulfilled;
+    return expect(purse.StartNSCEvent).to.eventually.be.fulfilled;
   });
 
-  step('StartChallengeEvent payload is valid', async function () {
+  step('Start NSC event payload is valid', async function () {
     const purse = ctx.purses[challengerName];
-    const { initiatorWallet, stagedAmount, stagedCt, stageId } = await purse.StartChallengeEvent;
+    const { initiatorWallet, stagedAmount, stagedCt, stageId } = await purse.StartNSCEvent;
 
     expect(initiatorWallet).to.equal(ctx.wallets[walletName].address);
     expect(formatEther(stagedAmount)).to.equal(stageAmount);

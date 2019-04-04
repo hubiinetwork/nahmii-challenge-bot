@@ -31,12 +31,11 @@ xdescribe('Start Single DSC accepted', () => {
   });
 
   describe('G. Alice starts challenge process ETH', () => {
-    require('../work-actions/dsc-challenge-qualified')(ctx, 'Carol', 'Alice', 'receipt_1', '2.0', 'ETH');
-    require('../work-actions/start-nsc-challenge-fulfilled')(ctx, 'Carol', 'Alice', 'receipt_1', '2.0', 'ETH');
+    require('../work-actions/start-nsc-challenge-fulfilled-agreed')(ctx, 'Carol', 'Alice', 'receipt_1', '2.0', 'ETH');
   });
 
   describe('H. Alice settles ETH', () => {
-    require('../work-actions/dsc-settle-qualified')(ctx, 'Alice', '2.0', 'ETH');
+    require('../work-actions/dsc-settle-qualified')(ctx, 'Alice', 'receipt_1', '2.0', 'ETH');
   });
 
   describe('I. Alice withdraws ETH', () => {
@@ -44,3 +43,4 @@ xdescribe('Start Single DSC accepted', () => {
   });
 
 });
+
