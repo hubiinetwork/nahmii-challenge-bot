@@ -9,7 +9,7 @@ module.exports = function (ctx, challengerName, walletName, paymentName, stageAm
   assert(typeof stageAmount === 'string');
   assert(typeof symbol === 'string');
   // Event
-  require('../work-steps/challenger/subscribe-challenger-dsc-start-challenge-callback')(ctx, challengerName);
+  require('../work-steps/challenger/subscribe-dsc-event-callback')(ctx, challengerName);
 
   // Balances
   require('../../../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
@@ -31,7 +31,7 @@ module.exports = function (ctx, challengerName, walletName, paymentName, stageAm
   require('../work-steps/proposals/has-dsc-proposal-staged-amount')(ctx, walletName, stageAmount, symbol);
 
   // Event
-  require('../work-steps/challenger/validate-challenger-dsc-start-challenge-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/challenger/validate-dsc-event-callback')(ctx, challengerName, walletName, stageAmount, symbol);
 
   // Balances
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);

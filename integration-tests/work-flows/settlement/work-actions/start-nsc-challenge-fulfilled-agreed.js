@@ -3,7 +3,7 @@
 module.exports = function (ctx, challengerName, walletName, stageAmount, symbol) {
 
   // Event
-  require('../work-steps/challenger/subscribe-challenger-nsc-start-challenge-callback')(ctx, challengerName);
+  require('../work-steps/challenger/subscribe-nsc-event-callback')(ctx, challengerName);
 
   // Balances
   require('../../../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
@@ -23,7 +23,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   require('../work-steps/proposals/has-nsc-proposal-staged-amount')(ctx, walletName, stageAmount, symbol);
 
   // Event
-  require('../work-steps/challenger/validate-challenger-nsc-start-challenge-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/challenger/validate-nsc-event-callback')(ctx, challengerName, walletName, stageAmount, symbol);
 
   // Balances
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
