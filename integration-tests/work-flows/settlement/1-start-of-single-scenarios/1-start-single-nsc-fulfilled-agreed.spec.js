@@ -23,7 +23,7 @@ describe('Start Single NSC accepted', () => {
   });
 
   describe('E. Alice starts challenge process ETH', () => {
-    require('../work-actions/start-nsc-challenge-to-be-fulfilled')(ctx, 'Carol', 'Alice', '2.0', 'ETH');
+    require('../work-actions/start-nsc-challenge-fulfilled-agreed')(ctx, 'Carol', 'Alice', '2.0', 'ETH');
   });
 
   describe('F. Alice settles ETH', () => {

@@ -1,12 +1,12 @@
 'use strict';
 
 module.exports = function (ctx, challengerName) {
-  step(`${challengerName} expects a StartChallengeEvent`, async () => {
+  step(`${challengerName} expects a start NSC event`, async () => {
     const purse = ctx.purses[challengerName];
-    purse.StartChallengeEvent = new Promise(resolve => {
+    purse.StartNSCEvent = new Promise(resolve => {
       const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onStartChallengeEvent((initiatorWallet, stagedAmount, stagedCt, stageId) => {
-        challenger.onStartChallengeEvent(null);
+      challenger.onNSCEvent((initiatorWallet, stagedAmount, stagedCt, stageId) => {
+        challenger.onNSCEvent(null);
         resolve({ initiatorWallet, stagedAmount, stagedCt, stageId });
       });
     });
