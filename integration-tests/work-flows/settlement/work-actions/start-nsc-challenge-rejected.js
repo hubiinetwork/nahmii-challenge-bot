@@ -13,6 +13,10 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   // Action
   require('../../../work-steps/contracts/NullSettlementChallenge/startChallenge-to-be-rejected')(ctx, walletName, stageAmount, symbol);
 
+  // Proposals
+  require('../work-steps/proposals/has-no-nsc-proposal-status')(ctx, walletName, symbol);
+  require('../work-steps/proposals/has-no-nsc-proposal-nonce')(ctx, walletName, symbol);
+
   // Balances
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-staged-eth-balance-after-action')(ctx, walletName, null);

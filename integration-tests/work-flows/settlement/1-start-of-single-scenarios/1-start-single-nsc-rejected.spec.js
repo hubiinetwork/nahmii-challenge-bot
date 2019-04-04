@@ -23,7 +23,7 @@ describe('Start Single NSC rejected', () => {
   });
 
   describe('E. Alice starts challenge process staging ETH', () => {
-    require('../work-actions/start-nsc-challenge-to-be-rejected')(ctx, 'Carol', 'Alice', '4.0', 'ETH');
+    require('../work-actions/start-nsc-challenge-rejected')(ctx, 'Carol', 'Alice', '4.0', 'ETH');
   });
 
 });

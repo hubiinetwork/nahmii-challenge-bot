@@ -31,13 +31,6 @@ describe('Start Single DSC accepted', () => {
   });
 
   describe('G. Alice starts challenge process ETH', () => {
-    require('../work-actions/dsc-challenge-rejected')(ctx, 'Carol', 'Alice', 'Receipt_1', '5.0', 'ETH');
+    require('../work-actions/start-dsc-challenge-rejected')(ctx, 'Carol', 'Alice', 'Receipt_1', '5.0', 'ETH');
   });
-/*
-  describe('', () => {
-    it('pause to ensure logs are flushed before termination', done => {
-      (new Promise(resolve => setTimeout(resolve, 30000))).then(() => done());
-    });
-  });
-*/
 });
