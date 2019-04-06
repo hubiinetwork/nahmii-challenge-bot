@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 function getAbiPath (contractName, network) {
   return new Promise((resolve, reject) =>{
     const abiPaths = execSync(
-      `find ./node_modules/nahmii-sdk -type f -name ${contractName}.json | grep 'abis/${network}'`,
+      `find ./src/contract-factory/abis/${network} -type f -name ${contractName}.json`,
       { encoding: 'utf8' }
     ).split('\n');
 
@@ -30,7 +30,11 @@ class ContractFactory {
       `        ${contractName}\n` +
       `        meta service : ${contractAddress}\n` +
       `        abi address  : ${deployment.networks[provider.network.chainId].address}`;
-      throw new Error(msg);
+
+      if (process.env.NODE_ENV === 'production')
+        throw new Error(msg);
+      else
+        console.log(msg);
     }
 
     return new ethers.Contract(contractAddress, deployment.abi, provider);

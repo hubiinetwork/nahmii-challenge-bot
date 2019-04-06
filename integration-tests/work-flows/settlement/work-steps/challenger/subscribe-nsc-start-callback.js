@@ -7,11 +7,11 @@ module.exports = function (ctx, challengerName) {
   assert(typeof ctx === 'object');
   assert(typeof challengerName === 'string');
 
-  step(`${challengerName} expects a start NSC event`, async () => {
-    ctx.purses[challengerName].NSCEventPromise = new Promise(resolve => {
+  step(`${challengerName} expects a NSC-start notification`, async () => {
+    ctx.purses[challengerName].NSCStartPromise = new Promise(resolve => {
       const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onNSCEvent((initiatorWallet, stagedAmount, stagedCt, stageId) => {
-        challenger.onNSCEvent(null);
+      challenger.onNSCStart((initiatorWallet, stagedAmount, stagedCt, stageId) => {
+        challenger.onNSCStart(null);
         resolve({ initiatorWallet, stagedAmount, stagedCt, stageId });
       });
     });

@@ -13,13 +13,13 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   assert(typeof stageAmount === 'string');
   assert(typeof symbol === 'string');
 
-  step(`${challengerName} NSC-event notification observed`, async function () {
+  step(`${challengerName} NSC-start notification observed`, async function () {
     ctx.Miner.mineOneBlock();
-    return expect(ctx.purses[challengerName].NSCEventPromise).to.eventually.be.fulfilled;
+    return expect(ctx.purses[challengerName].NSCStartPromise).to.eventually.be.fulfilled;
   });
 
-  step('NSC-event payload is valid', async function () {
-    const { initiatorWallet, stagedAmount, stagedCt, stageId } = await ctx.purses[challengerName].NSCEventPromise;
+  step('NSC-start payload is valid', async function () {
+    const { initiatorWallet, stagedAmount, stagedCt, stageId } = await ctx.purses[challengerName].NSCStartPromise;
 
     expect(initiatorWallet).to.equal(ctx.wallets[walletName].address);
     expect(formatEther(stagedAmount)).to.equal(stageAmount);
