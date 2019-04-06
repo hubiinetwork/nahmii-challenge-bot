@@ -6,19 +6,7 @@ const ethers = require('ethers');
 const { bigNumberify } = ethers.utils;
 const { getWalletReceiptFromHash, getResentSenderReceipts } = require('./receipts-provider');
 
-const _wallet = new WeakMap;
-
-const _onDSCEventCallback = new WeakMap;
-const _onDSCAgreedCallback = new WeakMap;
-const _onDSCDisputedCallback = new WeakMap;
-
-const _onNSCEventCallback = new WeakMap;
-const _onNSCAgreedCallback = new WeakMap;
-const _onNSCDisputedCallback = new WeakMap;
-
-const _driipSettlementChallengeContract = new WeakMap;
-const _nullSettlementChallengeContract= new WeakMap;
-const _balanceTrackerContract = new WeakMap;
+const _state = new WeakMap;
 
 async function getActiveBalanceTypes (balanceTrackerContract) {
   return balanceTrackerContract.activeBalanceTypes().catch(err => {
@@ -88,74 +76,93 @@ function logReceipt (verdict, receipt, targetBalance) {
   logger.info(`    ${verdict} by payment at block ${receipt.blockNumber}`);
   logger.info(`    Sender   : address '${receipt.sender.wallet}', nonce '${receipt.sender.nonce}', balance '${receipt.sender.balances.current}', tau '${targetBalance}'`);
   logger.info(`    Recipient: address '${receipt.recipient.wallet}', nonce '${receipt.recipient.nonce}'`);
-
   logger.info(' ');
 }
 
-async function notifyDSCEvent (initiator, paymentHash, stagedAmount) {
-  logger.info(`Start DSC event: initiator ${initiator}, staged ${stagedAmount}, hash ${paymentHash}`);
+function logLocking (caption, wallet, nonce, candidateHash, challenger) {
+  logger.info(`${caption}`);
+  logger.info(`    Sender   : address '${wallet}', nonce '${nonce}'`);
+  logger.info(' ');
+}
 
-  if (_onDSCEventCallback.get(this))
-    _onDSCEventCallback.get(this)(initiator, paymentHash, stagedAmount);
+function notifyCallback (callbackName, ...params) {
+  const callback = _state.get(this).callbacks[callbackName];
+
+  if (callback)
+    callback(...params);
+}
+
+async function notifyDSCStart (initiator, paymentHash, stagedAmount) {
+  logger.info(`Start DSC event: initiator ${initiator}, staged ${stagedAmount}, hash ${paymentHash}`);
+  notifyCallback.call(this, 'onDSCStart', initiator, paymentHash, stagedAmount);
 }
 
 function notifyDSCAgreed (sender, receipt, targetBalance) {
   logReceipt('DSC Agreed', receipt, targetBalance);
-
-  if (_onDSCAgreedCallback.get(this))
-    _onDSCAgreedCallback.get(this)(sender, receipt, targetBalance);
+  notifyCallback.call(this, 'onDSCAgreed', sender, receipt, targetBalance);
 }
 
 function notifyDSCDisputed (sender, receipt, targetBalance) {
   logReceipt('DSC Disputed', receipt, targetBalance);
-
-  if (_onDSCDisputedCallback.get(this))
-    _onDSCDisputedCallback.get(this)(sender, receipt, targetBalance);
+  notifyCallback.call(this, 'onDSCDisputed', sender, receipt, targetBalance);
 }
 
-async function notifyNSCEvent (initiator, stagedAmount, ct, id) {
-  logger.info(`Start NSC event: initiator ${initiator}, staged ${stagedAmount}, ct ${ct}, id ${id}`);
+function notifyDSCLocked (caption, challenger, lockedWallet, balance, ct, id) {
+  logger.info(`${caption} challenger ${challenger}, sender ${lockedWallet}, balance ${balance}, ct ${ct}, id ${id}`);
+  notifyCallback.call(this, 'onDSCLocked', challenger, lockedWallet, balance, ct, id);
+}
 
-  if (_onNSCEventCallback.get(this))
-    _onNSCEventCallback.get(this)(initiator, stagedAmount, ct, id);
+function notifyNSCStart (initiator, stagedAmount, ct, id) {
+  logger.info(`Start NSC event: initiator ${initiator}, staged ${stagedAmount}, ct ${ct}, id ${id}`);
+  notifyCallback.call(this, 'onNSCStart', initiator, stagedAmount, ct, id);
 }
 
 function notifyNSCAgreed (sender) {
   logger.info('    NSC Agreed without payment');
   logger.info(`    Sender   : address '${sender}'`);
-
   logger.info(' ');
-
-  if (_onNSCAgreedCallback.get(this))
-    _onNSCAgreedCallback.get(this)(sender);
+  notifyCallback.call(this, 'onNSCAgreed', sender);
 }
 
 function notifyNSCDisputed (sender, receipt, targetBalance) {
   logReceipt('NSC Disputed', receipt, targetBalance);
-
-  if (_onNSCDisputedCallback.get(this))
-    _onNSCDisputedCallback.get(this)(sender, receipt, targetBalance);
+  notifyCallback.call(this, 'onNSCDisputed', sender, receipt, targetBalance);
 }
 
-async function handleDSCEvent (initiatorAddress, paymentHash, stagedAmount) {
+function notifyNSCLocked (wallet, nonce, candidateHash, challenger) {
+  logLocking('NSC Locked', wallet, nonce, candidateHash, challenger);
+  notifyCallback.call(this, 'onNSCLocked', wallet, nonce, candidateHash, challenger);
+}
 
-  notifyDSCEvent.call(this, initiatorAddress, paymentHash, stagedAmount);
+function notifyBalancesSeized (wallet, nonce, candidateHash, challenger) {
+  logger.info('    Balance seized');
+  logger.info(`    Sender   : address '${wallet}'`);
+  logger.info(' ');
+  notifyCallback.call(this, 'onBalancesSeized', wallet, nonce, candidateHash, challenger);
+}
 
-  const initiatorReceipt = await getWalletReceiptFromHash(_wallet.get(this).provider, initiatorAddress, paymentHash);
+async function handleDSCStart (initiatorAddress, paymentHash, stagedAmount) {
+
+  notifyDSCStart.call(this, initiatorAddress, paymentHash, stagedAmount);
+
+  const state = _state.get(this);
+  const contracts = state.contracts;
+
+  const initiatorReceipt = await getWalletReceiptFromHash(state.wallet.provider, initiatorAddress, paymentHash);
   const sender = initiatorReceipt.sender.wallet;
   const ct = initiatorReceipt.currency.ct;
   const id = initiatorReceipt.currency.id;
   const nonce = initiatorReceipt.sender.nonce;
   const blockNo = initiatorReceipt.blockNumber;
 
-  const resentReceipts = await getResentSenderReceipts(_wallet.get(this).provider, sender, ct, id, nonce, blockNo);
-  const proofCandidate = await getProofCandidate(_balanceTrackerContract.get(this), resentReceipts, sender, ct, id, nonce, stagedAmount.toString());
+  const resentReceipts = await getResentSenderReceipts(state.wallet.provider, sender, ct, id, nonce, blockNo);
+  const proofCandidate = await getProofCandidate(contracts.balanceTracker, resentReceipts, sender, ct, id, nonce, stagedAmount.toString());
   const hasProof = proofCandidate.targetBalance.lt(0);
   const finalReceipt = proofCandidate.receipt;
   const targetBalance = proofCandidate.targetBalance.toString();
 
   if (hasProof) {
-    await _driipSettlementChallengeContract.get(this).challengeByPayment(sender, finalReceipt).catch(err => {
+    await contracts.driipSettlementChallenge.challengeByPayment(sender, finalReceipt).catch(err => {
       throw new NestedError(err, 'Failed to challenge by payment. ' + err.message);
     });
     notifyDSCDisputed.call(this, sender, finalReceipt, targetBalance);
@@ -165,28 +172,31 @@ async function handleDSCEvent (initiatorAddress, paymentHash, stagedAmount) {
   }
 }
 
-async function handleNSCEvent (sender, stagedAmount, ct, id) {
+async function handleNSCStart (sender, stagedAmount, ct, id) {
 
-  notifyNSCEvent.call(this, sender, stagedAmount, ct, id);
+  notifyNSCStart.call(this, sender, stagedAmount, ct, id);
 
-  const activeBalance = await getActiveBalance(_balanceTrackerContract.get(this), sender, ct, id);
+  const state = _state.get(this);
+  const contracts = state.contracts;
+
+  const activeBalance = await getActiveBalance(contracts.balanceTracker, sender, ct, id);
 
   if (activeBalance.lt(stagedAmount)) {
     const targetBalance = activeBalance.sub(stagedAmount).toString();
     throw new Error(`Received unexpected disqualified NSC: balance ${activeBalance.toString()}, staged ${stagedAmount.toString()}, tau ${targetBalance}`);
   }
 
-  const { blockNumber } = await getLastDepositRecord(_balanceTrackerContract.get(this), sender, ct, id);
+  const { blockNumber } = await getLastDepositRecord(contracts.balanceTracker, sender, ct, id);
   const senderNonce = 0;
-  const resentReceipts = await getResentSenderReceipts(_wallet.get(this).provider, sender, ct, id, senderNonce, blockNumber);
-  const proofCandidate = await getProofCandidate(_balanceTrackerContract.get(this), resentReceipts, sender, ct, id, senderNonce, stagedAmount.toString());
+  const resentReceipts = await getResentSenderReceipts(state.wallet.provider, sender, ct, id, senderNonce, blockNumber);
+  const proofCandidate = await getProofCandidate(contracts.balanceTracker, resentReceipts, sender, ct, id, senderNonce, stagedAmount.toString());
   const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
 
   if (hasProof) {
     const finalReceipt = proofCandidate.receipt;
     const targetBalance = proofCandidate.targetBalance.toString();
 
-    await _nullSettlementChallengeContract.get(this).challengeByPayment(sender, finalReceipt).catch(err => {
+    await contracts.nullSettlementChallenge.challengeByPayment(sender, finalReceipt).catch(err => {
       throw new NestedError(err, 'Failed to challenge null payment. ' + err.message);
     });
 
@@ -197,57 +207,123 @@ async function handleNSCEvent (sender, stagedAmount, ct, id) {
   }
 }
 
+async function handleWalletLocking (caption, lockedWallet, nonce, candidateHash, challenger) {
+
+  const state = _state.get(this);
+  const candidateReceipt = await getWalletReceiptFromHash(state.wallet.provider, lockedWallet, candidateHash);
+  const sender = candidateReceipt.sender.wallet;
+  const balance = candidateReceipt.sender.balances.current;
+  const ct = candidateReceipt.currency.ct;
+  const id = candidateReceipt.currency.id;
+
+  if (lockedWallet !== sender)
+    throw new Error(`Handle lock event failed. Sender addresses do not match: address in event ${lockedWallet}, address in receipt ${sender}`)
+
+  if (state.wallet.address === challenger) {
+    const clientFund = state.contracts.clientFund.connect(state.wallet);
+    clientFund.seizeBalances(lockedWallet, ct, id, '');
+    caption += ' seizing:';
+  }
+  else {
+    caption += ' ignoring:';
+  }
+
+  notifyDSCLocked.call(this, caption, challenger, lockedWallet, balance, ct, id);
+}
+
+function handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {
+  notifyBalancesSeized.call(this, seizedWallet, seizerWallet, value, currencyCt, currencyId);
+}
+
+function updateCallback(callbackName, callback) {
+  const state = _state.get(this);
+  state.callbacks[callbackName] = callback;
+  _state.get(this, state);
+}
+
 class ChallengeHandler {
 
-  constructor(wallet, driipSettlementChallengeContract, nullSettlementChallengeContract, balanceTrackerContract) {
+  constructor(wallet, clientFund, driipSettlementChallenge, nullSettlementChallenge, balanceTracker, driipSettlementDispute, nullSettlementDispute) {
     // ISSUE: Some nodes (e.g. ganache) is pecky about address format in filters.
     //        https://github.com/ethers-io/ethers.js/issues/165
     //        https://github.com/trufflesuite/ganache-cli/issues/494
 
-    _wallet.set(this, wallet);
-    _driipSettlementChallengeContract.set(this, driipSettlementChallengeContract);
-    _nullSettlementChallengeContract.set(this, nullSettlementChallengeContract);
-    _balanceTrackerContract.set(this, balanceTrackerContract);
-
-    driipSettlementChallengeContract.on('StartChallengeFromPaymentEvent', (initiatorWallet, paymentHash, stagedAmount) => {
-      handleDSCEvent.call(this, initiatorWallet, paymentHash, stagedAmount);
+    _state.set(this, {
+      wallet,
+      contracts: {
+        clientFund, driipSettlementChallenge, nullSettlementChallenge,
+        balanceTracker, driipSettlementDispute, nullSettlementDispute
+      },
+      callbacks: {
+        onDCStart: null, onDSCAgreed: null, onDSCDisputed: null, onDSCLocked: null,
+        onNCStart: null, onNSCAgreed: null, onNSCDisputed: null, onNSCLocked: null,
+        onBalancesSeized: null
+      }
     });
 
-    driipSettlementChallengeContract.on('StartChallengeFromPaymentByProxyEvent', (_proxy, initiatorWallet, paymentHash, stagedAmount) => {
-      handleDSCEvent.call(this, initiatorWallet, paymentHash, stagedAmount);
+    driipSettlementChallenge.on('StartChallengeFromPaymentEvent', (initiatorWallet, paymentHash, stagedAmount) => {
+      handleDSCStart.call(this, initiatorWallet, paymentHash, stagedAmount);
     });
 
-    nullSettlementChallengeContract.on('StartChallengeEvent', (initiatorWallet, stagedAmount, stagedCt, stageId) => {
-      handleNSCEvent.call(this, initiatorWallet, stagedAmount, stagedCt, stageId);
+    driipSettlementChallenge.on('StartChallengeFromPaymentByProxyEvent', (_proxy, initiatorWallet, paymentHash, stagedAmount) => {
+      handleDSCStart.call(this, initiatorWallet, paymentHash, stagedAmount);
     });
 
-    nullSettlementChallengeContract.on('StartChallengeByProxyEvent', (_proxy, initiatorWallet, stagedAmount, stagedCt, stageId) => {
-      handleNSCEvent.call(this, initiatorWallet, stagedAmount, stagedCt, stageId);
+    driipSettlementDispute.on('ChallengeByPaymentEvent', (wallet, nonce, driipHash, driipType, candidateHash, challenger) => {
+      handleWalletLocking.call(this, 'DSC Locking', wallet, nonce, candidateHash, challenger);
+    });
+
+    nullSettlementChallenge.on('StartChallengeEvent', (initiatorWallet, stagedAmount, stagedCt, stageId) => {
+      handleNSCStart.call(this, initiatorWallet, stagedAmount, stagedCt, stageId);
+    });
+
+    nullSettlementChallenge.on('StartChallengeByProxyEvent', (_proxy, initiatorWallet, stagedAmount, stagedCt, stageId) => {
+      handleNSCStart.call(this, initiatorWallet, stagedAmount, stagedCt, stageId);
+    });
+
+    nullSettlementDispute.on('ChallengeByPaymentEvent', (wallet, nonce, candidateHash, challenger) => {
+      handleWalletLocking.call(this, 'NSC Locking', wallet, nonce, candidateHash, challenger);
+    });
+
+    clientFund.on('SeizeBalancesEvent', (seizedWallet, seizerWallet, value, currencyCt, currencyId) => {
+      handleBalancesSeized.call(this, seizedWallet, seizerWallet, value, currencyCt, currencyId);
     });
   }
 
-  onDSCEvent (callback) {
-    _onDSCEventCallback.set(this, callback);
+  onDSCStart (callback) {
+    updateCallback.call(this, 'onDSCStart', callback);
   }
 
   onDSCAgreed (callback) {
-    _onDSCAgreedCallback.set(this, callback);
+    updateCallback.call(this, 'onDSCAgreed', callback);
   }
 
   onDSCDisputed (callback) {
-    _onDSCDisputedCallback.set(this, callback);
+    updateCallback.call(this, 'onDSCDisputed', callback);
   }
 
-  onNSCEvent (callback) {
-    _onNSCEventCallback.set(this, callback);
+  onDSCLocked (callback) {
+    updateCallback.call(this, 'onDSCLocked', callback);
+  }
+
+  onNSCStart (callback) {
+    updateCallback.call(this, 'onNSCStart', callback);
   }
 
   onNSCAgreed (callback) {
-    _onNSCAgreedCallback.set(this, callback);
+    updateCallback.call(this, 'onNSCAgreed', callback);
   }
 
   onNSCDisputed (callback) {
-    _onNSCDisputedCallback.set(this, callback);
+    updateCallback.call(this, 'onNSCDisputed', callback);
+  }
+
+  onNSCLocked (callback) {
+    updateCallback.call(this, 'onNSCLocked', callback);
+  }
+
+  onBalancesSeized (callback) {
+    updateCallback.call(this, 'onBalancesSeized', callback);
   }
 }
 

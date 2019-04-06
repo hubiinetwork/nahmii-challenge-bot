@@ -22,11 +22,11 @@ async function getContractAddress (contractName) {
 function getAbiPath (contractName) {
   return new Promise((resolve, reject) =>{
     const abiPaths = execSync(
-      `find ./node_modules/nahmii-sdk ./integration-tests/resources -type f -name ${contractName}.json | grep 'abis/ropsten'`,
+      `find ./integration-tests/resources/abis/ropsten -type f -name ${contractName}.json`,
       { encoding: 'utf8' }
     ).split('\n');
 
-    if (abiPaths.length < 1)
+    if ((abiPaths.length < 1) || (abiPaths.length === 1 && abiPaths[0] === ''))
       reject(new Error('Could not find ABI of contract: ' + contractName));
     else
       resolve(abiPaths[0]);
@@ -42,7 +42,7 @@ async function createContract (contractName, provider) {
 
   const abiPath = await getAbiPath(contractName);
   const deployment = require('../../' + abiPath);
-
+/*
   if (deployment.networks['3'].address !== contractAddress) {
     const msg = 'Contract addresses do not match.\n' +
     `        ${contractName}\n` +
@@ -50,7 +50,7 @@ async function createContract (contractName, provider) {
     `        abi address  : ${deployment.networks['3'].address}`;
     throw new Error(msg);
   }
-
+*/
   return new ethers.Contract(contractAddress, deployment.abi, provider);
 }
 
