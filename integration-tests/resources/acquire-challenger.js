@@ -12,6 +12,7 @@ module.exports = function (ctx, walletName, assignedEth) {
     chai.expect(ctx.wallets[walletName]).to.be.instanceof(nahmii.Wallet);
     ctx.wallets[walletName].asChallenger = new ChallengeHandler(
       ctx.wallets[walletName],
+      ctx.gasLimit,
       ctx.contracts.clientFund,
       ctx.contracts.driipSettlementChallenge, ctx.contracts.nullSettlementChallenge,
       ctx.contracts.balanceTracker,

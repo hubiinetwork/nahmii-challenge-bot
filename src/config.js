@@ -33,6 +33,7 @@ module.exports = {
     appSecret: process.env['CHALLENGE_BOT_APPSECRET'] || ''
   },
   ethereum: {
-    nodeUrl: process.env['ETHEREUM_NODE_URL'] || ''
+    nodeUrl: process.env['ETHEREUM_NODE_URL'] || '',
+    gasLimit: '2000000'
   }
 };

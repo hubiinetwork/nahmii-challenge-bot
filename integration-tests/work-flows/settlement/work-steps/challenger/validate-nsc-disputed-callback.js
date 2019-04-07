@@ -14,7 +14,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   assert(typeof symbol === 'string');
 
   step(`${challengerName} observed a NSC-disputed notification`, async function () {
-    ctx.Miner.mineOneBlock();
+    await ctx.Miner.mineOneBlock();
     return expect(ctx.purses[challengerName].NSCDisputedPromise).to.eventually.be.fulfilled;
   });
 

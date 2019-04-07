@@ -15,7 +15,7 @@ module.exports = function (ctx, walletName, stageAmount, symbol) {
   step (`${walletName} starts NSC that is rejected`, async () => {
     const currency = ctx.currencies[symbol];
     const contract = ctx.contracts.nullSettlementChallenge.connect(ctx.wallets[walletName]);
-    const promise = contract.startChallenge(parseUnits(stageAmount, currency.unit), ctx.currencies[symbol].ct, 0, ctx.gasLimit);
+    const promise = contract.startChallenge(parseUnits(stageAmount, currency.unit), ctx.currencies[symbol].ct, 0, { gasLimit: ctx.gasLimit });
 
     return expect(promise).to.eventually.be.rejected;
   });

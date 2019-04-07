@@ -11,7 +11,7 @@ module.exports = function (ctx, challengerName, walletName) {
   assert(typeof walletName === 'string');
 
   step(`${challengerName} observed a NSC-agreed notification`, async function () {
-    ctx.Miner.mineOneBlock();
+    await ctx.Miner.mineOneBlock();
     return expect(ctx.purses[challengerName].NSCAgreedPromise).to.eventually.be.fulfilled;
   });
 

@@ -19,7 +19,7 @@ module.exports = function (ctx, title, walletName, paymentName, stageAmount, sym
     const currency = ctx.currencies[symbol];
     const payment = ctx.purses[walletName][paymentName];
     const contract = ctx.contracts.driipSettlementChallenge.connect(ctx.wallets[walletName]);
-    const promise = contract.startChallengeFromPayment(payment, parseUnits(stageAmount, currency.unit, ctx.gasLimit));
+    const promise = contract.startChallengeFromPayment(payment, parseUnits(stageAmount, currency.unit, { gasLimit: ctx.gasLimit }));
 
     return expectation(promise);
   });

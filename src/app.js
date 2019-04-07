@@ -9,6 +9,7 @@ const NestedError = require('./utils/nested-error');
 const nahmii = require('nahmii-sdk');
 const keythereum = require('keythereum');
 const path = require('path');
+const ethers = require('ethers');
 
 process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.error(NestedError.asStringified(reason));
@@ -48,6 +49,7 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
 
   new ChallengeHandler(
     new nahmii.Wallet(privateKey, provider),
+    ethers.utils.bigNumberify(config.ethereum.gasLimit),
     await ContractFactory.create('ClientFund', provider),
     await ContractFactory.create('DriipSettlementChallenge', provider),
     await ContractFactory.create('NullSettlementChallenge', provider),

@@ -16,7 +16,7 @@ module.exports = function (ctx, walletName, stageAmount, symbol) {
   step (`${walletName} starts NSC that is fulfilled`, async () => {
     const currency = ctx.currencies[symbol];
     const contract = ctx.contracts.nullSettlementChallenge.connect(ctx.wallets[walletName]);
-    const promise = contract.startChallenge(parseUnits(stageAmount, currency.unit), currency.ct, currency.id, ctx.gasLimit);
+    const promise = contract.startChallenge(parseUnits(stageAmount, currency.unit), currency.ct, currency.id, { gasLimit: ctx.gasLimit });
 
     return expect(promise).to.eventually.be.fulfilled;
   });

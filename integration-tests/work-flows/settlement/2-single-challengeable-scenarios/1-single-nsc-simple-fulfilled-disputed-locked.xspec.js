@@ -3,7 +3,7 @@
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 
-describe('Start Single DSC accepted', () => {
+describe('Challengeable Single NSC simplified seized', () => {
   const ctx = {};
 
   describe('A. Acquire resources', () => {
@@ -31,7 +31,7 @@ describe('Start Single DSC accepted', () => {
   });
 
   describe('G. Alice starts disputed challenge process seized by Carol', () => {
-    require('../work-actions/start-nsc-challenge-fulfilled-disputed-locked')(ctx, 'Carol', 'Alice', 'receipt_1', '5.0', 'ETH');
+    require('../work-actions/start-nsc-challenge-fulfilled-disputed-locked')(ctx, 'Carol', 'Alice', '5.0', 'ETH');
   });
 
 });
