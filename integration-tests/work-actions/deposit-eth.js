@@ -49,7 +49,7 @@ module.exports = function (ctx, walletName, depositAmount) {
   require('../work-steps/contract-events/create-ClientFund-ReceiveEvent.promise')(ctx);
 
   step(`${walletName} deposits`, async function () {
-    depositTransaction = await ctx.wallets[walletName].depositEth(depositAmount, ctx.gasLimit);
+    depositTransaction = await ctx.wallets[walletName].depositEth(depositAmount, { gasLimit: ctx.gasLimit });
     expect(depositTransaction).to.not.be.undefined.and.not.be.instanceof(Error);
     expect(ethers.utils.formatEther(depositTransaction.value)).to.equal(depositAmount);
     this.test.title += `: ${depositAmount} ETH at ${depositTransaction.blockNumber}`;
