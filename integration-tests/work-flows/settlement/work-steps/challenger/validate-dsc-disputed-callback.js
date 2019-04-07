@@ -14,7 +14,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   assert(typeof symbol === 'string');
 
   step(`${challengerName} observed a DSC-disputed notification`, async function () {
-    ctx.Miner.mineOneBlock();
+    await ctx.Miner.mineOneBlock();
     return expect(ctx.purses[challengerName].DSCDisputedPromise).to.eventually.be.fulfilled;
   });
 

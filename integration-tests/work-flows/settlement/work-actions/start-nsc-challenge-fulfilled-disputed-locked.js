@@ -1,12 +1,19 @@
 'use strict';
 
+const assert = require('assert');
+
 module.exports = function (ctx, challengerName, walletName, stageAmount, symbol) {
+  assert(typeof ctx.wallets === 'object');
+  assert(/^\w+$/.test(challengerName));
+  assert(/^\w+$/.test(walletName));
+  assert(/^\d+\.\d*$/.test(stageAmount));
+  assert(/^[A-Z]+$/.test(symbol));
 
   // Challenger callbacks
-  require('../work-steps/challenger/subscribe-nsc-event-callback')(ctx, challengerName);
-  require('../work-steps/challenger/subscribe-nsc-dispute-callback')(ctx, challengerName);
-  require('../work-steps/challenger/subscribe-nsc-lock-callback')(ctx, challengerName);
-  require('../work-steps/challenger/subscribe-nsc-seize-callback')(ctx, challengerName);
+  require('../work-steps/challenger/subscribe-nsc-start-callback')(ctx, challengerName);
+  require('../work-steps/challenger/subscribe-nsc-disputed-callback')(ctx, challengerName);
+  require('../work-steps/challenger/subscribe-wallet-locked-callback')(ctx, challengerName);
+  require('../work-steps/challenger/subscribe-balances-seized-callback')(ctx, challengerName);
 
   // Balances initiator
   require('../../../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
@@ -30,10 +37,10 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   require('../work-steps/proposals/has-nsc-proposal-staged-amount')(ctx, walletName, stageAmount, symbol);
 
   // Challenger callbacks
-  require('../work-steps/challenger/validate-nsc-event-callback')(ctx, challengerName, walletName, stageAmount, symbol);
-  require('../work-steps/challenger/validate-nsc-dispute-callback')(ctx, challengerName, walletName, stageAmount, symbol);
-  require('../work-steps/challenger/validate-nsc-lock-callback')(ctx, challengerName, walletName, stageAmount, symbol);
-  require('../work-steps/challenger/validate-nsc-seize-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/challenger/validate-nsc-start-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/challenger/validate-nsc-disputed-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/challenger/validate-wallet-locked-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/challenger/validate-balances-seized-callback')(ctx, challengerName, walletName, stageAmount, symbol);
 
   // Balances challenger
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, challengerName, symbol);
