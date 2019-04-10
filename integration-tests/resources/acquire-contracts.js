@@ -42,15 +42,19 @@ async function createContract (contractName, provider) {
 
   const abiPath = await getAbiPath(contractName);
   const deployment = require('../../' + abiPath);
+
+  console.log(contractName + ': ' + JSON.stringify(Object.keys(deployment)));
+
+  if (deployment.networks[provider.network.chainId].address !== contractAddress) {
 /*
-  if (deployment.networks['3'].address !== contractAddress) {
     const msg = 'Contract addresses do not match.\n' +
     `        ${contractName}\n` +
     `        meta service : ${contractAddress}\n` +
     `        abi address  : ${deployment.networks['3'].address}`;
     throw new Error(msg);
-  }
 */
+  }
+
   return new ethers.Contract(contractAddress, deployment.abi, provider);
 }
 
