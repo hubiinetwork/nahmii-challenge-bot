@@ -43,7 +43,7 @@ async function createContract (contractName, provider) {
   const abiPath = await getAbiPath(contractName);
   const deployment = require('../../' + abiPath);
 
-  console.log(JSON.stringify(Object.keys(deployment)));
+  console.log(contractName + ': ' + JSON.stringify(Object.keys(deployment)));
 
   if (deployment.networks[provider.network.chainId].address !== contractAddress) {
 /*
