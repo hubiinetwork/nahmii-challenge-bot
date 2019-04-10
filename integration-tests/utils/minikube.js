@@ -72,6 +72,9 @@ class Minikube {
       const provider = await new nahmii.NahmiiProvider(Minikube.baseUrl, Minikube.appId, Minikube.appSecret, Minikube.nodeUrl, 'ropsten');
       const accessToken = await provider.getApiAccessToken();
 
+      if (!accessToken)
+        throw new Error('Failed to get access token.');
+
       const response = await request
         .get(`http://${Minikube.baseUrl}/ethereum/supported-tokens`)
         .set('Content-Type', 'application/json')
