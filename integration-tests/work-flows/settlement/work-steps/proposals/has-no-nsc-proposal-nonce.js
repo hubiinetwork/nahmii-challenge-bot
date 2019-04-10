@@ -7,7 +7,7 @@ module.exports = function (ctx, walletName, symbol) {
   step(`${walletName} has no NSC proposal nonce (throws)`, async () => {
     const wallet = ctx.wallets[walletName];
     expect(
-      ctx.contracts.nullSettlementChallenge.proposalNonce(wallet.address, ctx.currencies[symbol].ct, 0)
+      ctx.contracts.nullSettlementChallengeByPayment.proposalNonce(wallet.address, ctx.currencies[symbol].ct, 0)
     ).to.eventually.rejectedWith('VM Exception while processing transaction: revert');
   });
 };

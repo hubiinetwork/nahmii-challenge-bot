@@ -4,7 +4,7 @@ const NestedError = require('../utils/nested-error');
 const { logger } = require('@hubiinetwork/logger');
 const ethers = require('ethers');
 const { bigNumberify } = ethers.utils;
-const { getWalletReceiptFromHash, getResentSenderReceipts } = require('./receipts-provider');
+const { getWalletReceiptFromNonce, getResentSenderReceipts } = require('./receipts-provider');
 
 const _state = new WeakMap;
 
@@ -42,12 +42,6 @@ async function getActiveBalanceAtBlock (balanceTrackerContract, address, ct, id,
   return activeBalance;
 }
 
-async function getLastDepositRecord(balanceTrackerContract, sender, ct, id) {
-  return balanceTrackerContract.lastFungibleRecord(sender, balanceTrackerContract.depositedBalanceType(), ct, id).catch(err => {
-    throw new NestedError(err, 'Failed to get tracker record. ' + err.message);
-  });
-}
-
 async function getProofCandidate(balanceTrackerContract, senderReceipts, sender, ct, id, stagedAmount) {
 
   const activeBalance = await getActiveBalance(balanceTrackerContract, sender, ct, id);
@@ -79,12 +73,6 @@ function logReceipt (verdict, receipt, targetBalance) {
   logger.info(' ');
 }
 
-function logLocking (caption, wallet, nonce, candidateHash, challenger) {
-  logger.info(`${caption}`);
-  logger.info(`    Sender   : address '${wallet}', nonce '${nonce}'`);
-  logger.info(' ');
-}
-
 function notifyCallback (callbackName, ...params) {
   const callback = _state.get(this).callbacks[callbackName];
 
@@ -92,9 +80,9 @@ function notifyCallback (callbackName, ...params) {
     callback(...params);
 }
 
-async function notifyDSCStart (initiator, paymentHash, stagedAmount) {
-  logger.info(`Start DSC event: initiator ${initiator}, staged ${stagedAmount}, hash ${paymentHash}`);
-  notifyCallback.call(this, 'onDSCStart', initiator, paymentHash, stagedAmount);
+async function notifyDSCStart (initiator, nonce, stagedAmount) {
+  logger.info(`Start DSC event: initiator ${initiator}, staged ${stagedAmount}, nonce ${nonce}`);
+  notifyCallback.call(this, 'onDSCStart', initiator, nonce, stagedAmount);
 }
 
 function notifyDSCAgreed (sender, receipt, targetBalance) {
@@ -136,28 +124,26 @@ function notifyBalancesSeized (wallet, nonce, candidateHash, challenger) {
   notifyCallback.call(this, 'onBalancesSeized', wallet, nonce, candidateHash, challenger);
 }
 
-async function handleDSCStart (initiatorAddress, paymentHash, stagedAmount) {
+async function handleDSCStart (initiatorAddress, initiatorNonce, cumulativeTransferAmount, stagedAmount, targetBalanceAmount, ct, id) {
 
-  notifyDSCStart.call(this, initiatorAddress, paymentHash, stagedAmount);
+  notifyDSCStart.call(this, initiatorAddress, initiatorNonce, stagedAmount);
 
   const state = _state.get(this);
   const contracts = state.contracts;
 
-  const initiatorReceipt = await getWalletReceiptFromHash(state.wallet.provider, initiatorAddress, paymentHash);
+  const initiatorReceipt = await getWalletReceiptFromNonce(state.wallet.provider, initiatorAddress, initiatorNonce);
   const sender = initiatorReceipt.sender.wallet;
-  const ct = initiatorReceipt.currency.ct;
-  const id = initiatorReceipt.currency.id;
-  const nonce = initiatorReceipt.sender.nonce;
+  const senderNonce = initiatorReceipt.sender.nonce;
   const blockNo = initiatorReceipt.blockNumber;
 
-  const resentReceipts = await getResentSenderReceipts(state.wallet.provider, sender, ct, id, nonce, blockNo);
+  const resentReceipts = await getResentSenderReceipts(state.wallet.provider, sender, ct, id, senderNonce, blockNo);
   const proofCandidate = await getProofCandidate(contracts.balanceTracker, resentReceipts, sender, ct, id, stagedAmount.toString());
   const hasProof = proofCandidate.targetBalance.lt(0);
   const finalReceipt = proofCandidate.receipt;
   const targetBalance = proofCandidate.targetBalance.toString();
 
   if (hasProof) {
-    await contracts.driipSettlementChallenge.challengeByPayment(sender, finalReceipt, { gasLimit: state.gasLimit }).catch(err => {
+    await contracts.driipSettlementChallengeByPayment.challengeByPayment(sender, finalReceipt, { gasLimit: state.gasLimit }).catch(err => {
       throw new NestedError(err, 'Failed to challenge by payment. ' + err.message);
     });
     notifyDSCDisputed.call(this, sender, finalReceipt, targetBalance);
@@ -167,62 +153,64 @@ async function handleDSCStart (initiatorAddress, paymentHash, stagedAmount) {
   }
 }
 
-async function handleNSCStart (sender, stagedAmount, ct, id) {
+async function handleNSCStart (initiatorAddress, initiatorNonce, stagedAmount, targetBalanceAmount, ct, id) {
 
-  notifyNSCStart.call(this, sender, stagedAmount, ct, id);
+  notifyNSCStart.call(this, initiatorAddress, stagedAmount, ct, id);
 
   const state = _state.get(this);
   const contracts = state.contracts;
 
-  const activeBalance = await getActiveBalance(contracts.balanceTracker, sender, ct, id);
+  const activeBalance = await getActiveBalance(contracts.balanceTracker, initiatorAddress, ct, id);
 
   if (activeBalance.lt(stagedAmount)) {
     const targetBalance = activeBalance.sub(stagedAmount).toString();
     throw new Error(`Received unexpected disqualified NSC: balance ${activeBalance.toString()}, staged ${stagedAmount.toString()}, tau ${targetBalance}`);
   }
 
-  const { blockNumber } = await getLastDepositRecord(contracts.balanceTracker, sender, ct, id);
-  const senderNonce = 0;
-  const resentReceipts = await getResentSenderReceipts(state.wallet.provider, sender, ct, id, senderNonce, blockNumber);
-  const proofCandidate = await getProofCandidate(contracts.balanceTracker, resentReceipts, sender, ct, id, stagedAmount.toString());
+  const resentReceipts = await getResentSenderReceipts(state.wallet.provider, initiatorAddress, ct, id, initiatorNonce, 0);
+  const proofCandidate = await getProofCandidate(contracts.balanceTracker, resentReceipts, initiatorAddress, ct, id, stagedAmount.toString());
   const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
 
   if (hasProof) {
     const finalReceipt = proofCandidate.receipt;
     const targetBalance = proofCandidate.targetBalance.toString();
 
-    await contracts.nullSettlementChallenge.challengeByPayment(sender, finalReceipt, { gasLimit: state.gasLimit }).catch(err => {
+    await contracts.nullSettlementChallengeByPayment.challengeByPayment(initiatorAddress, finalReceipt, { gasLimit: state.gasLimit }).catch(err => {
       throw new NestedError(err, 'Failed to challenge null payment. ' + err.message);
     });
 
-    notifyNSCDisputed.call(this, sender, finalReceipt, targetBalance);
+    notifyNSCDisputed.call(this, initiatorAddress, finalReceipt, targetBalance);
   }
   else {
-    notifyNSCAgreed.call(this, sender);
+    notifyNSCAgreed.call(this, initiatorAddress);
   }
 }
 
-async function handleWalletLocking (caption, lockedWallet, nonce, candidateHash, challenger) {
+async function handleWalletLocking (caption, challengedWallet, challengedNonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) {
 
   const state = _state.get(this);
-  const candidateReceipt = await getWalletReceiptFromHash(state.wallet.provider, lockedWallet, candidateHash);
-  const sender = candidateReceipt.sender.wallet;
+
+  const candidateReceipt = await getWalletReceiptFromNonce(state.wallet.provider, challengedWallet, challengedNonce);
   const balance = candidateReceipt.sender.balances.current;
-  const ct = candidateReceipt.currency.ct;
-  const id = candidateReceipt.currency.id;
 
-  if (lockedWallet !== sender)
-    throw new Error(`Handle lock event failed. Sender addresses do not match: address in event ${lockedWallet}, address in receipt ${sender}`)
+  if (ct !== candidateReceipt.currency.ct)
+    throw new Error(`Handling locked balance failed. Currencies doe not match: receipt ct ${candidateReceipt.currency.ct} , event ct ${ct}`);
 
-  if (state.wallet.address === challenger) {
-    state.contracts.clientFund.seizeBalances(lockedWallet, ct, id, '', { gasLimit: state.gasLimit });
+  if (id !== candidateReceipt.currency.id)
+    throw new Error(`Handling locked balance failed. Currencies doe not match: receipt id ${candidateReceipt.currency.id} , event id ${id}`);
+
+  if (challengedWallet !== candidateReceipt.sender.wallet)
+    throw new Error(`Handle lock event failed. Sender addresses do not match: receipt address ${candidateReceipt.sender.wallet}, event address ${challengedWallet}`);
+
+  if (state.wallet.address === challengerWallet) {
+    state.contracts.clientFund.seizeBalances(challengedWallet, ct, id, '', { gasLimit: state.gasLimit });
     caption += ' seizing:';
   }
   else {
     caption += ' ignoring:';
   }
 
-  notifyWalletLocked.call(this, caption, challenger, lockedWallet, balance, ct, id);
+  notifyWalletLocked.call(this, caption, challengerWallet, challengedWallet, balance, ct, id);
 }
 
 function handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {
@@ -237,7 +225,7 @@ function updateCallback(callbackName, callback) {
 
 class ChallengeHandler {
 
-  constructor(wallet, gasLimit, clientFund, driipSettlementChallenge, nullSettlementChallenge, balanceTracker, driipSettlementDispute, nullSettlementDispute) {
+  constructor(wallet, gasLimit, clientFund, driipSettlementChallengeByPayment, nullSettlementChallengeByPayment, balanceTracker, driipSettlementDisputeByPayment, nullSettlementDisputeByPayment) {
     // ISSUE: Some nodes (e.g. ganache) is pecky about address format in filters.
     //        https://github.com/ethers-io/ethers.js/issues/165
     //        https://github.com/trufflesuite/ganache-cli/issues/494
@@ -246,9 +234,9 @@ class ChallengeHandler {
       wallet, gasLimit,
       contracts: {
         clientFund: clientFund.connect(wallet),
-        driipSettlementChallenge: driipSettlementChallenge.connect(wallet),
-        nullSettlementChallenge: nullSettlementChallenge.connect(wallet),
-        balanceTracker, driipSettlementDispute, nullSettlementDispute
+        driipSettlementChallengeByPayment: driipSettlementChallengeByPayment.connect(wallet),
+        nullSettlementChallengeByPayment: nullSettlementChallengeByPayment.connect(wallet),
+        balanceTracker, driipSettlementDisputeByPayment, nullSettlementDisputeByPayment
       },
       callbacks: {
         onDCStart: null, onDSCAgreed: null, onDSCDisputed: null,
@@ -257,28 +245,28 @@ class ChallengeHandler {
       }
     });
 
-    driipSettlementChallenge.on('StartChallengeFromPaymentEvent', (initiatorWallet, paymentHash, stagedAmount) => {
-      handleDSCStart.call(this, initiatorWallet, paymentHash, stagedAmount);
+    driipSettlementChallengeByPayment.on('StartChallengeFromPaymentEvent', (wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id) => {
+      handleDSCStart.call(this, wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    driipSettlementChallenge.on('StartChallengeFromPaymentByProxyEvent', (_proxy, initiatorWallet, paymentHash, stagedAmount) => {
-      handleDSCStart.call(this, initiatorWallet, paymentHash, stagedAmount);
+    driipSettlementChallengeByPayment.on('StartChallengeFromPaymentByProxyEvent', (wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
+      handleDSCStart.call(this, wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    driipSettlementDispute.on('ChallengeByPaymentEvent', (wallet, nonce, driipHash, driipType, candidateHash, challenger) => {
-      handleWalletLocking.call(this, 'DSC Locking', wallet, nonce, candidateHash, challenger);
+    driipSettlementDisputeByPayment.on('ChallengeByPaymentEvent', (challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
+      handleWalletLocking.call(this, 'DSC Locking', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
     });
 
-    nullSettlementChallenge.on('StartChallengeEvent', (initiatorWallet, stagedAmount, stagedCt, stageId) => {
-      handleNSCStart.call(this, initiatorWallet, stagedAmount, stagedCt, stageId);
+    nullSettlementChallengeByPayment.on('StartChallengeEvent', (wallet, nonce, stageAmount, targetBalanceAmount, ct, id) => {
+      handleNSCStart.call(this, wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    nullSettlementChallenge.on('StartChallengeByProxyEvent', (_proxy, initiatorWallet, stagedAmount, stagedCt, stageId) => {
-      handleNSCStart.call(this, initiatorWallet, stagedAmount, stagedCt, stageId);
+    nullSettlementChallengeByPayment.on('StartChallengeByProxyEvent', (wallet, nonce, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
+      handleNSCStart.call(this, wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    nullSettlementDispute.on('ChallengeByPaymentEvent', (wallet, nonce, candidateHash, challenger) => {
-      handleWalletLocking.call(this, 'NSC Locking', wallet, nonce, candidateHash, challenger);
+    nullSettlementDisputeByPayment.on('ChallengeByPaymentEvent', (challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
+      handleWalletLocking.call(this, 'NSC Locking', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
     });
 
     clientFund.on('SeizeBalancesEvent', (seizedWallet, seizerWallet, value, ct, id) => {

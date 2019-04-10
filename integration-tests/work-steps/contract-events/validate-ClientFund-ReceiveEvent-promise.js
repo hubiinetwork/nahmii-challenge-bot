@@ -8,6 +8,7 @@ module.exports = (ctx) => {
   step('ClientFund ReceiveEvent is observed', async function () {
     try {
       await ctx.Miner.mineOneBlock();
+      await ctx.Miner.mineOneBlock();
     }
     catch (err) {
       throw new NestedError (err, 'Failed to mine block. ' + err.message);

@@ -12,7 +12,7 @@ module.exports = function (ctx, walletName, symbol) {
       const address = ctx.wallets[walletName].address;
       const ct = ctx.currencies[symbol].ct;
       const id = bigNumberify(0);
-      status = await ctx.contracts.driipSettlementChallenge.proposalStatus(address, ct, id);
+      status = await ctx.contracts.driipSettlementChallengeByPayment.proposalStatus(address, ct, id);
     }
     catch (err) {
       status = err;

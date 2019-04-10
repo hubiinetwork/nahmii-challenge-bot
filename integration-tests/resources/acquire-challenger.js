@@ -14,9 +14,9 @@ module.exports = function (ctx, walletName, assignedEth) {
       ctx.wallets[walletName],
       ctx.gasLimit,
       ctx.contracts.clientFund,
-      ctx.contracts.driipSettlementChallenge, ctx.contracts.nullSettlementChallenge,
+      ctx.contracts.driipSettlementChallengeByPayment, ctx.contracts.nullSettlementChallengeByPayment,
       ctx.contracts.balanceTracker,
-      ctx.contracts.driipSettlementDispute, ctx.contracts.nullSettlementDispute
+      ctx.contracts.driipSettlementDisputeByPayment, ctx.contracts.nullSettlementDisputeByPayment
     );
     chai.expect(ctx.wallets[walletName].asChallenger).to.be.instanceof(ChallengeHandler);
   });

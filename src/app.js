@@ -51,8 +51,8 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
     new nahmii.Wallet(privateKey, provider),
     ethers.utils.bigNumberify(config.ethereum.gasLimit),
     await ContractFactory.create('ClientFund', provider),
-    await ContractFactory.create('DriipSettlementChallenge', provider),
-    await ContractFactory.create('NullSettlementChallenge', provider),
+    await ContractFactory.create('DriipSettlementChallengeByPayment', provider),
+    await ContractFactory.create('NullSettlementChallengeByPayment', provider),
     await ContractFactory.create('BalanceTracker', provider),
     await ContractFactory.create('DriipSettlementDispute', provider),
     await ContractFactory.create('NullSettlementDispute', provider)
