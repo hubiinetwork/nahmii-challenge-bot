@@ -7,7 +7,7 @@ const ethers = require('ethers');
 module.exports = function (ctx, walletName, symbol) {
   step(`Capture ${walletName}'s DSC proposal expiration time`, async function () {
     const wallet = ctx.wallets[walletName];
-    const proposalExpirationTime = await ctx.contracts.driipSettlementChallenge.proposalExpirationTime(wallet.address, ctx.currencies[symbol].ct, 0);
+    const proposalExpirationTime = await ctx.contracts.driipSettlementChallengeByPayment.proposalExpirationTime(wallet.address, ctx.currencies[symbol].ct, 0);
     expect(proposalExpirationTime).to.be.instanceof(ethers.utils.BigNumber);
     ctx.purses[walletName].proposalExpirationTime = proposalExpirationTime.toNumber();
   });

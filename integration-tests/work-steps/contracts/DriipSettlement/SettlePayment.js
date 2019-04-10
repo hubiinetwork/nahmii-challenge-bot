@@ -14,7 +14,7 @@ module.exports = function (ctx, walletName, paymentName) {
     this.timeout(8000);
 
     const payment = ctx.purses[walletName][paymentName];
-    const contract = ctx.contracts.driipSettlement.connect(ctx.wallets[walletName]);
+    const contract = ctx.contracts.driipSettlementByPayment.connect(ctx.wallets[walletName]);
     const promise = contract.settlePayment(payment, { gasLimit: ctx.gasLimit });
 
     return expect(promise).to.eventually.be.fulfilled;

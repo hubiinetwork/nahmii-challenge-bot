@@ -6,7 +6,7 @@ function isRevertContractException(error) {
 
 module.exports = function (ctx, walletName, symbol) {
   step(`${walletName} has no DSC proposal status`, done => {
-    ctx.contracts.driipSettlementChallenge.proposalStatus(ctx.wallets[walletName].address, ctx.currencies[symbol].ct, 0)
+    ctx.contracts.driipSettlementChallengeByPayment.proposalStatus(ctx.wallets[walletName].address, ctx.currencies[symbol].ct, 0)
     .then(res => done(res))
     .catch(err => isRevertContractException(err) ? done() : done(err));
   });

@@ -4,6 +4,7 @@ const assert = require('assert');
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
+const ethers = require('ethers');
 
 module.exports = function (ctx, walletName, symbol) {
   assert(typeof ctx === 'object');
@@ -13,14 +14,14 @@ module.exports = function (ctx, walletName, symbol) {
   step ('Current proposal is expired', async () => {
     const address = ctx.wallets[walletName].address;
     const ct = ctx.currencies[symbol].ct;
-    const isExpired = ctx.contracts.nullSettlementChallenge.hasProposalExpired(address, ct, 0);
+    const isExpired = ctx.contracts.nullSettlementChallengeByPayment.hasProposalExpired(address, ct, 0);
     return expect(isExpired).to.eventually.be.true;
   });
 
   step ('Current proposal is \'Qualified\'', async () => {
     const address = ctx.wallets[walletName].address;
     const ct = ctx.currencies[symbol].ct;
-    const status = ctx.contracts.nullSettlementChallenge.proposalStatus(address, ct, 0);
+    const status = ctx.contracts.nullSettlementChallengeByPayment.proposalStatus(address, ct, 0);
     return expect(status).to.eventually.equal(0);
   });
 
@@ -28,14 +29,11 @@ module.exports = function (ctx, walletName, symbol) {
     const address = ctx.wallets[walletName].address;
     const ct = ctx.currencies[symbol].ct;
     try {
-      const nonce = await ctx.contracts.nullSettlementChallenge.proposalNonce(address, ct, 0);
-      const maxNullNonce = await ctx.contracts.nullSettlement.walletCurrencyMaxNullNonce(address, ct, 0);
-      console.log(`nonce: ${nonce}`);
-      console.log(`maxNullNonce: ${maxNullNonce}`);
-      return expect(Promise.resolve(nonce > maxNullNonce)).to.eventually.be.true;
+      const nonce = ctx.contracts.nullSettlementChallengeByPayment.proposalNonce(address, ct, 0);
+      return expect(nonce).to.eventually.be.instanceOf(ethers.utils.BigNumber);
     }
     catch (err) {
-      return expect(Promise.reject(err)).to.eventually.be.fulfilled;
+      return expect(Promise.reject(err)).to.eventually.be.true;
     }
   });
 

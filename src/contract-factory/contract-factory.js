@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 function getAbiPath (contractName, network) {
   return new Promise((resolve, reject) =>{
     const abiPaths = execSync(
-      `find ./src/contract-factory/abis/${network} -type f -name ${contractName}.json`,
+      `find ./node_modules/nahmii-contract-abstractions-${network}/build/contracts -type f -name ${contractName}.json`,
       { encoding: 'utf8' }
     ).split('\n');
 

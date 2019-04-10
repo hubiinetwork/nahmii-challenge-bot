@@ -1,0 +1,65 @@
+#!/bin/sh
+
+    replaceAddressInFile ()
+    {
+      new_addr=$1
+      path=$2
+      echo "path: $path"
+
+      if [ -e $path ]; then
+        old_line="$(cat $path | grep '"address": "0x')"
+        echo "old_line: $old_line"
+
+        old_addr="$(echo $old_line | tr -d ':," ' | sed 's/address//')"
+        #echo "old_addr: $old_addr"
+
+        sed -i "s/$old_addr/$new_addr/" $path
+
+        new_line="$(cat $path | grep '      "address": "')"
+        echo "new_line: $new_line"
+      else
+        echo "Path not found"
+      fi
+    }
+
+    rm -rf ./tmp
+    mkdir -p ./tmp
+
+    wget -q --no-check-certificate "https://omphalos.mini.cluster" -O - | grep '": "0x' | tr -d ':,""' | sed 's/^[ ]*//' | sed 's/^\([^ ]*\) \([^ ]*\)/\1 \2/' > ./tmp/contracts
+    find ./node_modules/nahmii-contract-abstractions-ropsten/build/contracts -name \*\.json > ./tmp/files
+
+    OLD_LANG=$LANG
+    export LANG=C
+    sort ./tmp/contracts > ./tmp/contracts2
+    sort ./tmp/files > ./tmp/files2
+
+    IFS="$(printf '\n ')" && IFS="${IFS% }"
+    for line in $(cat ./tmp/contracts2); do
+
+      #echo "line: $line"
+
+      name="$(echo $line | cut -d ' ' -f 1)"
+      #echo "name: $name"
+
+      new_addr="$(echo $line | cut -d ' ' -f 2)"
+      #echo "new_addr: $new_addr"
+
+      path="$(grep /${name}.json ./tmp/files2)"
+
+      if [ "$path" != "" ]; then
+          replaceAddressInFile $new_addr $path
+
+          if [ "$name" = "ClientFund" ]; then
+              replaceAddressInFile $new_addr ./node_modules/nahmii-sdk/lib/wallet/abis/ropsten/ClientFund.json
+          fi
+
+          if [ "$name" = "BalanceTracker" ]; then
+              replaceAddressInFile $new_addr ./node_modules/nahmii-sdk/lib/wallet/abis/ropsten/BalanceTracker.json
+          fi
+      else
+        echo "Path not found for: $name"
+      fi
+
+      echo ' '
+    done
+    export LANG=$OLD_LANG

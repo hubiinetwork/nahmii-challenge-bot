@@ -3,7 +3,7 @@
 
 const chai = require('chai');
 const expect = chai.expect;
-const { formatEther } = require('ethers').utils;
+const { formatEther, BigNumber } = require('ethers').utils;
 const assert = require('assert');
 
 module.exports = function (ctx, challengerName, walletName, stageAmount) {
@@ -21,10 +21,10 @@ module.exports = function (ctx, challengerName, walletName, stageAmount) {
   });
 
   step('DSC-start payload is valid', async function () {
-    const { initiatorWallet, paymentHash, stagedAmount } = await ctx.purses[challengerName].DSCStartPromise;
+    const { initiator, nonce, stagedAmount } = await ctx.purses[challengerName].DSCStartPromise;
 
-    expect(initiatorWallet).to.equal(ctx.wallets[walletName].address);
-    expect(typeof paymentHash).to.be.equal('string');
+    expect(initiator).to.equal(ctx.wallets[walletName].address);
+    expect(nonce).to.be.instanceOf(BigNumber);
     expect(formatEther(stagedAmount)).to.equal(stageAmount);
   });
 };
