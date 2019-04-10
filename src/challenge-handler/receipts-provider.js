@@ -11,21 +11,27 @@ async function getWalletReceipts(provider, address) {
   }
 }
 
-async function getWalletReceiptFromHash(provider, address, hash) {
+async function getWalletReceiptFromNonce(provider, address, nonce) {
   const receipts = await getWalletReceipts(provider, address);
-  const filtered = receipts.filter(receipt => receipt.seals.operator.hash === hash);
+  const lcAddress = address.toLowerCase();
+
+  const filtered = receipts.filter(receipt =>
+    (receipt.sender.wallet.toLowerCase() === lcAddress && receipt.sender.nonce === nonce) ||
+    (receipt.recipient.wallet.toLowerCase() === lcAddress && receipt.recipient.nonce === nonce)
+  );
 
   if (filtered.length === 0)
-    throw new Error(`No receipts for address ${address} matches hash ${hash}`);
+    throw new Error(`No receipts for address ${address} matches nonce ${nonce}`);
 
   return filtered[0];
 }
 
 async function getResentSenderReceipts(provider, sender, ct, id, minSenderNonce, minBlockNo) {
   const receipts = await getWalletReceipts(provider, sender);
+  const lcSender = sender.toLowerCase();
 
   const filtered = receipts.filter(receipt =>
-    (receipt.sender.wallet.toLowerCase() === sender.toLowerCase()) &&
+    (receipt.sender.wallet.toLowerCase() === lcSender) &&
     (receipt.currency.ct === ct) && (receipt.currency.id === id.toString()) &&
     (receipt.sender.nonce >= minSenderNonce) && (receipt.blockNumber >= minBlockNo)
   );
@@ -35,6 +41,6 @@ async function getResentSenderReceipts(provider, sender, ct, id, minSenderNonce,
 
 module.exports = {
   getWalletReceipts,
-  getWalletReceiptFromHash,
+  getWalletReceiptFromNonce,
   getResentSenderReceipts
 };

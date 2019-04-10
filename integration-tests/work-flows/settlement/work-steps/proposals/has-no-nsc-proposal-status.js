@@ -12,7 +12,7 @@ module.exports = function (ctx, walletName, symbol) {
   assert(symbol === 'ETH' || symbol === '???');
 
   step(`${walletName} has no NSC proposal status`, done => {
-    ctx.contracts.nullSettlementChallenge.proposalStatus(ctx.wallets[walletName].address, ctx.currencies[symbol].ct, 0)
+    ctx.contracts.nullSettlementChallengeByPayment.proposalStatus(ctx.wallets[walletName].address, ctx.currencies[symbol].ct, 0)
     .then(res => done(res))
     .catch(err => isRevertContractException(err) ? done() : done(err));
   });

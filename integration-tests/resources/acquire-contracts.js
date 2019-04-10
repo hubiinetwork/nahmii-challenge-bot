@@ -22,7 +22,7 @@ async function getContractAddress (contractName) {
 function getAbiPath (contractName) {
   return new Promise((resolve, reject) =>{
     const abiPaths = execSync(
-      `find ./integration-tests/resources/abis/ropsten -type f -name ${contractName}.json`,
+      `find ./node_modules/nahmii-contract-abstractions-ropsten/build/contracts -type f -name ${contractName}.json`,
       { encoding: 'utf8' }
     ).split('\n');
 
@@ -65,19 +65,19 @@ module.exports = function (ctx) {
     expect(ctx.contracts.nullSettlement).to.be.instanceof(ethers.Contract);
   });
 
-  step('NullSettlementChallenge contract', async () => {
-    ctx.contracts.nullSettlementChallenge = await createContract('NullSettlementChallenge', ctx.provider);
-    expect(ctx.contracts.nullSettlementChallenge).to.be.instanceof(ethers.Contract);
+  step('NullSettlementChallengeByPayment contract', async () => {
+    ctx.contracts.nullSettlementChallengeByPayment = await createContract('NullSettlementChallengeByPayment', ctx.provider);
+    expect(ctx.contracts.nullSettlementChallengeByPayment).to.be.instanceof(ethers.Contract);
   });
 
-  step('DriipSettlement contract', async () => {
-    ctx.contracts.driipSettlement = await createContract('DriipSettlement', ctx.provider);
-    expect(ctx.contracts.driipSettlement).to.be.instanceof(ethers.Contract);
+  step('DriipSettlementByPayment contract', async () => {
+    ctx.contracts.driipSettlementByPayment = await createContract('DriipSettlementByPayment', ctx.provider);
+    expect(ctx.contracts.driipSettlementByPayment).to.be.instanceof(ethers.Contract);
   });
 
-  step('DriipSettlementChallenge contract', async () => {
-    ctx.contracts.driipSettlementChallenge = await createContract('DriipSettlementChallenge', ctx.provider);
-    expect(ctx.contracts.driipSettlementChallenge).to.be.instanceof(ethers.Contract);
+  step('DriipSettlementChallengeByPayment contract', async () => {
+    ctx.contracts.driipSettlementChallengeByPayment = await createContract('DriipSettlementChallengeByPayment', ctx.provider);
+    expect(ctx.contracts.driipSettlementChallengeByPayment).to.be.instanceof(ethers.Contract);
   });
 
   step('BalanceTracker contract', async () => {
@@ -85,13 +85,13 @@ module.exports = function (ctx) {
     expect(ctx.contracts.balanceTracker).to.be.instanceof(ethers.Contract);
   });
 
-  step('DriipSettlementDispute contract', async () => {
-    ctx.contracts.driipSettlementDispute = await createContract('DriipSettlementDispute', ctx.provider);
-    expect(ctx.contracts.driipSettlementDispute).to.be.instanceof(ethers.Contract);
+  step('DriipSettlementDisputeByPayment contract', async () => {
+    ctx.contracts.driipSettlementDisputeByPayment = await createContract('DriipSettlementDisputeByPayment', ctx.provider);
+    expect(ctx.contracts.driipSettlementDisputeByPayment).to.be.instanceof(ethers.Contract);
   });
 
-  step('NullSettlementDispute contract', async () => {
-    ctx.contracts.nullSettlementDispute = await createContract('NullSettlementDispute', ctx.provider);
-    expect(ctx.contracts.nullSettlementDispute).to.be.instanceof(ethers.Contract);
+  step('NullSettlementDisputeByPayment contract', async () => {
+    ctx.contracts.nullSettlementDisputeByPayment = await createContract('NullSettlementDisputeByPayment', ctx.provider);
+    expect(ctx.contracts.nullSettlementDisputeByPayment).to.be.instanceof(ethers.Contract);
   });
 };

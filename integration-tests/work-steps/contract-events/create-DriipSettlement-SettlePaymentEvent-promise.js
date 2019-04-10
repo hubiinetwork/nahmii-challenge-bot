@@ -3,7 +3,7 @@
 module.exports = (ctx) => {
   step('Create SettlePaymentEvent listener', async () => {
     ctx.promises.SettlePaymentEvent = new Promise(resolve => {
-      ctx.contracts.driipSettlement.on('SettlePaymentEvent', (wallet, payment) => {
+      ctx.contracts.driipSettlementByPayment.on('SettlePaymentEvent', (wallet, payment) => {
         resolve({ wallet, payment });
       });
     });

@@ -29,6 +29,7 @@ let triggerPromise = new Promise((resolve, reject) => {
 module.exports = (ctx) => {
   step('Subscribe to ClientFund ReceiveEvent', async () => {
     ctx.promises.ReceiveEvent = new Promise(resolve => {
+      console.log('ClientFund address: ' + ctx.contracts.clientFund.address);
       ctx.contracts.clientFund.once('ReceiveEvent', (wallet, balanceType, value, currencyCt, currencyId, standard, event) => {
         resolve({ wallet, balanceType, value, currencyCt, currencyId, standard, event });
       });

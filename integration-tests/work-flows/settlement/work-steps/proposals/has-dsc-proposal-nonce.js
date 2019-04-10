@@ -6,7 +6,7 @@ const expect = chai.expect;
 module.exports = function(ctx, walletName, symbol) {
   step(`${walletName} has DSC proposal with updated a nonce`, async function () {
     const wallet = ctx.wallets[walletName];
-    const nonce = await ctx.contracts.driipSettlementChallenge.proposalNonce(wallet.address, ctx.currencies[symbol].ct, 0);
+    const nonce = await ctx.contracts.driipSettlementChallengeByPayment.proposalNonce(wallet.address, ctx.currencies[symbol].ct, 0);
     expect(nonce.toNumber()).to.be.gt(0);
     this.test.title += `: ${nonce}`;
   });
