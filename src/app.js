@@ -54,8 +54,8 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
     await ContractFactory.create('DriipSettlementChallengeByPayment', provider),
     await ContractFactory.create('NullSettlementChallengeByPayment', provider),
     await ContractFactory.create('BalanceTracker', provider),
-    await ContractFactory.create('DriipSettlementDispute', provider),
-    await ContractFactory.create('NullSettlementDispute', provider)
+    await ContractFactory.create('DriipSettlementDisputeByPayment', provider),
+    await ContractFactory.create('NullSettlementDisputeByPayment', provider)
   );
 
   logger.info('');

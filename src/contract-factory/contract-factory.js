@@ -25,7 +25,8 @@ class ContractFactory {
     const abiPath = await getAbiPath(contractName, ethereum.net);
     const deployment = require('../../' + abiPath);
 
-    console.log(contractName + ': ' + JSON.stringify(Object.keys(deployment)));
+    if (!deployment.networks)
+      throw new Error(`Failed to find abi for contract: ${contractName}`);
 
     if (deployment.networks[provider.network.chainId].address !== contractAddress) {
       const msg = 'Contract addresses do not match.\n' +
