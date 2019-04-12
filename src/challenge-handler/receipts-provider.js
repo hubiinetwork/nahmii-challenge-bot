@@ -7,7 +7,7 @@ async function getWalletReceipts(provider, address) {
     return await provider.getWalletReceipts(address, null, 100);
   }
   catch (err) {
-    throw new NestedError(err, `Could not retrieve receipts for address ${address}`);
+    throw new NestedError(err, `Could not retrieve receipts for address ${address}. ${err.message}`);
   }
 }
 

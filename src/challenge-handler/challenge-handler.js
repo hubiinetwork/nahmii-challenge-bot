@@ -142,8 +142,6 @@ async function handleNSCStart (initiatorAddress, initiatorNonce, stagedAmount, t
     const finalReceipt = proofCandidate.receipt;
     const targetBalance = proofCandidate.targetBalance.toString();
 
-console.log(`sender nonce: ${finalReceipt.sender.nonce}`);
-
     await contracts.nullSettlementChallengeByPayment.challengeByPayment(initiatorAddress, finalReceipt, { gasLimit: state.gasLimit }).catch(err => {
       throw new NestedError(err, 'Failed to challenge null payment. ' + err.message);
     });
