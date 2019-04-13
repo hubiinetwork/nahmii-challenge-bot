@@ -19,4 +19,4 @@ FROM node:carbon-alpine
 WORKDIR /app
 COPY --from=build /app .
 
-CMD [ "npm", "start" ]
+CMD [ "node", "./index.js" ]
