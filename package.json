@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@hubiinetwork/logger": "github:hubiinetwork/logger",
-    "nahmii-contract-abstractions-ropsten": "1.2.0",
+    "nahmii-contract-abstractions-ropsten": "1.3.0",
     "bignumber.js": "^8.1.1",
     "ethers": "4.0.18",
     "keythereum": "^1.0.4",
