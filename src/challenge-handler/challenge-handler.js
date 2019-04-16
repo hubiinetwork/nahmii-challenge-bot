@@ -40,6 +40,12 @@ function logReceipt (verdict, receipt, targetBalance) {
   logger.info(' ');
 }
 
+function updateCallback(callbackName, callback) {
+  const state = _state.get(this);
+  state.callbacks[callbackName] = callback;
+  _state.get(this, state);
+}
+
 function notifyCallback (callbackName, ...params) {
   const callback = _state.get(this).callbacks[callbackName];
 
@@ -74,9 +80,9 @@ function notifyNSCAgreed (sender) {
   notifyCallback.call(this, 'onNSCAgreed', sender);
 }
 
-function notifyNSCDisputed (sender, receipt, targetBalance) {
+function notifyNSCDisputed (initiatorAddress, receipt, targetBalance) {
   logReceipt('NSC Disputed', receipt, targetBalance);
-  notifyCallback.call(this, 'onNSCDisputed', sender, receipt, targetBalance);
+  notifyCallback.call(this, 'onNSCDisputed', initiatorAddress, receipt, targetBalance);
 }
 
 function notifyWalletLocked (caption, challenger, lockedWallet, balance, ct, id) {
@@ -153,41 +159,47 @@ async function handleNSCStart (initiatorAddress, initiatorNonce, stagedAmount, t
   }
 }
 
-async function handleWalletLocking (caption, challengedWallet, challengedNonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) {
+/*
+    struct Payment {
+        uint256 nonce;
+
+        int256 amount;
+        MonetaryTypesLib.Currency currency;
+
+        PaymentSenderParty sender;
+        PaymentRecipientParty recipient;
+
+        // Positive transfer is always in direction from sender to recipient
+        NahmiiTypesLib.SingleTotalInt256 transfers;
+
+        NahmiiTypesLib.WalletOperatorSeal seals;
+        uint256 blockNumber;
+        uint256 operatorId;
+    }
+*/
+
+async function handleWalletLocking (caption, challengedWallet, challengedNonce, payment, challengerWallet) {
 
   const state = _state.get(this);
 
-  const candidateReceipt = await getWalletReceiptFromNonce(state.wallet.provider, challengedWallet, challengedNonce);
-  const balance = candidateReceipt.sender.balances.current;
+  if (challengedWallet.toLowerCase() !== payment[3][1].toLowerCase())
+    throw new Error(`Handle lock event failed. Sender addresses do not match: payment address ${payment[3][1].toLowerCase()}, event address ${challengedWallet.toLowerCase()}`);
 
-  if (ct !== candidateReceipt.currency.ct)
-    throw new Error(`Handling locked balance failed. Currencies doe not match: receipt ct ${candidateReceipt.currency.ct} , event ct ${ct}`);
-
-  if (id !== candidateReceipt.currency.id)
-    throw new Error(`Handling locked balance failed. Currencies doe not match: receipt id ${candidateReceipt.currency.id} , event id ${id}`);
-
-  if (challengedWallet !== candidateReceipt.sender.wallet)
-    throw new Error(`Handle lock event failed. Sender addresses do not match: receipt address ${candidateReceipt.sender.wallet}, event address ${challengedWallet}`);
-
-  if (state.wallet.address === challengerWallet) {
-    state.contracts.clientFund.seizeBalances(challengedWallet, ct, id, '', { gasLimit: state.gasLimit });
+  if (challengerWallet.toLowerCase() === state.wallet.address.toLowerCase()) {
+    await state.contracts.clientFund.seizeBalances(challengedWallet, payment[2][0], payment[2][1], '', { gasLimit: state.gasLimit }).catch(err => {
+      throw new NestedError(err, 'Failed to seize balances. ' + err.message);
+    });
     caption += ' seizing:';
   }
   else {
     caption += ' ignoring:';
   }
 
-  notifyWalletLocked.call(this, caption, challengerWallet, challengedWallet, balance, ct, id);
+  notifyWalletLocked.call(this, caption, challengerWallet, challengedWallet, payment[2].toString(), payment[2][0], payment[2][1]);
 }
 
 function handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {
   notifyBalancesSeized.call(this, seizedWallet, seizerWallet, value, currencyCt, currencyId);
-}
-
-function updateCallback(callbackName, callback) {
-  const state = _state.get(this);
-  state.callbacks[callbackName] = callback;
-  _state.get(this, state);
 }
 
 class ChallengeHandler {
@@ -232,8 +244,8 @@ class ChallengeHandler {
       handleNSCStart.call(this, wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    nullSettlementDisputeByPayment.on('ChallengeByPaymentEvent', (challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
-      handleWalletLocking.call(this, 'NSC Locking', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
+    nullSettlementDisputeByPayment.on('ChallengeByPaymentEvent', (challengedWallet, nonce, payment, challengerWallet) => {
+      handleWalletLocking.call(this, 'NSC Locking', challengedWallet, nonce, payment, challengerWallet);
     });
 
     clientFund.on('SeizeBalancesEvent', (seizedWallet, seizerWallet, value, ct, id) => {
