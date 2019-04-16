@@ -17,7 +17,8 @@ module.exports = function (ctx, challengerName, walletName, seizedBalance, symbo
     return expect(ctx.purses[challengerName].BalancesSeizedPromise).to.eventually.be.fulfilled;
   });
 
-  step('Wallet-locked payload is valid', async function () {
+  step('Balances-seized payload is valid', async function () {
+    this.timeout(8000);
     const { seizedWallet, seizerWallet, value, ct, id} = await ctx.purses[challengerName].BalancesSeizedPromise;
     expect(seizerWallet).to.equal(ctx.wallets[challengerName].address);
     expect(seizedWallet).to.equal(ctx.wallets[walletName].address);

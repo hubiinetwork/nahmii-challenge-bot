@@ -85,9 +85,9 @@ function notifyNSCDisputed (initiatorAddress, receipt, targetBalance) {
   notifyCallback.call(this, 'onNSCDisputed', initiatorAddress, receipt, targetBalance);
 }
 
-function notifyWalletLocked (caption, challenger, lockedWallet, balance, ct, id) {
-  logger.info(`${caption} challenger ${challenger}, sender ${lockedWallet}, balance ${balance}, ct ${ct}, id ${id}`);
-  notifyCallback.call(this, 'onWalletLocked', challenger, lockedWallet, balance, ct, id);
+function notifyWalletLocked (caption, challenger, lockedWallet, ct, id) {
+  logger.info(`${caption} challenger ${challenger}, sender ${lockedWallet}, ct ${ct}, id ${id}`);
+  notifyCallback.call(this, 'onWalletLocked', challenger, lockedWallet, ct, id);
 }
 
 function notifyBalancesSeized (wallet, nonce, candidateHash, challenger) {
@@ -195,10 +195,10 @@ async function handleWalletLocking (caption, challengedWallet, challengedNonce, 
     caption += ' seizing:';
   }
   else {
-    caption += ' ignoring:';
+    caption += ' Not my dispute. ignoring:';
   }
 
-  notifyWalletLocked.call(this, caption, challengerWallet, challengedWallet, payment[1], payment[2][0], payment[2][1]);
+  notifyWalletLocked.call(this, caption, challengerWallet, challengedWallet, payment[2][0], payment[2][1]);
 }
 
 function handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {

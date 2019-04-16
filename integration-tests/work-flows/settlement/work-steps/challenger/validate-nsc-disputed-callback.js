@@ -28,8 +28,9 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
     expect(bigNumberify(targetBalance).lt(0)).to.be.true;
 */
     return expect(ctx.purses[challengerName].NSCDisputedPromise.then(res => {
-      expect(res.initiatorAddress).to.equal(ctx.wallets[walletName].address);
-      expect(res.finalReceipt).have.property('sender').property('wallet').equal(ctx.wallets[walletName].address.toLowerCase());
+      const walletAddress = ctx.wallets[walletName].address;
+      expect(res.initiatorAddress).to.equal(walletAddress);
+      expect(res.finalReceipt).have.property('sender').property('wallet').equal(walletAddress.toLowerCase());
       expect(bigNumberify(res.targetBalance).lt(0)).to.be.true;
       return Promise.resolve();
     })).to.eventually.be.fulfilled;
