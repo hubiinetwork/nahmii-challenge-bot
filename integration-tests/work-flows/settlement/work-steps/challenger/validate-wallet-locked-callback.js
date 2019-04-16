@@ -4,6 +4,7 @@
 const chai = require('chai');
 const expect = chai.expect;
 const assert = require('assert');
+const ethers = require('ethers');
 
 module.exports = function (ctx, challengerName, walletName, expectedBalance, symbol) {
   assert(typeof ctx === 'object');
@@ -18,10 +19,13 @@ module.exports = function (ctx, challengerName, walletName, expectedBalance, sym
   });
 
   step('Wallet-locked payload is valid', async function () {
-    const { challenger, lockedWallet, balance, ct, id } = await ctx.purses[challengerName].WalletLockedPromise;
-    expect(challenger).to.equal(ctx.wallets[challengerName].address);
+    const { challengerWallet, lockedWallet, balance, ct, id } = await ctx.purses[challengerName].WalletLockedPromise;
+    expect(challengerWallet).to.equal(ctx.wallets[challengerName].address);
     expect(lockedWallet).to.equal(ctx.wallets[walletName].address);
-    expect(balance).to.equal(expectedBalance);
+    if (symbol === 'ETH')
+      expect(ethers.utils.formatEther(balance)).to.equal(expectedBalance);
+    else
+      expect(balance.toString()).to.equal(expectedBalance);
     expect(ct).to.equal(ctx.currencies[symbol].ct);
   });
 };
