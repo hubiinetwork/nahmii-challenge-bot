@@ -19,10 +19,10 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   });
 
   step('NSC-disputed payload is valid', async function () {
-    const { sender, finalReceipt, targetBalance } = await ctx.purses[challengerName].NSCDisputedPromise;
+    const { initiatorAddress, finalReceipt, targetBalance } = await ctx.purses[challengerName].NSCDisputedPromise;
 
-    expect(sender).to.equal(ctx.wallets[walletName].address);
-    expect(finalReceipt).have.property('sender').property('wallet').equal(sender);
+    expect(initiatorAddress).to.equal(ctx.wallets[walletName].address);
+    expect(finalReceipt).have.property('sender').property('wallet').equal(ctx.wallets[walletName].address.toLowerCase());
     expect(bigNumberify(targetBalance).lt(0)).to.be.true;
   });
 };

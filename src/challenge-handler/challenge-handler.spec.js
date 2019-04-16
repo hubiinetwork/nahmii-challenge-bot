@@ -67,6 +67,9 @@ class NullSettlementChallengeByPaymentContract extends ContractMock {
   emitStartChallengeEvent (...args) {
     super.emitEvent('StartChallengeEvent', ...args);
   }
+  challengeByPayment () {
+    return Promise.resolve();
+  }
 }
 
 class BalanceTrackerContract extends ContractMock {
@@ -150,6 +153,7 @@ describe('ChallengeHandler', () => {
     it('onNSCStart', async function () {
       const promisedCallback = new Promise(resolved => handler.onNSCStart(resolved));
       balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('10')));
+      //balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('10') }));
       nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
       return expect(promisedCallback).to.eventually.be.fulfilled;
     });
@@ -161,14 +165,14 @@ describe('ChallengeHandler', () => {
       nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
       return expect(promisedCallback).to.eventually.be.fulfilled;
     });
-/*
+
     it('onNSCDisputed', async function () {
       const promisedCallback = new Promise(resolved => handler.onNSCDisputed(resolved));
-      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('10')));
-      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
+      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
+      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
       nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
       return expect(promisedCallback).to.eventually.be.fulfilled;
     });
-*/
+
   });
 });
