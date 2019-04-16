@@ -104,7 +104,7 @@ async function handleDSCStart (initiatorAddress, initiatorNonce, cumulativeTrans
   const state = _state.get(this);
   const contracts = state.contracts;
 
-  const initiatorReceipt = await getWalletReceiptFromNonce(state.wallet.provider, initiatorAddress, initiatorNonce);
+  const initiatorReceipt = await getWalletReceiptFromNonce(state.wallet.provider, initiatorAddress, initiatorNonce.toNumber());
   const sender = initiatorReceipt.sender.wallet;
   const senderNonce = initiatorReceipt.sender.nonce;
   const blockNo = initiatorReceipt.blockNumber;
