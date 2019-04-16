@@ -186,16 +186,19 @@ async function handleWalletLocking (caption, challengedWallet, challengedNonce, 
     throw new Error(`Handle lock event failed. Sender addresses do not match: payment address ${payment[3][1].toLowerCase()}, event address ${challengedWallet.toLowerCase()}`);
 
   if (challengerWallet.toLowerCase() === state.wallet.address.toLowerCase()) {
+    logger.error('SEIZE not implemented');
+    /*
     await state.contracts.clientFund.seizeBalances(challengedWallet, payment[2][0], payment[2][1], '', { gasLimit: state.gasLimit }).catch(err => {
       throw new NestedError(err, 'Failed to seize balances. ' + err.message);
     });
+    */
     caption += ' seizing:';
   }
   else {
     caption += ' ignoring:';
   }
 
-  notifyWalletLocked.call(this, caption, challengerWallet, challengedWallet, payment[2].toString(), payment[2][0], payment[2][1]);
+  notifyWalletLocked.call(this, caption, challengerWallet, challengedWallet, payment[1], payment[2][0], payment[2][1]);
 }
 
 function handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {

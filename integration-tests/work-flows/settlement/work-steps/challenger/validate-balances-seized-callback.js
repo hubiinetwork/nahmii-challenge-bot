@@ -14,7 +14,7 @@ module.exports = function (ctx, challengerName, walletName, seizedBalance, symbo
 
   step(`${challengerName} observed a balances-seized notification`, async function () {
     await ctx.Miner.mineOneBlock();
-    return expect(ctx.purses[challengerName].BalanceSeizedPromise).to.eventually.be.fulfilled;
+    return expect(ctx.purses[challengerName].BalancesSeizedPromise).to.eventually.be.fulfilled;
   });
 
   step('Wallet-locked payload is valid', async function () {

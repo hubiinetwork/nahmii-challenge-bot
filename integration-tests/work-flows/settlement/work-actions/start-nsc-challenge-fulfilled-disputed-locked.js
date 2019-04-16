@@ -40,7 +40,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   require('../work-steps/challenger/validate-nsc-start-callback')(ctx, challengerName, walletName, stageAmount, symbol);
   require('../work-steps/challenger/validate-nsc-disputed-callback')(ctx, challengerName, walletName, stageAmount, symbol);
   require('../work-steps/challenger/validate-wallet-locked-callback')(ctx, challengerName, walletName, stageAmount, symbol);
-  require('../work-steps/challenger/validate-balances-seized-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  // TODO: require('../work-steps/challenger/validate-balances-seized-callback')(ctx, challengerName, walletName, stageAmount, symbol);
 
   // Balances challenger
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, challengerName, symbol);
