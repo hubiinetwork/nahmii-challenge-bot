@@ -12,6 +12,10 @@ async function getWalletReceipts(provider, address) {
 }
 
 async function getWalletReceiptFromNonce(provider, address, nonce) {
+
+  if (typeof nonce !== 'number')
+    throw new TypeError('Nonce must be of type number');
+
   const receipts = await getWalletReceipts(provider, address);
   const lcAddress = address.toLowerCase();
 

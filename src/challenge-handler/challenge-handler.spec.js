@@ -124,7 +124,7 @@ describe('ChallengeHandler', () => {
 
   describe ('Call callbacks on important operation events', function () {
     const wallet = sender;
-    const nonce = 3;
+    const nonce = ethers.utils.bigNumberify(3);
     const cumulativeTransferAmount = null;
     const stageAmount = ethers.utils.parseEther('5');
     const targetBalanceAmount = null;

@@ -5,7 +5,8 @@ const expect = chai.expect;
 const minikube = require('../utils/minikube');
 
 module.exports = function (ctx) {
-  step('Currencies', async () => {
+  step('Currencies', async function () {
+    this.timeout(8000);
     ctx.currencies = {
       ETH: await minikube.getCurrency('ETH'),
       HBT: await minikube.getCurrency('HBT')

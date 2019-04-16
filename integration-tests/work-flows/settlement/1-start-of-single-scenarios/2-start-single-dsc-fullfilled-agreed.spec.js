@@ -31,7 +31,7 @@ describe('Start Single DSC accepted', () => {
   });
 
   describe('G. Alice starts challenge process ETH', () => {
-    require('../work-actions/dsc-challenge-qualified')(ctx, 'Carol', 'Alice', 'Receipt_1', '2.0', 'ETH');
+    require('../work-actions/start-dsc-challenge-fulfilled-agreed')(ctx, 'Carol', 'Alice', 'Receipt_1', '2.0', 'ETH');
   });
 
   describe('H. Alice settles ETH', () => {
