@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test:integration": "mocha 'integration-tests/**/*.spec.js' --require mocha-steps --exit",
-    "test": "mocha 'src/**/*.spec.js' --exit --bail"
+    "test": "nyc mocha 'src/**/*.spec.js' --exit --bail",
+    "test1": "mocha --exit --bail  --require mocha-steps"
   },
   "repository": {
     "type": "git",
