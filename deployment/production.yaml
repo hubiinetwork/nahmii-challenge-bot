@@ -46,13 +46,6 @@ spec:
             secretKeyRef:
               name: payment-engine
               key: appsecret
-        resources:
-          requests:
-            memory: "500Mi"
-            cpu: "500m"
-          limits:
-            memory: "2Gi"
-            cpu: "1"
         volumeMounts:
         - name: keystore
           mountPath: /app/keystore
