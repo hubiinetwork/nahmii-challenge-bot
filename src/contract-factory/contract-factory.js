@@ -2,27 +2,13 @@
 
 const ethers = require('ethers');
 const ClusterInformation = require('../cluster-information');
-const { execSync } = require('child_process');
-
-function getAbiPath (contractName, network) {
-  return new Promise((resolve, reject) =>{
-    const abiPaths = execSync(
-      `find ./node_modules/nahmii-contract-abstractions-${network}/build/contracts -type f -name ${contractName}.json`,
-      { encoding: 'utf8' }
-    ).split('\n');
-
-    if (abiPaths.length < 1)
-      reject(new Error('Could not find ABI of contract: ' + contractName));
-    else
-      resolve(abiPaths[0]);
-  });
-}
+const abiProvider = require('./abi-provider');
 
 class ContractFactory {
   static async create (contractName, provider) {
     const ethereum = await ClusterInformation.getEthereum();
     const contractAddress = ethereum.contracts[contractName];
-    const abiPath = await getAbiPath(contractName, ethereum.net);
+    const abiPath = abiProvider.getAbiPath(contractName, ethereum.net);
     const deployment = require('../../' + abiPath);
 
     if (!deployment.networks)
