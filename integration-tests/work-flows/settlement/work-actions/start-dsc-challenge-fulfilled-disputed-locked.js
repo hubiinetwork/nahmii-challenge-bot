@@ -2,16 +2,17 @@
 
 const assert = require('assert');
 
-module.exports = function (ctx, challengerName, walletName, stageAmount, symbol) {
+module.exports = function (ctx, challengerName, walletName, receiptName, stageAmount, symbol) {
   assert(typeof ctx.wallets === 'object');
   assert(/^\w+$/.test(challengerName));
   assert(/^\w+$/.test(walletName));
+  assert(/^\w+$/.test(receiptName));
   assert(/^\d+\.\d*$/.test(stageAmount));
   assert(/^[A-Z]+$/.test(symbol));
 
   // Challenger callbacks
-  require('../work-steps/challenger/subscribe-nsc-start-callback')(ctx, challengerName);
-  require('../work-steps/challenger/subscribe-nsc-disputed-callback')(ctx, challengerName);
+  require('../work-steps/challenger/subscribe-dsc-start-callback')(ctx, challengerName);
+  require('../work-steps/challenger/subscribe-dsc-disputed-callback')(ctx, challengerName);
   require('../work-steps/challenger/subscribe-wallet-locked-callback')(ctx, challengerName);
   require('../work-steps/challenger/subscribe-balances-seized-callback')(ctx, challengerName);
 
@@ -25,20 +26,20 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   require('../../../work-steps/balances/capture-nahmii-balance-before-action')(ctx, challengerName, symbol);
 
   // Proposals
-  require('../work-steps/proposals/has-no-nsc-proposal-status')(ctx, walletName, symbol);
-  require('../work-steps/proposals/has-no-nsc-proposal-nonce')(ctx, walletName, symbol);
+  require('../work-steps/proposals/has-no-dsc-proposal-status')(ctx, walletName, symbol);
+  require('../work-steps/proposals/has-no-dsc-proposal-nonce')(ctx, walletName, symbol);
 
   // Start NSC challenge
-  require('../../../work-steps/contracts/NullSettlementChallenge/startChallenge-to-be-fulfilled')(ctx, walletName, stageAmount, symbol);
+  require('../../../work-steps/contracts/DriipSettlementChallenge/startChallengeFromPayment-to-be-fulfilled')(ctx, walletName, receiptName, stageAmount, symbol);
 
   // Proposals
-  require('../work-steps/proposals/has-nsc-proposal-status-qualified')(ctx, walletName, symbol);
-  require('../work-steps/proposals/has-nsc-proposal-nonce')(ctx, walletName, symbol);
-  require('../work-steps/proposals/has-nsc-proposal-staged-amount')(ctx, walletName, stageAmount, symbol);
+  require('../work-steps/proposals/has-dsc-proposal-status-qualified')(ctx, walletName, symbol);
+  require('../work-steps/proposals/has-dsc-proposal-nonce')(ctx, walletName, symbol);
+  require('../work-steps/proposals/has-dsc-proposal-staged-amount')(ctx, walletName, stageAmount, symbol);
 
   // Challenger callbacks
-  require('../work-steps/challenger/validate-nsc-start-callback')(ctx, challengerName, walletName, stageAmount, symbol);
-  require('../work-steps/challenger/validate-nsc-disputed-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/challenger/validate-dsc-start-callback')(ctx, challengerName, walletName, stageAmount, symbol);
+  require('../work-steps/challenger/validate-dsc-disputed-callback')(ctx, challengerName, walletName, stageAmount, symbol);
   require('../work-steps/challenger/validate-wallet-locked-callback')(ctx, challengerName, walletName, symbol);
   // TODO: require('../work-steps/challenger/validate-balances-seized-callback')(ctx, challengerName, walletName, stageAmount, symbol);
 
