@@ -6,31 +6,25 @@ const expect = chai.expect;
 const abiProvider = require('./abi-provider');
 
 describe ('abi-provider', () => {
-  describe ('Basic functionality working', () => {
-    it ('locates ropsten abi', async () => {
+  describe ('Can compose abi path', () => {
+    it ('for ropsten', async () => {
       const path = abiProvider.getAbiPath('ClientFund', 'ropsten');
-      return expect(path).to.equal('./node_modules/nahmii-contract-abstractions-ropsten/build/contracts/ClientFund.json');
+      return expect(path).to.equal('nahmii-contract-abstractions-ropsten/build/contracts/ClientFund.json');
     });
 
-    it ('locates mainnet abi', () => {
+    it ('for mainnet', () => {
       const path = abiProvider.getAbiPath('ClientFund', 'homestead');
-      return expect(path).to.equal('./node_modules/nahmii-contract-abstractions/build/contracts/ClientFund.json');
+      return expect(path).to.equal('nahmii-contract-abstractions/build/contracts/ClientFund.json');
     });
 
-    it ('rejects unknown network name', async () => {
+    it ('not for unknown network', () => {
       return expect(
-        () => abiProvider.getAbiPath('ClientFund', 'xxx')
+        () => abiProvider.getAbiPath('ClientFund', 'xhomestead')
       ).to.throw(/Failed to recognize network name/);
-    });
-
-    it ('rejects unknown contract name', () => {
-      return expect(
-        () => abiProvider.getAbiPath('xClientFund', 'homestead')
-      ).to.throw(/Failed to find ABI for contract/);
     });
   });
 
-  xdescribe ('Needed ABIs are available', () => {
+  describe ('Contract abstractions has needed APIs', () => {
     const neededContracts = [
       'ClientFund',
       'DriipSettlementChallengeByPayment',
@@ -47,11 +41,17 @@ describe ('abi-provider', () => {
 
     for (const network of neededNetworks) {
       for (const contract of neededContracts) {
-        it (`${network} ${contract}`, () => {
-          expect(() => abiProvider.getAbiPath(contract, network)).to.not.throw();
+        it (`for ${network} ${contract}`, () => {
+          expect(() => abiProvider.getAbiInfo(contract, network)).to.not.throw();
         });
       }
     }
+
+    it ('but not for unknown contract', async () => {
+      return expect(
+        () => abiProvider.getAbiInfo('xClientFund', 'ropsten')
+      ).to.throw(/Cannot find module/);
+    });
   });
 });
 
