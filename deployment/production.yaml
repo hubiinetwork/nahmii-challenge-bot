@@ -52,4 +52,4 @@ spec:
       volumes:
       - name: keystore
         secret:
-          secretName: mainnet-keyfile
+          secretName: challengebot-keyfile
