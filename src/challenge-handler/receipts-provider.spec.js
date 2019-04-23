@@ -6,6 +6,7 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const fs = require('fs');
 const NestedError = require('./../utils/nested-error');
+const ethers = require('ethers');
 
 const { getWalletReceipts, getWalletReceiptFromNonce, getResentSenderReceipts } = require('./receipts-provider');
 
@@ -67,6 +68,13 @@ describe('receipts-provider', () => {
       const nonce = 5;
       const res = getWalletReceiptFromNonce(provider, recipient, nonce);
       return expect(res).to.eventually.be.rejectedWith('No receipts for address');
+    });
+
+    it('Fails when nonce is of wrong type', async () => {
+      provider.getWalletReceipts.returns(receipts);
+      const nonce = ethers.utils.bigNumberify(4);
+      const res = getWalletReceiptFromNonce(provider, recipient, nonce);
+      return expect(res).to.eventually.be.rejectedWith('Nonce must be of type number');
     });
   });
 

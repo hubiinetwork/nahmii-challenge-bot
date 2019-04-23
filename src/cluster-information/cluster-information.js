@@ -5,14 +5,11 @@ const config = require('../config');
 const NestedError = require('../utils/nested-error');
 
 let clusterInfo;
-let timeToRefresh = 0;
 
 async function acquireInfo () {
   try {
-    if (timeToRefresh < Date.now()) {
+    if (!clusterInfo)
       clusterInfo = (await request.get(`https://${config.services.baseUrl}`)).body;
-      timeToRefresh = Date.now() + 10000; // 10 sec
-    }
 
     return clusterInfo;
   }
