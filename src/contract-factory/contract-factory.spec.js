@@ -3,7 +3,7 @@
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
-const proxyquire = require('proxyquire');
+const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 const sinon = require('sinon');
 
 describe ('contract-factory', () => {
@@ -34,7 +34,7 @@ describe ('contract-factory', () => {
 
     abiInfoMock = {};
 
-    const abiProviderMock = {
+    abiProviderMock = {
       getAbiInfo: () => abiInfoMock
     };
 
@@ -45,10 +45,8 @@ describe ('contract-factory', () => {
       net: 'ropsten'
     };
 
-    ClusterInformationMock = class {
-      constructor () {
-        this.acquireEthereum = async () => ethereumMock;
-      }
+    ClusterInformationMock = {
+      acquireEthereum: async () => ethereumMock
     };
 
     loggerMock = {

@@ -15,9 +15,9 @@ describe('cluster-information', () => {
     };
     superAgentMock.get.returns(Promise.resolve({ body: require('./cluster-information.spec.data.json') }));
 
-    cluster = new (proxyquire('./cluster-information', {
+    cluster = proxyquire('./cluster-information', {
       'superagent': superAgentMock
-    }))();
+    });
   });
 
   describe('Can retrieve ethereum info', () => {

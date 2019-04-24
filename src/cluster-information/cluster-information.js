@@ -4,24 +4,21 @@ const request = require('superagent');
 const config = require('../config');
 const NestedError = require('../utils/nested-error');
 
-const _ethereum = new WeakMap();
+let _ethereum;
 
 class ClusterInformation {
-  constructor () {
-  }
-
-  async acquireEthereum () {
-    if (!_ethereum.has(this)) {
+  static async acquireEthereum () {
+    if (!_ethereum) {
       try {
         const clusterInfo = (await request.get(`https://${config.services.baseUrl}`)).body;
-        _ethereum.set(this, clusterInfo.ethereum);
+        _ethereum = clusterInfo.ethereum;
       }
       catch (err) {
         throw new NestedError(err, 'Failed to retrieve cluster information. ' + err.message);
       }
     }
 
-    return _ethereum.get(this);
+    return _ethereum;
   }
 }
 
