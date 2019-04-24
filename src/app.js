@@ -29,7 +29,8 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.info(`ethereum URL : '${config.ethereum.nodeUrl}'`);
   logger.info(` wallet addr : '${config.wallet.utcAddress}'`);
 
-  const ethereum = await ClusterInformation.getEthereum();
+  const clusterInfo = new ClusterInformation();
+  const ethereum = await clusterInfo.acquireEthereum();
 
   logger.info(`     network : '${ethereum.net}'`);
   logger.info('');

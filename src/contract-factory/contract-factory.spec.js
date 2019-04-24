@@ -6,60 +6,57 @@ const expect = chai.expect;
 const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 
-const ethersMock = {
-  Contract: class Contract {
-    constructor(address, abi, provider) {
-      this.address = address;
-      this.abi = abi;
-      this.provider = provider;
-    }
-  }
-};
-
-const providerMock = {
-  network: {
-    chainId: 3
-  }
-};
-
-let abiInfoMock = {};
-
-const abiProviderMock = {
-  getAbiInfo: () => abiInfoMock
-};
-
-const ethereumMock = {
-  contracts: {
-    ClientFund: ''
-  },
-  net: 'ropsten'
-};
-
-const clusterInformationMock = {
-  getEthereum: async () => ethereumMock
-};
-
-const loggerMock = {
-  logger: {
-    info: sinon.stub()
-  }
-};
-
-const ContractFactory = proxyquire('./contract-factory', {
-  'ethers': ethersMock,
-  '../cluster-information': clusterInformationMock,
-  './abi-provider': abiProviderMock,
-  '@hubiinetwork/logger': loggerMock
-});
-
 describe ('contract-factory', () => {
-  let old_node_env;
+  let old_node_env, ethersMock, providerMock, abiInfoMock, abiProviderMock, ethereumMock, loggerMock;
+  let ClusterInformationMock, ContractFactory;
 
   before(() => {
     old_node_env = process.env.NODE_ENV;
   });
 
   beforeEach(() => {
+
+    ethersMock = {
+      Contract: class Contract {
+        constructor(address, abi, provider) {
+          this.address = address;
+          this.abi = abi;
+          this.provider = provider;
+        }
+      }
+    };
+
+    providerMock = {
+      network: {
+        chainId: 3
+      }
+    };
+
+    abiInfoMock = {};
+
+    const abiProviderMock = {
+      getAbiInfo: () => abiInfoMock
+    };
+
+    ethereumMock = {
+      contracts: {
+        ClientFund: ''
+      },
+      net: 'ropsten'
+    };
+
+    ClusterInformationMock = class {
+      constructor () {
+        this.acquireEthereum = async () => ethereumMock;
+      }
+    };
+
+    loggerMock = {
+      logger: {
+        info: sinon.stub()
+      }
+    };
+
     abiInfoMock = {
       networks: {
         '3': {
@@ -68,8 +65,17 @@ describe ('contract-factory', () => {
       },
       abi: 'mockAbi'
     };
+
     ethereumMock.contracts.ClientFund = '0xcaf8bf7c0aab416dde4fe3c20c173e92afff8d72';
+
     loggerMock.logger.info.reset();
+
+    ContractFactory = proxyquire('./contract-factory', {
+      'ethers': ethersMock,
+      '../cluster-information': ClusterInformationMock,
+      './abi-provider': abiProviderMock,
+      '@hubiinetwork/logger': loggerMock
+    });
   });
 
   afterEach(() => {
