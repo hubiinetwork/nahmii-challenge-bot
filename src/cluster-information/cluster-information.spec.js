@@ -13,7 +13,7 @@ describe('cluster-information', () => {
     superAgentMock = {
       get: sinon.stub()
     };
-    superAgentMock.get.returns(Promise.resolve({ body: require('./cluster-information.spec.data.json') }));
+    superAgentMock.get.resolves({ body: require('./cluster-information.spec.data.json') });
 
     cluster = proxyquire('./cluster-information', {
       'superagent': superAgentMock
@@ -26,13 +26,13 @@ describe('cluster-information', () => {
     });
 
     it('Fails when network request fails', function () {
-      superAgentMock.get.throws(new Error('Request failed'));
+      superAgentMock.get.rejects(new Error('Request failed'));
       return expect(cluster.acquireEthereum()).to.eventually.be.rejectedWith(/Failed to retrieve cluster information/);
     });
 
     it('Returns cached info when available', async function () {
       await cluster.acquireEthereum(); // Makes a cache
-      superAgentMock.get.throws(new Error('Request failed')); // Throws if network accessed
+      superAgentMock.get.rejects(new Error('Request failed')); // Throws if network accessed
       return expect(cluster.acquireEthereum()).to.eventually.be.fulfilled.with.keys(['contracts', 'net', 'node']);
     });
   });
