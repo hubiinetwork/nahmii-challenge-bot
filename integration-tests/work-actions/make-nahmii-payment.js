@@ -36,12 +36,10 @@ module.exports = function (ctx, senderName, recipientName, receiptName, amount, 
   });
 
   step(`${senderName} registers payment`, async function () {
-    const promisedResult = ctx.purses[senderName].payment.register();
-    promisedResult.then(res => {
-      expect(formatEther(bigNumberify(res.amount))).to.equal(amount);
-      this.test.title += ` at ${res.blockNumber} ${res.id}`;
-    });
-    return expect(promisedResult).to.eventually.be.fulfilled;
+    this.timeout(8000);
+    const res = await ctx.purses[senderName].payment.register();
+    expect(formatEther(bigNumberify(res.amount))).to.equal(amount);
+    this.test.title += ` at ${res.blockNumber} ${res.id}`;
   });
 
   require('../work-steps/receipts/ensure-latest-receipt-updates')(ctx, senderName, symbol);

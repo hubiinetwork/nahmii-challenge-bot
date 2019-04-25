@@ -7,7 +7,7 @@ const abiProvider = require('./abi-provider');
 
 class ContractFactory {
   static async create (contractName, provider) {
-    const ethereum = await ClusterInformation.getEthereum();
+    const ethereum = await ClusterInformation.acquireEthereum();
     const contractAddress = ethereum.contracts[contractName];
 
     if (!contractAddress)
