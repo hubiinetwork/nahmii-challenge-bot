@@ -1,20 +1,33 @@
 'use strict';
 
 const { logger } = require('@hubiinetwork/logger');
+const nahmii = require('nahmii-sdk');
+const keythereum = require('keythereum');
+const path = require('path');
+const ethers = require('ethers');
+const http = require('http');
+
 const config = require('./config');
 const ClusterInformation = require('./cluster-information');
 const ContractFactory = require('./contract-factory');
 const ChallengeHandler = require('./challenge-handler');
 const NestedError = require('./utils/nested-error');
-const nahmii = require('nahmii-sdk');
-const keythereum = require('keythereum');
-const path = require('path');
-const ethers = require('ethers');
+const metrics = require('./metrics');
 
 process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.error(NestedError.asStringified(reason));
   setTimeout(() => process.exit(-1), 2000);
 });
+
+async function registerEthBalance (wallet) {
+  try {
+    const balance = await wallet.getBalance();
+    metrics.registerEthBalanceBN(balance);
+  }
+  catch (err) {
+    throw new NestedError(err, 'Failed to register ETH balance metric');
+  }
+}
 
 (async () => {
   const now = new Date(Date.now()).toISOString();
@@ -47,8 +60,10 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
 
   logger.info('Creating challenge handler ...');
 
-  new ChallengeHandler(
-    new nahmii.Wallet(privateKey, provider),
+  const wallet = new nahmii.Wallet(privateKey, provider);
+
+  const challengeHandler = new ChallengeHandler(
+    wallet,
     ethers.utils.bigNumberify(config.ethereum.gasLimit),
     await ContractFactory.create('ClientFund', provider),
     await ContractFactory.create('DriipSettlementChallengeByPayment', provider),
@@ -57,6 +72,49 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
     await ContractFactory.create('DriipSettlementDisputeByPayment', provider),
     await ContractFactory.create('NullSettlementDisputeByPayment', provider)
   );
+
+  const metricsServer = http.createServer(metrics.app);
+  metricsServer.listen(config.metricsPort);
+  metricsServer.on('listening', () => {
+    console.log(`Metrics available on http://localhost:${config.metricsPort}/metrics`);
+  });
+
+  metrics.initProgressCounter();
+
+  challengeHandler.onBalancesSeized(() => {
+    metrics.registerDscStarted();
+    registerEthBalance(wallet);
+  });
+
+  challengeHandler.onBalancesSeized(() => {
+    metrics.registerDscAgreed();
+    registerEthBalance(wallet);
+  });
+
+  challengeHandler.onBalancesSeized(() => {
+    metrics.registerDscDisputed();
+    registerEthBalance(wallet);
+  });
+
+  challengeHandler.onBalancesSeized(() => {
+    metrics.registerNscStarted();
+    registerEthBalance(wallet);
+  });
+
+  challengeHandler.onBalancesSeized(() => {
+    metrics.registerNscAgreed();
+    registerEthBalance(wallet);
+  });
+
+  challengeHandler.onBalancesSeized(() => {
+    metrics.registerNscDisputed();
+    registerEthBalance(wallet);
+  });
+
+  challengeHandler.onBalancesSeized(() => {
+    metrics.registerBalancesSeized();
+    registerEthBalance(wallet);
+  });
 
   logger.info('');
   logger.info('We are in business! Waiting for events ...');

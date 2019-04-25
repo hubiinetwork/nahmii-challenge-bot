@@ -35,5 +35,6 @@ module.exports = {
   ethereum: {
     nodeUrl: process.env['ETHEREUM_NODE_URL'] || '',
     gasLimit: '2000000'
-  }
+  },
+  metricsPort: parseInt(process.env['METRICS_PORT'] || '8079')
 };
