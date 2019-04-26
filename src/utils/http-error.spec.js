@@ -8,27 +8,27 @@ chai.use(sinonChai);
 const HttpError = require('./http-error');
 
 describe('HttpError', () => {
-    const code = '404';
-    const message = 'some error message';
-    let error;
+  const code = '404';
+  const message = 'some error message';
+  let error;
 
-    beforeEach(() => {
-        try {
-            throw new HttpError(code, message);
-        } catch (err) {
-            error = err;
-        }
-    });
+  beforeEach(() => {
+    try {
+      throw new HttpError(code, message);
+    } catch (err) {
+      error = err;
+    }
+  });
 
-    it('has code property', () => {
-        expect(error.code).to.equal(code);
-    });
+  it('has code property', () => {
+    expect(error.code).to.equal(code);
+  });
 
-    it('has message property', () => {
-        expect(error.message).to.equal(message);
-    });
+  it('has message property', () => {
+    expect(error.message).to.equal(message);
+  });
 
-    it('has stack property', () => {
-        expect(error.stack).to.exist;
-    });
+  it('has stack property', () => {
+    expect(error.stack).to.exist;
+  });
 });
