@@ -4,7 +4,6 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const sinon = require('sinon');
-const fs = require('fs');
 const NestedError = require('./../utils/nested-error');
 const ethers = require('ethers');
 

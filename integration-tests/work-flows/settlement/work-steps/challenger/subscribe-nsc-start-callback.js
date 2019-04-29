@@ -9,9 +9,9 @@ module.exports = function (ctx, challengerName) {
 
   step(`${challengerName} expects a NSC-start notification`, async () => {
     ctx.purses[challengerName].NSCStartPromise = new Promise(resolve => {
-      const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onNSCStart((initiatorWallet, stagedAmount, stagedCt, stageId) => {
-        challenger.onNSCStart(null);
+      const callbacks = ctx.wallets[challengerName].asChallenger.callbacks;
+      callbacks.onNSCStart((initiatorWallet, stagedAmount, stagedCt, stageId) => {
+        callbacks.onNSCStart(null);
         resolve({ initiatorWallet, stagedAmount, stagedCt, stageId });
       });
     });

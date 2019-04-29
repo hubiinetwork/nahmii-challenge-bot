@@ -2,6 +2,10 @@
 
 run_test () {
   npx mocha --exit --bail --require mocha-steps ./integration-tests/work-flows/settlement/$1
+
+  if [ $? ]; then
+    exit $?
+  fi
 }
 
 run_test 1-start-of-single-scenarios/1-start-single-nsc-fulfilled-agreed.spec.js
