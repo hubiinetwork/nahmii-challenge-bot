@@ -30,7 +30,7 @@ async function getWalletReceiptFromNonce(provider, address, nonce) {
   return filtered[0];
 }
 
-async function getResentSenderReceipts(provider, sender, ct, id, minSenderNonce, minBlockNo) {
+async function getRecentSenderReceipts(provider, sender, ct, id, minSenderNonce, minBlockNo) {
   const receipts = await getWalletReceipts(provider, sender);
   const lcSender = sender.toLowerCase();
 
@@ -46,5 +46,5 @@ async function getResentSenderReceipts(provider, sender, ct, id, minSenderNonce,
 module.exports = {
   getWalletReceipts,
   getWalletReceiptFromNonce,
-  getResentSenderReceipts
+  getRecentSenderReceipts
 };
