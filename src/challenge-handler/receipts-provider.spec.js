@@ -7,7 +7,7 @@ const sinon = require('sinon');
 const NestedError = require('./../utils/nested-error');
 const ethers = require('ethers');
 
-const { getWalletReceipts, getWalletReceiptFromNonce, getResentSenderReceipts } = require('./receipts-provider');
+const { getWalletReceipts, getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
 
 const receipts = require('./receipts.spec.data.json');
 const sender = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
@@ -79,19 +79,19 @@ describe('receipts-provider', () => {
   describe('Can receive recent receipts', () => {
     it('By block number', () => {
       provider.getWalletReceipts.returns(receipts);
-      const res = getResentSenderReceipts(provider, sender, ct, 0, 0, 853);
+      const res = getRecentSenderReceipts(provider, sender, ct, 0, 0, 853);
       return expect(res).to.eventually.have.property('length').equal(2);
     });
 
     it('By sender nounce', () => {
       provider.getWalletReceipts.returns(receipts);
-      const res = getResentSenderReceipts(provider, sender, ct, 0, 3, 0);
+      const res = getRecentSenderReceipts(provider, sender, ct, 0, 3, 0);
       return expect(res).to.eventually.have.property('length').equal(1);
     });
 
     it('Handles no receipts', () => {
       provider.getWalletReceipts.returns(receipts);
-      const res = getResentSenderReceipts(provider, sender, ct, 0, 6, 0);
+      const res = getRecentSenderReceipts(provider, sender, ct, 0, 6, 0);
       return expect(res).to.eventually.have.property('length').equal(0);
     });
   });

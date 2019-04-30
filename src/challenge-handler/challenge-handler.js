@@ -2,7 +2,7 @@
 
 const NestedError = require('../utils/nested-error');
 const { logger } = require('@hubiinetwork/logger');
-const { getWalletReceiptFromNonce, getResentSenderReceipts } = require('./receipts-provider');
+const { getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
 const ProgressNotifyer = require('./progress-notifier');
 
@@ -43,9 +43,9 @@ async function handleDSCStart (initiator, nonce, cumulativeTransferAmount, stage
   const initiatorReceipt = await getWalletReceiptFromNonce(state.wallet.provider, initiator, nonce.toNumber());
   const blockNo = initiatorReceipt.blockNumber;
 
-  const resentPayments = await getResentSenderReceipts(state.wallet.provider, initiator, ct, id, nonce, blockNo);
+  const recentPayments = await getRecentSenderReceipts(state.wallet.provider, initiator, ct, id, nonce, blockNo);
 
-  const proofCandidate = await getProofCandidate(contracts.balanceTracker, resentPayments, initiator, ct, id, stagedAmount.toString());
+  const proofCandidate = await getProofCandidate(contracts.balanceTracker, recentPayments, initiator, ct, id, stagedAmount.toString());
   const hasProof = proofCandidate.targetBalance.lt(0);
   const finalReceipt = proofCandidate.receipt;
   const targetBalance = proofCandidate.targetBalance.toString();
@@ -76,8 +76,8 @@ async function handleNSCStart (initiator, nonce, stagedAmount, targetBalanceAmou
     throw new Error(`Received unexpected disqualified NSC: balance ${activeBalance.toString()}, staged ${stagedAmount.toString()}, tau ${targetBalance}`);
   }
 
-  const resentReceipts = await getResentSenderReceipts(state.wallet.provider, initiator, ct, id, nonce, 0);
-  const proofCandidate = await getProofCandidate(contracts.balanceTracker, resentReceipts, initiator, ct, id, stagedAmount.toString());
+  const recentReceipts = await getRecentSenderReceipts(state.wallet.provider, initiator, ct, id, nonce, 0);
+  const proofCandidate = await getProofCandidate(contracts.balanceTracker, recentReceipts, initiator, ct, id, stagedAmount.toString());
   const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
 
   if (hasProof) {
