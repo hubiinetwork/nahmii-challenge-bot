@@ -15,7 +15,6 @@ const ChallengeHandler = proxyquire('./challenge-handler', {
   './progress-notifier': progressNotifier
 });
 
-const receipts = require('./receipts.spec.data.json');
 const initiator = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
 const sender = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
 const recipient = '0xcaf8bf7c0aab416dde4fe3c20c173e92afff8d72';
@@ -95,6 +94,7 @@ describe('ChallengeHandler', () => {
   let driipSettlementChallengeByPaymentContract, nullSettlementChallengeByPaymentContract;
   let balanceTrackerContract;
   let driipSettlementDisputeByPaymentContract, nullSettlementDisputeByPaymentContract;
+  let receipts;
   let handler;
 
   beforeEach(() => {
@@ -104,6 +104,7 @@ describe('ChallengeHandler', () => {
     balanceTrackerContract = new BalanceTrackerContract();
     driipSettlementDisputeByPaymentContract = new DriipSettlementDisputeByPaymentContract();
     nullSettlementDisputeByPaymentContract = new NullSettlementDisputeByPaymentContract();
+    receipts = require('./receipts.spec.data.json');
 
     handler = new ChallengeHandler (
       walletMock, gasLimit,
@@ -123,7 +124,7 @@ describe('ChallengeHandler', () => {
     balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
   });
 
-  describe ('Call callbacks on important operation events', function () {
+  describe ('Calls callbacks on important operation events', function () {
     const wallet = sender;
     const nonce = ethers.utils.bigNumberify(3);
     const cumulativeTransferAmount = null;
@@ -175,5 +176,14 @@ describe('ChallengeHandler', () => {
       return expect(promisedCallback).to.eventually.be.fulfilled;
     });
 
+  });
+
+  describe('#getProofCandidate()', function () {
+    it ('handles non-continuous nonces', function () {
+      const stagedAmount = ethers.utils.bigNumberify(1);
+      const clonedReceipts = JSON.parse(JSON.stringify(receipts));
+      const senderReceipts = clonedReceipts.filter(r => r.sender.wallet === sender).map(r => (r.sender.nonce *= 2, r));
+      return expect(ChallengeHandler.getProofCandidate(balanceTrackerContract, senderReceipts, sender, ct, id, stagedAmount)).to.eventually.be.fulfilled;
+    });
   });
 });
