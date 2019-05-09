@@ -3,7 +3,8 @@
 run_test () {
   npx mocha --exit --bail --require mocha-steps ./integration-tests/work-flows/settlement/$1
 
-  if [ $? ]; then
+  if [ $? = 1 ]; then
+    echo 'Test failure. Terminating.'
     exit $?
   fi
 }

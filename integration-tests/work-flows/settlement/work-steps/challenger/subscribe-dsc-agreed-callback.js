@@ -9,9 +9,9 @@ module.exports = function (ctx, challengerName) {
 
   step(`${challengerName} subscribes a DSC-agreed notification`, async () => {
     ctx.purses[challengerName].DSCAgreedPromise = new Promise(resolve => {
-      const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onDSCAgreed((address, proof, targetBalance) => {
-        challenger.onDSCAgreed(null);
+      const callbacks = ctx.wallets[challengerName].asChallenger.callbacks;
+      callbacks.onDSCAgreed((address, proof, targetBalance) => {
+        callbacks.onDSCAgreed(null);
         resolve({ address, proof, targetBalance });
       });
     });

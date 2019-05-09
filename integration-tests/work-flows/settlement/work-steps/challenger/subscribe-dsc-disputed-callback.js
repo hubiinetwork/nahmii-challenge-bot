@@ -9,9 +9,9 @@ module.exports = function (ctx, challengerName) {
 
   step(`${challengerName} subscribes a DSC-disputed notification`, async () => {
     ctx.purses[challengerName].DSCDisputedPromise = new Promise(resolve => {
-      const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onDSCDisputed((initiatorAddress, finalReceipt, targetBalance) => {
-        challenger.onDSCDisputed(null);
+      const callbacks = ctx.wallets[challengerName].asChallenger.callbacks;
+      callbacks.onDSCDisputed((initiatorAddress, finalReceipt, targetBalance) => {
+        callbacks.onDSCDisputed(null);
         resolve({ initiatorAddress, finalReceipt, targetBalance });
       });
     });

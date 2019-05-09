@@ -1,15 +1,18 @@
 'use strict';
 
 const { logger } = require('@hubiinetwork/logger');
+const nahmii = require('nahmii-sdk');
+const keythereum = require('keythereum');
+const path = require('path');
+const ethers = require('ethers');
+
 const config = require('./config');
 const ClusterInformation = require('./cluster-information');
 const ContractFactory = require('./contract-factory');
 const ChallengeHandler = require('./challenge-handler');
 const NestedError = require('./utils/nested-error');
-const nahmii = require('nahmii-sdk');
-const keythereum = require('keythereum');
-const path = require('path');
-const ethers = require('ethers');
+const NahmiiProviderFactory = require('./nahmii-provider-factory');
+const ChallengeHandlerFactory = require('./challenge-handler/challenge-handler-factory');
 
 process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.error(NestedError.asStringified(reason));
@@ -34,11 +37,7 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.info(`     network : '${ethereum.net}'`);
   logger.info('');
 
-  const provider = new nahmii.NahmiiProvider(
-    config.services.baseUrl,
-    config.identity.appId, config.identity.appSecret,
-    config.ethereum.nodeUrl, ethereum.net
-  );
+  const provider = await NahmiiProviderFactory.acquireProvider();
 
   logger.info('Reading utc keystore ...');
 
@@ -47,15 +46,9 @@ process.on('unhandledRejection', (reason /*, promise*/) => {
 
   logger.info('Creating challenge handler ...');
 
-  new ChallengeHandler(
+  const challengeHandler = ChallengeHandlerFactory.create(
     new nahmii.Wallet(privateKey, provider),
-    ethers.utils.bigNumberify(config.ethereum.gasLimit),
-    await ContractFactory.create('ClientFund', provider),
-    await ContractFactory.create('DriipSettlementChallengeByPayment', provider),
-    await ContractFactory.create('NullSettlementChallengeByPayment', provider),
-    await ContractFactory.create('BalanceTracker', provider),
-    await ContractFactory.create('DriipSettlementDisputeByPayment', provider),
-    await ContractFactory.create('NullSettlementDisputeByPayment', provider)
+    ethers.utils.bigNumberify(config.ethereum.gasLimit)
   );
 
   logger.info('');
