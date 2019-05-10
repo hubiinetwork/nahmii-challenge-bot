@@ -7,19 +7,14 @@ const NahmiiProviderFactory = require('../../nahmii-provider-factory');
 const _contracts = {};
 
 class ContractRepository {
-  static async acquireContract (contractName, optionalWallet) {
+  static async acquireContract (contractName) {
     try {
       if (!_contracts[contractName]) {
         const provider = await NahmiiProviderFactory.acquireProvider();
         _contracts[contractName] = await ContractFactory.create(contractName, provider);
       }
 
-      const contract = _contracts[contractName];
-
-      if(optionalWallet)
-        return contract.connect(optionalWallet);
-      else
-        return contract;
+      return _contracts[contractName];
     }
     catch (err) {
       throw new NestedError(err, 'Failed to acquire contract. ' + err.message);

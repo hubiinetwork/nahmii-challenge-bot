@@ -107,10 +107,6 @@ describe('ChallengeHandler', () => {
   let balanceTrackerContract;
   let StubbedChallengeHandler;
 
-  before(() => {
-    MetaServiceNocker.resolveWithData();
-  })
-
   beforeEach(async () => {
     nock.disableNetConnect();
     MetaServiceNocker.resolveWithData();
