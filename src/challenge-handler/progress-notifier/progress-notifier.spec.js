@@ -10,7 +10,7 @@ const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 describe('progress-notifier', () => {
   let notifier;
 
-  const receipts = require('../receipts.spec.data.json');
+  const receipts = require('../receipts-provider/receipts.spec.data.json');
   const initiator = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
   const challenger = initiator;
   const lockedWallet = initiator;

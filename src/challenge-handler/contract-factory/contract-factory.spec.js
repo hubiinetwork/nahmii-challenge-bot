@@ -70,7 +70,7 @@ describe ('contract-factory', () => {
 
     ContractFactory = proxyquire('./contract-factory', {
       'ethers': ethersMock,
-      '../cluster-information': ClusterInformationMock,
+      '../../cluster-information': ClusterInformationMock,
       './abi-provider': abiProviderMock,
       '@hubiinetwork/logger': loggerMock
     });

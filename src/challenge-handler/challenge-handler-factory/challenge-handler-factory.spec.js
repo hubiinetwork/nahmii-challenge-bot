@@ -6,7 +6,7 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 const ethers = require('ethers');
-const NestedError = require('../utils/nested-error');
+const NestedError = require('../../utils/nested-error');
 
 class FakeContract {
   constructor () {
@@ -64,8 +64,8 @@ describe('challenge-handler-factory', () => {
     fakeContractRepository = new  FakeContractRepository();
 
     StubbedChallengeHandlerFactory = proxyquire('./challenge-handler-factory', {
-      './challenge-handler': FakeChallengeHandler,
-      './contract-repository': fakeContractRepository
+      '../challenge-handler': FakeChallengeHandler,
+      '../contract-repository': fakeContractRepository
     });
 
     fakeChallengeHandler = await StubbedChallengeHandlerFactory.create(fakeWallet, gasLimit);

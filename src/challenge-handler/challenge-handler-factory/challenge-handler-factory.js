@@ -1,8 +1,8 @@
 'use strict';
 
-const ChallengeHandler = require('./challenge-handler');
-const contracts = require('./contract-repository');
-const NestedError = require('../utils/nested-error');
+const ChallengeHandler = require('../challenge-handler');
+const contracts = require('../contract-repository');
+const NestedError = require('../../utils/nested-error');
 
 async function create (wallet, gasLimit) {
   const handler = new ChallengeHandler(wallet, gasLimit);

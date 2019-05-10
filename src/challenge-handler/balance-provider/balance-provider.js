@@ -1,6 +1,6 @@
 'use strict';
 
-const NestedError = require('../utils/nested-error');
+const NestedError = require('../../utils/nested-error');
 const ethers = require('ethers');
 const { bigNumberify } = ethers.utils;
 

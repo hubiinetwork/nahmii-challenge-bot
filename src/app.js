@@ -8,7 +8,6 @@ const ethers = require('ethers');
 
 const config = require('./config');
 const ClusterInformation = require('./cluster-information');
-const ContractFactory = require('./contract-factory');
 const ChallengeHandler = require('./challenge-handler');
 const NestedError = require('./utils/nested-error');
 const NahmiiProviderFactory = require('./nahmii-provider-factory');

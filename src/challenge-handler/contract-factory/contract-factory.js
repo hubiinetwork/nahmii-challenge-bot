@@ -2,7 +2,7 @@
 
 const { logger } = require('@hubiinetwork/logger');
 const ethers = require('ethers');
-const ClusterInformation = require('../cluster-information');
+const ClusterInformation = require('../../cluster-information');
 const abiProvider = require('./abi-provider');
 
 class ContractFactory {

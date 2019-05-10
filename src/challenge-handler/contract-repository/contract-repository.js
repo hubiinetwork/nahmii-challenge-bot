@@ -1,6 +1,6 @@
 'use strict';
 
-const ContractFactory = require('../../contract-factory');
+const ContractFactory = require('../contract-factory');
 const NestedError = require('../../utils/nested-error');
 const NahmiiProviderFactory = require('../../nahmii-provider-factory');
 
