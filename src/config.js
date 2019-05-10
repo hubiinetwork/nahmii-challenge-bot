@@ -22,7 +22,7 @@ module.exports = {
   validateConfig,
   verbose: true,
   services: {
-    baseUrl: process.env['NAHMII_BASE_URL'] || ''
+    baseUrl: process.env['NAHMII_BASE_URL'] || 'localhost'
   },
   wallet: {
     utcAddress: process.env['CHALLENGE_BOT_UTCADDRESS'] || '0x026e46ff3d3b2c72b07ed9a2ec4d17d5b98c7ce0',

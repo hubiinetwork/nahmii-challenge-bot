@@ -9,9 +9,9 @@ module.exports = function (ctx, challengerName) {
 
   step(`${challengerName} expects a DSC-start notification`, async () => {
     ctx.purses[challengerName].DSCStartPromise = new Promise(resolve => {
-      const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onDSCStart((initiator, nonce, stagedAmount) => {
-        challenger.onDSCStart(null);
+      const callbacks = ctx.wallets[challengerName].asChallenger.callbacks;
+      callbacks.onDSCStart((initiator, nonce, stagedAmount) => {
+        callbacks.onDSCStart(null);
         resolve({ initiator, nonce, stagedAmount });
       });
     });

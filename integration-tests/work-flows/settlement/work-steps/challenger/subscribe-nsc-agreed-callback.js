@@ -9,9 +9,9 @@ module.exports = function (ctx, challengerName) {
 
   step(`${challengerName} subscribes a NSC-agreed notification`, async () => {
     ctx.purses[challengerName].NSCAgreedPromise = new Promise(resolve => {
-      const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onNSCAgreed((address) => {
-        challenger.onNSCAgreed(null);
+      const callbacks = ctx.wallets[challengerName].asChallenger.callbacks;
+      callbacks.onNSCAgreed((address) => {
+        callbacks.onNSCAgreed(null);
         resolve({ address });
       });
     });
