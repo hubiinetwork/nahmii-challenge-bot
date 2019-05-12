@@ -28,7 +28,7 @@ describe ('contract-repository', () => {
           '../utils/nested-error': require('../../utils/nested-error')
         })
       }),
-      '../../contract-factory': proxyquire('../../contract-factory/contract-factory', {
+      '../../contract-factory': proxyquire('../contract-factory/contract-factory', {
         '../cluster-information': proxyquire('../../cluster-information/cluster-information', {
           '../utils/nested-error': require('../../utils/nested-error')
         })

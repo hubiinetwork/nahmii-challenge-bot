@@ -4,7 +4,7 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const sinon = require('sinon');
-const NestedError = require('./../utils/nested-error');
+const NestedError = require('./../../utils/nested-error');
 const ethers = require('ethers');
 
 const { getWalletReceipts, getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');

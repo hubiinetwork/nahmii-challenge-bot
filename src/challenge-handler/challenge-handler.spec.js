@@ -113,7 +113,7 @@ describe('ChallengeHandler', () => {
     fakeContractFactory = new FakeContractFactory();
 
     const StubbedContractRepository = proxyquire('./contract-repository/contract-repository', {
-      '../../contract-factory': fakeContractFactory
+      '../contract-factory': fakeContractFactory
     });
 
     StubbedChallengeHandler = proxyquire('./challenge-handler', {
@@ -123,12 +123,12 @@ describe('ChallengeHandler', () => {
       './contract-repository': StubbedContractRepository
     });
 
-    const StubbedChallengeHandlerFactory = proxyquire('./challenge-handler-factory', {
-      './challenge-handler': StubbedChallengeHandler,
-      './contract-repository': StubbedContractRepository
+    const StubbedChallengeHandlerFactory = proxyquire('./challenge-handler-factory/challenge-handler-factory', {
+      '../challenge-handler': StubbedChallengeHandler,
+      '../contract-repository': StubbedContractRepository
     });
 
-    receipts = require('./receipts.spec.data.json');
+    receipts = require('./receipts-provider/receipts.spec.data.json');
     handler = await StubbedChallengeHandlerFactory.create(walletMock, gasLimit);
 
     walletMock.provider.getWalletReceipts.returns(receipts);
