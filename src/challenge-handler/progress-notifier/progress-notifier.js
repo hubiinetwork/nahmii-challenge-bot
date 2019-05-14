@@ -70,11 +70,20 @@ class ProgressNotifyer {
     this.notifyCallback('onWalletLocked', challenger, lockedWallet, ct, id);
   }
 
-  notifyBalancesSeized (wallet, nonce, candidateHash, challenger) {
-    logger.info('    Balance seized');
-    logger.info(`    Sender   : address '${wallet}'`);
+  logBalancesSeized (caption, botWallet, seizedWallet, seizerWallet, amount, ct, id) {
+    logger.info(`${caption}`);
+    logger.info(`    Bot wallet: ${botWallet}`)
+    logger.info(`    Challenger wallet: ${seizerWallet}`);
+    logger.info(`    Seized wallet: '${seizedWallet}`);
+    logger.info(`    amount: '${amount}`);
+    logger.info(`    ct: '${ct}`);
+    logger.info(`    id: '${id.toString()}`);
     logger.info(' ');
-    this.notifyCallback('onBalancesSeized', wallet, nonce, candidateHash, challenger);
+  }
+
+  notifyBalancesSeized (caption, botWallet, seizedWallet, seizerWallet, amount, ct, id) {
+    this.logBalancesSeized(caption, botWallet, seizedWallet, seizerWallet, amount, ct, id);
+    this.notifyCallback('onBalancesSeized', seizedWallet, seizerWallet, amount, ct, id);
   }
 
   onDSCStart (callback) {

@@ -20,6 +20,7 @@
     "strict": ["error", "global"],
     "eqeqeq" : ["error"],
     "prefer-const" : ["error"],
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^[_]\\w*" } ],
     "flowtype/boolean-style": [
       2,
       "boolean"

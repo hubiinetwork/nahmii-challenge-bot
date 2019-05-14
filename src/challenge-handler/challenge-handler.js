@@ -1,8 +1,6 @@
 'use strict';
 
 const NestedError = require('../utils/nested-error');
-const { logger } = require('@hubiinetwork/logger');
-
 const { getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
 const ProgressNotifier = require('./progress-notifier');
@@ -113,34 +111,36 @@ class ChallengeHandler {
     }
   }
 
-  async handleWalletLocked(caption, challengedWallet, challengedNonce, payment, challengerWallet) {
-    if (challengedWallet.toLowerCase() !== payment[3][1].toLowerCase())
-      throw new Error(`Handle lock event failed. Sender addresses do not match: payment address ${payment[3][1].toLowerCase()}, event address ${challengedWallet.toLowerCase()}`);
+  async handleWalletLocked(caption, challengedWallet, _nonce, _stageAmount, _targetBalanceAmount, ct, id, challengerWallet) {
+    const wallet = _wallet.get(this);
 
-    if (challengerWallet.toLowerCase() === _wallet.get(this).address.toLowerCase()) {
-      logger.error('SEIZE not implemented');
-      /*
-      TODO: Implement as sketched below
+    if (challengerWallet.toLowerCase() === wallet.address.toLowerCase()) {
       try {
-        const wallet = _wallet.get(this);
-        const clientFund = (await contracts.getClientFund()).connect(wallet);
-        await clientFund.seizeBalances(challengedWallet, payment[2][0], payment[2][1], '', _gasLimitOpt.get(this));
+        const signedClientFund = (await contracts.getClientFund()).connect(wallet);
+        await signedClientFund.seizeBalances(challengedWallet, ct, id, '', _gasLimitOpt.get(this));
       }
       catch (err) {
         throw new NestedError(err, 'Failed to seize balances. ' + err.message);
       }
-      */
-      caption += ' seizing:';
+
+      caption += ' SEIZING:';
     }
     else {
-      caption += ' Not my dispute. ignoring:';
+      caption += ' NOT SEIZING:';
     }
 
-    _progressNotifier.get(this).notifyWalletLocked(caption, challengerWallet, challengedWallet, payment[2][0], payment[2][1]);
+    _progressNotifier.get(this).notifyWalletLocked(caption, challengerWallet, challengedWallet, ct, id);
   }
 
-  handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {
-    _progressNotifier.get(this).notifyBalancesSeized(seizedWallet, seizerWallet, value, currencyCt, currencyId);
+  async handleBalancesSeized (seizedWallet, seizerWallet, value, ct, id) {
+    const wallet = _wallet.get(this).address.toLowerCase();
+
+    if (seizerWallet.toLowerCase() === wallet) {
+      _progressNotifier.get(this).notifyBalancesSeized('ACKNOWLEDGED. Seizing OK.', wallet, seizedWallet, seizerWallet, value, ct, id);
+    }
+    else {
+      _progressNotifier.get(this).logBalancesSeized('IGNORED. Foreign seizing acknowledge.', wallet, seizedWallet, seizerWallet, value, ct, id);
+    }
   }
 }
 

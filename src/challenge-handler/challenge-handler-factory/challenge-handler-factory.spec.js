@@ -28,7 +28,6 @@ class FakeContract {
 class FakeContractRepository {
   constructor () {
     this.driipSettlementChallengeByPayment = new FakeContract();
-    this.driipSettlementDisputeByPayment = new FakeContract();
     this.nullSettlementChallengeByPayment = new FakeContract();
     this.nullSettlementDisputeByPayment = new FakeContract();
     this.clientFund = new FakeContract();
@@ -37,7 +36,6 @@ class FakeContractRepository {
   async getDriipSettlementChallengeByPayment () {
     return this.driipSettlementChallengeByPayment;
   }
-  async getDriipSettlementDisputeByPayment () { return this.driipSettlementDisputeByPayment; }
   async getNullSettlementChallengeByPayment () { return this.nullSettlementChallengeByPayment; }
   async getNullSettlementDisputeByPayment () { return this.nullSettlementDisputeByPayment; }
   async getClientFund () { return this.clientFund; }
@@ -83,7 +81,7 @@ describe('challenge-handler-factory', () => {
     });
 
     it ('ChallengeByPaymentEvent to #handleWalletLocked()', async function () {
-      (await fakeContractRepository.getDriipSettlementDisputeByPayment()).emit('ChallengeByPaymentEvent', 'ok');
+      (await fakeContractRepository.getDriipSettlementChallengeByPayment()).emit('ChallengeByPaymentEvent', 'ok');
       expect(fakeChallengeHandler.handleWalletLocked.calledOnceWith('DSC Locked', 'ok')).to.be.true;
     });
 
@@ -98,7 +96,7 @@ describe('challenge-handler-factory', () => {
     });
 
     it ('ChallengeByPaymentEvent to #handleWalletLocked()', async function () {
-      (await fakeContractRepository.getNullSettlementDisputeByPayment()).emit('ChallengeByPaymentEvent', 'ok');
+      (await fakeContractRepository.getNullSettlementChallengeByPayment()).emit('ChallengeByPaymentEvent', 'ok');
       expect(fakeChallengeHandler.handleWalletLocked.calledOnceWith('NSC Locked', 'ok')).to.be.true;
     });
 
