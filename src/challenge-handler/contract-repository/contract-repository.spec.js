@@ -27,12 +27,7 @@ describe ('contract-repository', () => {
         '../cluster-information': proxyquire('../../cluster-information/cluster-information', {
           '../utils/nested-error': require('../../utils/nested-error')
         })
-      }),
-      '../../contract-factory': proxyquire('../contract-factory/contract-factory', {
-        '../cluster-information': proxyquire('../../cluster-information/cluster-information', {
-          '../utils/nested-error': require('../../utils/nested-error')
-        })
-      }),
+      })
     });
     wallet = new ethers.Wallet('0x0123456789012345678901234567890123456789012345678901234567890123');
   });
@@ -56,7 +51,7 @@ describe ('contract-repository', () => {
     });
 
     it ('fails to acquire unknown contract', async () => {
-      return expect(repository.acquireContract('xClientFund', wallet)).to.be.rejectedWith(/Failed to find contract address/);
+      return expect(repository.acquireContract('xClientFund', wallet)).to.be.rejectedWith(/Failed to acquire contract/);
     });
   });
 });
