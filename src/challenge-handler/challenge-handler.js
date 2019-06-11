@@ -117,7 +117,17 @@ class ChallengeHandler {
     if (challengerWallet.toLowerCase() === wallet.address.toLowerCase()) {
       try {
         const signedClientFund = (await contracts.getClientFund()).connect(wallet);
-        await signedClientFund.seizeBalances(challengedWallet, ct, id, '', _gasLimitOpt.get(this));
+        const gasLimitOpt = _gasLimitOpt.get(this);
+
+console.log('challengedWallet: ' + challengedWallet);
+console.log('              ct: ' + ct);
+console.log('              id: ' + id);
+console.log('     gasLimitOpt: ' + JSON.stringify(gasLimitOpt));
+console.log(' ')
+console.log('********************************')
+console.log('NOT IMPLEMENTED: seizeBalances()')
+console.log('********************************')
+        //await signedClientFund.seizeBalances(challengedWallet, ct, id, '', gasLimitOpt);
       }
       catch (err) {
         throw new NestedError(err, 'Failed to seize balances. ' + err.message);
@@ -132,14 +142,11 @@ class ChallengeHandler {
     _progressNotifier.get(this).notifyWalletLocked(caption, challengerWallet, challengedWallet, ct, id);
   }
 
-  async handleBalancesSeized (seizedWallet, seizerWallet, value, ct, id) {
-    const wallet = _wallet.get(this).address.toLowerCase();
+  handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {
+    const wallet = _wallet.get(this);
 
-    if (seizerWallet.toLowerCase() === wallet) {
-      _progressNotifier.get(this).notifyBalancesSeized('ACKNOWLEDGED. Seizing OK.', wallet, seizedWallet, seizerWallet, value, ct, id);
-    }
-    else {
-      _progressNotifier.get(this).logBalancesSeized('IGNORED. Foreign seizing acknowledge.', wallet, seizedWallet, seizerWallet, value, ct, id);
+    if (seizerWallet.toLowerCase() === wallet.address.toLowerCase()) {
+      _progressNotifier.get(this).notifyBalancesSeized(seizedWallet, seizerWallet, value, currencyCt, currencyId);
     }
   }
 }

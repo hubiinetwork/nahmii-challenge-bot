@@ -6,39 +6,20 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 const ethers = require('ethers');
-const NestedError = require('../../utils/nested-error');
+const nock = require('nock');
+const MetaServiceNocker = require('../../cluster-information/meta-service-nocker');
 
-class FakeContract {
-  constructor () {
-    this.callbacks = {};
-  }
 
-  on (eventName, callback) {
-    this.callbacks[eventName] = callback;
-  }
+const FakeNahmiiContract = require('../contract-repository/fake-nahmii-contract');
 
-  emit (eventName, ...args) {
-    if (this.callbacks[eventName])
-      this.callbacks[eventName](...args);
-    else
-      throw new Error('Failed to find callback for event ' + eventName);
-  }
-}
+const fakeNahmiiSdk = {
+  NahmiiContract: FakeNahmiiContract
+};
 
-class FakeContractRepository {
-  constructor () {
-    this.driipSettlementChallengeByPayment = new FakeContract();
-    this.nullSettlementChallengeByPayment = new FakeContract();
-    this.nullSettlementDisputeByPayment = new FakeContract();
-    this.clientFund = new FakeContract();
-  }
-
-  async getDriipSettlementChallengeByPayment () {
-    return this.driipSettlementChallengeByPayment;
-  }
-  async getNullSettlementChallengeByPayment () { return this.nullSettlementChallengeByPayment; }
-  async getNullSettlementDisputeByPayment () { return this.nullSettlementDisputeByPayment; }
-  async getClientFund () { return this.clientFund; }
+function proxyquireStubbedContractRepositoryModule () {
+  return proxyquire('../contract-repository/contract-repository', {
+    'nahmii-sdk': fakeNahmiiSdk
+  });
 }
 
 class FakeChallengeHandler {
@@ -58,8 +39,10 @@ describe('challenge-handler-factory', () => {
   beforeEach(async () => {
     const fakeWallet = {};
     const gasLimit = ethers.utils.bigNumberify(0);
+    nock.disableNetConnect();
+    MetaServiceNocker.resolveWithData();
 
-    fakeContractRepository = new  FakeContractRepository();
+    fakeContractRepository = new proxyquireStubbedContractRepositoryModule();
 
     StubbedChallengeHandlerFactory = proxyquire('./challenge-handler-factory', {
       '../challenge-handler': FakeChallengeHandler,
@@ -67,7 +50,12 @@ describe('challenge-handler-factory', () => {
     });
 
     fakeChallengeHandler = await StubbedChallengeHandlerFactory.create(fakeWallet, gasLimit);
-  })
+  });
+
+  afterEach(() => {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  });
 
   describe('connects contract events to event handlers', () => {
     it ('StartChallengeFromPaymentEvent to #handleDSCStart()', async function () {
@@ -103,13 +91,6 @@ describe('challenge-handler-factory', () => {
     it ('SeizeBalancesEvent to #handleBalancesSeized()', async function () {
       (await fakeContractRepository.getClientFund()).emit('SeizeBalancesEvent', 'ok');
       expect(fakeChallengeHandler.handleBalancesSeized.calledOnceWith('ok')).to.be.true;
-    });
-  });
-
-  describe('Throws with NestedError is some dependency fails', () => {
-    it ('Throws during construction', function () {
-      fakeContractRepository.driipSettlementChallengeByPayment = null;
-      return expect(StubbedChallengeHandlerFactory.create(null, null)).to.be.rejectedWith(NestedError);
     });
   });
 });

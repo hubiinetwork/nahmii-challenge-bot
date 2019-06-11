@@ -1,0 +1,28 @@
+#!/bin/sh
+
+echo ' '
+
+mini_cluster_abi_path='../omphalos-mini-cluster/node_modules/nahmii-contracts/build/contracts'
+
+if [ ! -e $mini_cluster_abi_path ]; then
+  echo "FAILURE Could not find ABI path: $mini_cluster_abi_path"
+  echo ' '
+  exit 1
+fi
+
+abstractions_abi_path='./node_modules/nahmii-sdk/node_modules/nahmii-contract-abstractions-ropsten/build/contracts'
+
+if [ ! -e $abstractions_abi_path ]; then
+  echo FAILURE Could not find ABI path: $abstractions_abi_path
+  echo ' '
+  exit 1
+fi
+
+echo ClientFund address before
+grep '"address":' $abstractions_abi_path/ClientFund.json
+
+rm -f "$abstractions_abi_path/*.json"
+cp  $mini_cluster_abi_path/*.json $abstractions_abi_path
+
+echo "ClientFund address after"
+grep '"address":' $abstractions_abi_path/ClientFund.json
