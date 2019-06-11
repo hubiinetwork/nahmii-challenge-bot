@@ -1,8 +1,8 @@
 'use strict';
 
-const ContractFactory = require('../contract-factory');
 const NestedError = require('../../utils/nested-error');
 const NahmiiProviderFactory = require('../../nahmii-provider-factory');
+const nahmii = require('nahmii-sdk');
 
 const _contracts = {};
 
@@ -11,7 +11,10 @@ class ContractRepository {
     try {
       if (!_contracts[contractName]) {
         const provider = await NahmiiProviderFactory.acquireProvider();
-        _contracts[contractName] = await ContractFactory.create(contractName, provider);
+        _contracts[contractName] = new nahmii.NahmiiContract(contractName, provider);
+
+        if (!_contracts[contractName].validate())
+          throw Error('Failed to validate contract.');
       }
 
       return _contracts[contractName];

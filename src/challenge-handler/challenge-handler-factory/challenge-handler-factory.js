@@ -16,7 +16,7 @@ async function create (wallet, gasLimit) {
       handler.handleDSCStart(wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    (await contracts.getDriipSettlementDisputeByPayment()).on('ChallengeByPaymentEvent', (challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
+    (await contracts.getDriipSettlementChallengeByPayment()).on('ChallengeByPaymentEvent', (challengedWallet, nonce, _cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
       handler.handleWalletLocked('DSC Locked', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
     });
 
@@ -28,12 +28,12 @@ async function create (wallet, gasLimit) {
       handler.handleNSCStart(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    (await contracts.getNullSettlementDisputeByPayment()).on('ChallengeByPaymentEvent', (challengedWallet, nonce, payment, challengerWallet) => {
-      handler.handleWalletLocked('NSC Locked', challengedWallet, nonce, payment, challengerWallet);
+    (await contracts.getNullSettlementChallengeByPayment()).on('ChallengeByPaymentEvent', (challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
+      handler.handleWalletLocked('NSC Locked', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
     });
 
     (await contracts.getClientFund()).on('SeizeBalancesEvent', (seizedWallet, seizerWallet, value, ct, id) => {
-      handler.handleBalancesSeized.call(this, seizedWallet, seizerWallet, value, ct, id);
+      handler.handleBalancesSeized(seizedWallet, seizerWallet, value, ct, id);
     });
   }
   catch (err) {
