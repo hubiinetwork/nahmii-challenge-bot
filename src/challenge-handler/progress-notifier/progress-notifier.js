@@ -12,7 +12,7 @@ function logReceipt (verdict, receipt, targetBalance) {
   logger.info(' ');
 }
 
-class ProgressNotifyer {
+class ProgressNotifier {
 
   constructor () {
     _callbacks.set(this, {
@@ -70,9 +70,8 @@ class ProgressNotifyer {
     this.notifyCallback('onWalletLocked', challenger, lockedWallet, ct, id);
   }
 
-  logBalancesSeized (caption, botWallet, seizedWallet, seizerWallet, amount, ct, id) {
-    logger.info(`${caption}`);
-    logger.info(`    Bot wallet: ${botWallet}`)
+  logBalancesSeized (seizedWallet, seizerWallet, amount, ct, id) {
+    logger.info('Balance seized');
     logger.info(`    Challenger wallet: ${seizerWallet}`);
     logger.info(`    Seized wallet: '${seizedWallet}`);
     logger.info(`    amount: '${amount}`);
@@ -81,8 +80,8 @@ class ProgressNotifyer {
     logger.info(' ');
   }
 
-  notifyBalancesSeized (caption, botWallet, seizedWallet, seizerWallet, amount, ct, id) {
-    this.logBalancesSeized(caption, botWallet, seizedWallet, seizerWallet, amount, ct, id);
+  notifyBalancesSeized (seizedWallet, seizerWallet, amount, ct, id) {
+    this.logBalancesSeized(seizedWallet, seizerWallet, amount, ct, id);
     this.notifyCallback('onBalancesSeized', seizedWallet, seizerWallet, amount, ct, id);
   }
 
@@ -119,4 +118,4 @@ class ProgressNotifyer {
   }
 }
 
-module.exports = ProgressNotifyer;
+module.exports = ProgressNotifier;
