@@ -85,7 +85,7 @@ describe('progress-notifier', () => {
     it('#notifyBalancesSeized() notifies #onBalancesSeized()', function () {
       return expect(new Promise(resolve => {
         notifier.onBalancesSeized(resolve);
-        notifier.notifyBalancesSeized('caption', challenger, challenger, lockedWallet, amount, ct, id);
+        notifier.notifyBalancesSeized(challenger, lockedWallet, amount, ct, id);
       })).to.eventually.be.fulfilled;
     });
 
