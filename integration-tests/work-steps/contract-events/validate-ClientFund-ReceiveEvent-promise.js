@@ -8,7 +8,7 @@ const ethers = require('ethers');
 module.exports = (ctx) => {
   step('ClientFund ReceiveEvent is observed', async function () {
     // ON TIMEOUT: HAVE YOU RUN ABI PATCHING OF NAHMII-SDK?
-    this.timeout(8000);
+    this.timeout(16000);
     try {
       await ctx.Miner.mineOneBlock();
       await ctx.Miner.mineOneBlock();

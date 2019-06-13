@@ -1,8 +1,6 @@
 'use strict';
 
 const NestedError = require('../utils/nested-error');
-const { logger } = require('@hubiinetwork/logger');
-
 const { getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
 const ProgressNotifier = require('./progress-notifier');
@@ -25,6 +23,10 @@ class ChallengeHandler {
   }
 
   get callbacks () {
+    return _progressNotifier.get(this);
+  }
+
+  get notifier () {
     return _progressNotifier.get(this);
   }
 
@@ -121,15 +123,23 @@ class ChallengeHandler {
         const signedClientFund = (await contracts.getClientFund()).connect(wallet);
         const gasLimitOpt = _gasLimitOpt.get(this);
 
-console.log('challengedWallet: ' + challengedWallet);
-console.log('              ct: ' + ct);
-console.log('              id: ' + id);
-console.log('     gasLimitOpt: ' + JSON.stringify(gasLimitOpt));
-console.log(' ')
-console.log('********************************')
-console.log('NOT IMPLEMENTED: seizeBalances()')
-console.log('********************************')
-        //await signedClientFund.seizeBalances(challengedWallet, ct, id, '', gasLimitOpt);
+        console.log('challengerWallet: ' + signedClientFund.signer.address);
+        console.log('challengedWallet: ' + challengedWallet);
+        console.log('              ct: ' + ct);
+        console.log('              id: ' + id);
+        console.log('     gasLimitOpt: ' + JSON.stringify(gasLimitOpt));
+        console.log(' ');
+        console.log('********************************');
+        console.log('NOT IMPLEMENTED: seizeBalances()');
+        console.log('********************************');
+
+        /*
+          TODO 1: Store seize information in DB
+          TODO 2: Activate seizig based on timeout of visible time
+          const eth = '0x0000000000000000000000000000000000000000';
+          const standard = (ct === eth) ? 'ETH' : 'ERC20';
+          await signedClientFund.seizeBalances(challengedWallet, ct, id, standard, gasLimitOpt);
+        */
       }
       catch (err) {
         throw new NestedError(err, 'Failed to seize balances. ' + err.message);
@@ -144,12 +154,14 @@ console.log('********************************')
     _progressNotifier.get(this).notifyWalletLocked(caption, challengerWallet, challengedWallet, ct, id);
   }
 
-  handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {
+  handleBalancesSeized (seizedWallet, seizerWallet, value, ct, id) {
     const wallet = _wallet.get(this);
+    const notifier = _progressNotifier.get(this);
 
-    if (seizerWallet.toLowerCase() === wallet.address.toLowerCase()) {
-      _progressNotifier.get(this).notifyBalancesSeized(seizedWallet, seizerWallet, value, currencyCt, currencyId);
-    }
+    if (seizerWallet.toLowerCase() === wallet.address.toLowerCase())
+      notifier.notifyBalancesSeized('Seizing OK.', seizedWallet, seizerWallet, value, ct, id);
+    else
+      notifier.logBalancesSeized('Seizing IGNORED.', seizedWallet, seizerWallet, value, ct, id);
   }
 }
 

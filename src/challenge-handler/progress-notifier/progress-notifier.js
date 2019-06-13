@@ -12,7 +12,7 @@ function logReceipt (verdict, receipt, targetBalance) {
   logger.info(' ');
 }
 
-class ProgressNotifyer {
+class ProgressNotifier {
 
   constructor () {
     _callbacks.set(this, {
@@ -70,11 +70,19 @@ class ProgressNotifyer {
     this.notifyCallback('onWalletLocked', challenger, lockedWallet, ct, id);
   }
 
-  notifyBalancesSeized (wallet, nonce, candidateHash, challenger) {
-    logger.info('    Balance seized');
-    logger.info(`    Sender   : address '${wallet}'`);
+  logBalancesSeized (seizedWallet, seizerWallet, amount, ct, id) {
+    logger.info('Balance seized');
+    logger.info(`    Challenger wallet: ${seizerWallet}`);
+    logger.info(`    Seized wallet: '${seizedWallet}`);
+    logger.info(`    amount: '${amount}`);
+    logger.info(`    ct: '${ct}`);
+    logger.info(`    id: '${id.toString()}`);
     logger.info(' ');
-    this.notifyCallback('onBalancesSeized', wallet, nonce, candidateHash, challenger);
+  }
+
+  notifyBalancesSeized (seizedWallet, seizerWallet, amount, ct, id) {
+    this.logBalancesSeized(seizedWallet, seizerWallet, amount, ct, id);
+    this.notifyCallback('onBalancesSeized', seizedWallet, seizerWallet, amount, ct, id);
   }
 
   onDSCStart (callback) {
@@ -110,4 +118,4 @@ class ProgressNotifyer {
   }
 }
 
-module.exports = ProgressNotifyer;
+module.exports = ProgressNotifier;

@@ -26,7 +26,7 @@
     mkdir -p ./tmp
 
     wget -q --no-check-certificate "https://omphalos.mini.cluster" -O - | grep '": "0x' | tr -d ':,""' | sed 's/^[ ]*//' | sed 's/^\([^ ]*\) \([^ ]*\)/\1 \2/' > ./tmp/contracts
-    find ./node_modules/nahmii-contract-abstractions-ropsten/build/contracts -name \*\.json > ./tmp/files
+    find ./node_modules/nahmii-sdk/node_modules/nahmii-contract-abstractions-ropsten/build/contracts -name \*\.json > ./tmp/files
 
     OLD_LANG=$LANG
     export LANG=C

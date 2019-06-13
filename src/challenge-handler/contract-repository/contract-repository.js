@@ -39,14 +39,6 @@ class ContractRepository {
   static getBalanceTracker () {
     return ContractRepository.acquireContract('BalanceTracker');
   }
-
-  static getDriipSettlementDisputeByPayment () {
-    return ContractRepository.acquireContract('DriipSettlementDisputeByPayment');
-  }
-
-  static getNullSettlementDisputeByPayment () {
-    return ContractRepository.acquireContract('NullSettlementDisputeByPayment');
-  }
 }
 
 module.exports = ContractRepository;

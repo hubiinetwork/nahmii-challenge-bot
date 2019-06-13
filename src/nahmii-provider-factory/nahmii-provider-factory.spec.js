@@ -28,6 +28,7 @@ describe('nahmii-provider-factory', () => {
     });
 
     it ('creates provider', () => {
+      console.log('nahmii-provider-factory.spec.js: ' + JSON.stringify(require('../config')));
       metaServiceNocker.resolveWithData();
       const provider = nahmiiProviderFactory.acquireProvider();
       return expect(provider).to.eventually.be.instanceOf(NahmiiProvider);

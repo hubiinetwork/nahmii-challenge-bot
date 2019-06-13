@@ -4,54 +4,58 @@ const chai = require('chai');
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
-const ethers = require('ethers');
 const nock = require('nock');
 
 const metaServiceNocker = require('../../cluster-information/meta-service-nocker');
 
-class FakeContractFactory {
-  static create (name, abi, walletOrProvider) {
-    return {};
-  }
-}
-
 describe ('contract-repository', () => {
-  let repository;
-  let wallet;
+  describe('given a ContractRepository', () => {
+    let repository;
+    let FakeNahmiiContract;
 
-  beforeEach(() => {
-    nock.disableNetConnect();
-    metaServiceNocker.resolveWithData(2);
-    repository = proxyquire('./contract-repository', {
-      '../../nahmii-provider-factory': proxyquire('../../nahmii-provider-factory/nahmii-provider-factory', {
-        '../cluster-information': proxyquire('../../cluster-information/cluster-information', {
-          '../utils/nested-error': require('../../utils/nested-error')
-        })
-      })
-    });
-    wallet = new ethers.Wallet('0x0123456789012345678901234567890123456789012345678901234567890123');
-  });
+    beforeEach(() => {
+      FakeNahmiiContract = proxyquire('./fake-nahmii-contract', {});
+      nock.disableNetConnect();
+      metaServiceNocker.resolveWithData(2);
 
-  afterEach(() => {
-    nock.cleanAll();
-    nock.enableNetConnect();
-  });
-
-  describe('can acquire contracts', () => {
-    it ('acquires new singleton contract', async () => {
-      const contract = await repository.acquireContract('ClientFund');
-      expect(contract).to.be.instanceOf(ethers.Contract);
-      expect(contract.signer).to.be.equal(null);
+      repository = proxyquire('./contract-repository', {
+        '../../nahmii-provider-factory': proxyquire('../../nahmii-provider-factory/nahmii-provider-factory', {
+          '../cluster-information': proxyquire('../../cluster-information/cluster-information', {})
+        }),
+        'nahmii-sdk': { NahmiiContract: FakeNahmiiContract }
+      });
     });
 
-    it ('acquires cached singleton contract', async () => {
-      const contract1 = await repository.acquireContract('ClientFund');
-      const contract2 = await repository.acquireContract('ClientFund');
-      expect(Object.is(contract1, contract2)).to.be.true;
+    afterEach(() => {
+      nock.cleanAll();
+      nock.enableNetConnect();
     });
 
-    it ('fails to acquire unknown contract', async () => {
-      return expect(repository.acquireContract('xClientFund', wallet)).to.be.rejectedWith(/Failed to acquire contract/);
+    describe('when a contract is acquired the first time', () => {
+      it ('creates new contract', async () => {
+        const contract = await repository.acquireContract('ClientFund');
+        expect(contract).to.be.instanceOf(FakeNahmiiContract);
+      });
+    });
+
+    describe('when the same contract is acquired a second time', () => {
+      it ('acquires a cached contract', async () => {
+        const contract1 = await repository.acquireContract('ClientFund');
+        const contract2 = await repository.acquireContract('ClientFund');
+        expect(Object.is(contract1, contract2)).to.be.true;
+      });
+    });
+
+    describe('when it acquires an unknown contract', () => {
+      it ('fails', async () => {
+        return expect(repository.acquireContract('UnknownContract')).to.be.rejectedWith(/Failed to acquire contract/);
+      });
+    });
+
+    describe('when it acquires an invalid contract', () => {
+      it ('fails', async () => {
+        return expect(repository.acquireContract('InvalidContract')).to.be.rejectedWith(/Failed to acquire contract/);
+      });
     });
   });
 });

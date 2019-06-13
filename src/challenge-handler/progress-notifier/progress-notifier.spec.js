@@ -19,6 +19,7 @@ describe('progress-notifier', () => {
   const nonce = 0;
   const stagedAmount = ethers.utils.bigNumberify(10);
   const targetBalance = stagedAmount;
+  const amount = stagedAmount;
 
 
   beforeEach (() => {
@@ -84,7 +85,7 @@ describe('progress-notifier', () => {
     it('#notifyBalancesSeized() notifies #onBalancesSeized()', function () {
       return expect(new Promise(resolve => {
         notifier.onBalancesSeized(resolve);
-        notifier.notifyBalancesSeized('caption', challenger, lockedWallet, ct, id);
+        notifier.notifyBalancesSeized(challenger, lockedWallet, amount, ct, id);
       })).to.eventually.be.fulfilled;
     });
 
