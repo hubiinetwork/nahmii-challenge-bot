@@ -10,7 +10,6 @@ const request = require('superagent');
 
 const minikube = require('../utils/minikube');
 const config = require('../../src/config');
-
 config.services.baseUrl = minikube.baseUrl;
 config.identity.appId = minikube.appId;
 config.identity.appSecret = minikube.appSecret;
@@ -19,11 +18,11 @@ config.ethereum.nodeUrl = minikube.nodeUrl;
 const contracts = require('../../src/challenge-handler/contract-repository');
 
 async function acquireContract (ctx, contractName) {
-  const contract = await contracts.acquireContract(contractName);
+  const contract = await contracts.acquireContract('ClientFund');
   expect(contract).to.be.instanceof(ethers.Contract);
   expect(await contract.validate()).to.be.true;
   const code = await ctx.provider.getCode(contract.address);
-  expect(code).to.not.equal(code.length > 10);
+  expect(code.length).to.be.gt(10);
   return contract;
 }
 

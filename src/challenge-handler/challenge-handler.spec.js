@@ -18,6 +18,10 @@ const fakeNahmiiSdk = {
   NahmiiContract: FakeNahmiiContract
 };
 
+const fakeNahmiiSdk = {
+  NahmiiContract: FakeNahmiiContract
+};
+
 class FakeProgressNotifier {
   constructor () {
     this.notifyWalletLocked = FakeProgressNotifier.notifyWalletLocked;

@@ -145,9 +145,10 @@ console.log('********************************')
   handleBalancesSeized (seizedWallet, seizerWallet, value, currencyCt, currencyId) {
     const wallet = _wallet.get(this);
 
-    if (seizerWallet.toLowerCase() === wallet.address.toLowerCase()) {
-      _progressNotifier.get(this).notifyBalancesSeized(seizedWallet, seizerWallet, value, currencyCt, currencyId);
-    }
+    if (seizerWallet.toLowerCase() === wallet)
+      _progressNotifier.get(this).notifyBalancesSeized('ACKNOWLEDGED. Seizing OK.', wallet, seizedWallet, seizerWallet, value, ct, id);
+    else
+      _progressNotifier.get(this).logBalancesSeized('IGNORED. Foreign seizing acknowledge.', wallet, seizedWallet, seizerWallet, value, ct, id);
   }
 }
 

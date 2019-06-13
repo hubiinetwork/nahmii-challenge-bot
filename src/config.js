@@ -9,11 +9,11 @@ function validateConfig () {
 
   validateEnvVar('NODE_ENV');
   validateEnvVar('NAHMII_BASE_URL');
-  validateEnvVar('ETHEREUM_NODE_URL');
   validateEnvVar('CHALLENGE_BOT_UTCADDRESS');
   validateEnvVar('CHALLENGE_BOT_UTCSECRET');
   validateEnvVar('CHALLENGE_BOT_APPID');
   validateEnvVar('CHALLENGE_BOT_APPSECRET');
+  validateEnvVar('ETHEREUM_NODE_URL');
   validateEnvVar('ETHEREUM_GAS_LIMIT');
 
   if (process.env['NAHMII_BASE_URL'].includes('//'))
@@ -22,7 +22,6 @@ function validateConfig () {
 
 module.exports = {
   validateConfig,
-  verbose: true,
   services: {
     baseUrl: process.env['NAHMII_BASE_URL'] || 'localhost'
   },

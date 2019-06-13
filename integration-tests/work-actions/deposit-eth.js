@@ -52,7 +52,7 @@ module.exports = function (ctx, walletName, depositAmount) {
     depositTransaction = await ctx.wallets[walletName].depositEth(depositAmount, { gasLimit: ctx.gasLimit });
     expect(depositTransaction).to.not.be.undefined.and.not.be.instanceof(Error);
     expect(ethers.utils.formatEther(depositTransaction.value)).to.equal(depositAmount);
-    this.test.title += `: ${depositAmount} ETH at ${depositTransaction.blockNumber}`;
+    this.test.title += `: ${depositAmount} ETH, staged with hash ${depositTransaction.hash}`;
   });
 
   step(`${walletName} receives`, async function () {

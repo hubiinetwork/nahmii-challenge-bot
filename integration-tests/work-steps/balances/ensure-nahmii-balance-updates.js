@@ -10,7 +10,7 @@ module.exports = function (ctx, walletName, symbol) {
     throw new Error('symbol undefined');
 
   step(`Ensure ${walletName}'s nahmii balance updates`, async function () {
-    this.timeout(8000);
+    this.timeout(12000); // Sometimes takes excessive time
 
     const wallet = ctx.wallets[walletName];
     const blockNo0 = await ctx.provider.getBlockNumber();

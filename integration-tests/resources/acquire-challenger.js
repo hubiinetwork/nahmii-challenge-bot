@@ -5,7 +5,6 @@ const nahmii = require('nahmii-sdk');
 
 const minikube = require('../utils/minikube');
 const config = require('../../src/config');
-
 config.services.baseUrl = minikube.baseUrl;
 config.identity.appId = minikube.appId;
 config.identity.appSecret = minikube.appSecret;
