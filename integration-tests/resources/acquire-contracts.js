@@ -18,7 +18,7 @@ config.ethereum.nodeUrl = minikube.nodeUrl;
 const contracts = require('../../src/challenge-handler/contract-repository');
 
 async function acquireContract (ctx, contractName) {
-  const contract = await contracts.acquireContract('ClientFund');
+  const contract = await contracts.acquireContract(contractName);
   expect(contract).to.be.instanceof(ethers.Contract);
   expect(await contract.validate()).to.be.true;
   const code = await ctx.provider.getCode(contract.address);

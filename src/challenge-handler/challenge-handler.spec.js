@@ -8,6 +8,7 @@ chai.use(require('sinon-chai'));
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 const ethers = require('ethers');
 const nock = require('nock');
+const then = it;
 
 const MetaServiceNocker = require('../cluster-information/meta-service-nocker');
 const NestedError = require('../utils/nested-error');
@@ -17,21 +18,6 @@ const FakeNahmiiContract = require('./contract-repository/fake-nahmii-contract')
 const fakeNahmiiSdk = {
   NahmiiContract: FakeNahmiiContract
 };
-
-const fakeNahmiiSdk = {
-  NahmiiContract: FakeNahmiiContract
-};
-
-class FakeProgressNotifier {
-  constructor () {
-    this.notifyWalletLocked = FakeProgressNotifier.notifyWalletLocked;
-    this.notifyBalancesSeized = FakeProgressNotifier.notifyBalancesSeized;
-    this.notifyWalletLocked.reset();
-    this.notifyBalancesSeized.reset();
-  }
-}
-FakeProgressNotifier.notifyWalletLocked = sinon.stub();
-FakeProgressNotifier.notifyBalancesSeized = sinon.stub();
 
 const ct = '0x0000000000000000000000000000000000000000';
 const id = 0;
@@ -76,7 +62,7 @@ function proxyquireStubbedChallengeHandlerFactoryModule (progressNotifierModule,
   });
 }
 
-describe('ChallengeHandler', () => {
+describe('challenge-handler', () => {
   let receipts;
   let handler;
   let clientFundContract;
@@ -115,155 +101,163 @@ describe('ChallengeHandler', () => {
     nock.enableNetConnect();
   });
 
-  describe ('Calls callbacks on important operation events', function () {
-    const nonce = ethers.utils.bigNumberify(3);
-    const cumulativeTransferAmount = null;
-    const stageAmount = ethers.utils.parseEther('5');
-    const targetBalanceAmount = null;
+  describe('Given an ChallengeHandler', () => {
+    describe ('when it handles contract events', function () {
+      const nonce = ethers.utils.bigNumberify(3);
+      const cumulativeTransferAmount = null;
+      const stageAmount = ethers.utils.parseEther('5');
+      const targetBalanceAmount = null;
 
-    it('onDSCStart', function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onDSCStart(resolved));
-      driipSettlementChallengeByPaymentContract.emitStartChallengeFromPaymentEvent(challengedWallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
-    });
+      then('onDSCStart calls back to subscriber', function () {
+        const promisedCallback = new Promise(resolved => handler.callbacks.onDSCStart(resolved));
+        driipSettlementChallengeByPaymentContract.emitStartChallengeFromPaymentEvent(challengedWallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
+        return expect(promisedCallback).to.eventually.be.fulfilled;
+      });
 
-    it('onDSCAgreed', function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onDSCAgreed(resolved));
-      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('10')));
-      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
-      driipSettlementChallengeByPaymentContract.emitStartChallengeFromPaymentEvent(challengedWallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
-    });
+      then('onDSCAgreed calls back to subscriber', function () {
+        const promisedCallback = new Promise(resolved => handler.callbacks.onDSCAgreed(resolved));
+        balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('10')));
+        balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
+        driipSettlementChallengeByPaymentContract.emitStartChallengeFromPaymentEvent(challengedWallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
+        return expect(promisedCallback).to.eventually.be.fulfilled;
+      });
 
-    it('onDSCDisputed', function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onDSCDisputed(resolved));
-      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
-      driipSettlementChallengeByPaymentContract.emitStartChallengeFromPaymentEvent(challengedWallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
-    });
+      then('onDSCDisputed calls back to subscriber', function () {
+        const promisedCallback = new Promise(resolved => handler.callbacks.onDSCDisputed(resolved));
+        balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
+        driipSettlementChallengeByPaymentContract.emitStartChallengeFromPaymentEvent(challengedWallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
+        return expect(promisedCallback).to.eventually.be.fulfilled;
+      });
 
-    it('onNSCStart', function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onNSCStart(resolved));
-      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('10')));
-      //balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('10') }));
-      nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
-    });
+      then('onNSCStart calls back to subscriber', function () {
+        const promisedCallback = new Promise(resolved => handler.callbacks.onNSCStart(resolved));
+        balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('10')));
+        //balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('10') }));
+        nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id);
+        return expect(promisedCallback).to.eventually.be.fulfilled;
+      });
 
-    it('onNSCAgreed', function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onNSCAgreed(resolved));
-      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('10')));
-      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
-      nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
-    });
+      then('onNSCAgreed calls back to subscriber', function () {
+        const promisedCallback = new Promise(resolved => handler.callbacks.onNSCAgreed(resolved));
+        balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('10')));
+        balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
+        nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id);
+        return expect(promisedCallback).to.eventually.be.fulfilled;
+      });
 
-    it('onNSCDisputed', function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onNSCDisputed(resolved));
-      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
-      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
-      nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
-    });
+      then('onNSCDisputed calls back to subscriber', function () {
+        const promisedCallback = new Promise(resolved => handler.callbacks.onNSCDisputed(resolved));
+        balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
+        balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
+        nullSettlementChallengeByPaymentContract.emitStartChallengeEvent(challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id);
+        return expect(promisedCallback).to.eventually.be.fulfilled;
+      });
 
-    it('onWalletLocked DSC', async function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onWalletLocked(resolved));
-      driipSettlementChallengeByPaymentContract.emitChallengeByPaymentEvent(challengedWallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
-    });
+      then('onWalletLocked DSC calls back to subscriber', async function () {
+        const promisedCallback = new Promise(resolved => handler.callbacks.onWalletLocked(resolved));
+        driipSettlementChallengeByPaymentContract.emitChallengeByPaymentEvent(challengedWallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
+        return expect(promisedCallback).to.eventually.be.fulfilled;
+      });
 
-    it('onWalletLocked NSC', async function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onWalletLocked(resolved));
-      nullSettlementChallengeByPaymentContract.emitChallengeByPaymentEvent(challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
-    });
-
-    it('onBalancesSeized', function () {
-      const promisedCallback = new Promise(resolved => handler.callbacks.onBalancesSeized(resolved));
-      const amount = stageAmount;
-      clientFundContract.emitSeizeBalancesEvent(challengedWallet, challengerWallet, amount, ct, id);
-      return expect(promisedCallback).to.eventually.be.fulfilled;
+      then('onWalletLocked NSC calls back to subscriber', async function () {
+        const promisedCallback = new Promise(resolved => handler.callbacks.onWalletLocked(resolved));
+        nullSettlementChallengeByPaymentContract.emitChallengeByPaymentEvent(challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
+        return expect(promisedCallback).to.eventually.be.fulfilled;
+      });
     });
   });
 
-  describe('Can filter out foreign events', () => {
-    it('#handleWalletLocked() consumes event when challenger addresses match', async function () {
-      const stubbedChallengeHandlerFactory = proxyquireStubbedChallengeHandlerFactoryModule(FakeProgressNotifier, stubbedContractRepositoryModule);
-      const stubbedChallengeHandler = await stubbedChallengeHandlerFactory.create(walletMock, gasLimit);
-      await stubbedChallengeHandler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengerWallet);
-      expect(FakeProgressNotifier.notifyWalletLocked).to.have.been.calledWith('caption SEIZING:', challengerWallet, challengedWallet, ct, id);
-    });
+  describe('Given an ChallengeHandler', () => {
+    describe('when it receives contract events with challenger address', () => {
+      let stubbedChallengeHandler;
 
-    it('#handleWalletLocked() ignores event when challenger addresses do not match', async function () {
-      const stubbedChallengeHandlerFactory = proxyquireStubbedChallengeHandlerFactoryModule(FakeProgressNotifier, stubbedContractRepositoryModule);
-      const stubbedChallengeHandler = await stubbedChallengeHandlerFactory.create(walletMock, gasLimit);
-      await stubbedChallengeHandler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengedWallet);
-      expect(FakeProgressNotifier.notifyWalletLocked).to.have.been.calledWith('caption NOT SEIZING:', challengedWallet, challengedWallet, ct, id);
-    });
+      beforeEach (async () => {
+        const loggerMock = { logger: { info: sinon.stub() }};
+        const StubbedProgressNotifier = proxyquire('./progress-notifier', {
+          '@hubiinetwork/logger': loggerMock
+        });
+        const stubbedChallengeHandlerFactory = proxyquireStubbedChallengeHandlerFactoryModule(StubbedProgressNotifier, stubbedContractRepositoryModule);
+        stubbedChallengeHandler = await stubbedChallengeHandlerFactory.create(walletMock, gasLimit);
+      });
 
-    it('#handleBalancesSeized() consumes event when challenger addresses match', async function () {
-      const stubbedChallengeHandlerFactory = proxyquireStubbedChallengeHandlerFactoryModule(FakeProgressNotifier, stubbedContractRepositoryModule);
-      const stubbedChallengeHandler = await stubbedChallengeHandlerFactory.create(walletMock, gasLimit);
-      await stubbedChallengeHandler.handleBalancesSeized (challengedWallet, challengerWallet, bnZero, ct, id);
-      expect(FakeProgressNotifier.notifyBalancesSeized).to.have.been.calledOnce;
-    });
+      then('#handleWalletLocked() consumes event when challenger addresses match', async function () {
+        sinon.spy(stubbedChallengeHandler.notifier, 'notifyWalletLocked');
+        await stubbedChallengeHandler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengerWallet);
+        expect(stubbedChallengeHandler.notifier.notifyWalletLocked).to.have.been.calledWith('caption SEIZING:', challengerWallet, challengedWallet, ct, id);
+      });
 
-    it('#handleBalancesSeized() ignores event when challenger addresses do not match', async function () {
-      const stubbedChallengeHandlerFactory = proxyquireStubbedChallengeHandlerFactoryModule(FakeProgressNotifier, stubbedContractRepositoryModule);
-      const stubbedChallengeHandler = await stubbedChallengeHandlerFactory.create(walletMock, gasLimit);
-      await stubbedChallengeHandler.handleBalancesSeized (challengedWallet, challengedWallet, bnZero, ct, id);
-      expect(FakeProgressNotifier.notifyBalancesSeized).to.not.have.been.called;
-    });
-  });
+      then('#handleWalletLocked() ignores event when challenger addresses do not match', async function () {
+        sinon.spy(stubbedChallengeHandler.notifier, 'notifyWalletLocked');
+        await stubbedChallengeHandler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengedWallet);
+        expect(stubbedChallengeHandler.notifier.notifyWalletLocked).to.have.been.calledWith('caption NOT SEIZING:', challengedWallet, challengedWallet, ct, id);
+      });
 
-  describe('Async exceptions are captured and rethrown', () => {
-    it('in #handleNSCStart() 1', async function () {
-      nullSettlementChallengeByPaymentContract.challengeByPayment.throws(new Error('failure'));
-      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
-      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
+      then('#handleBalancesSeized() consumes event when challenger addresses match', function () {
+        sinon.spy(stubbedChallengeHandler.notifier, 'notifyBalancesSeized');
+        stubbedChallengeHandler.handleBalancesSeized (challengedWallet, challengerWallet, bnZero, ct, id);
+        expect(stubbedChallengeHandler.notifier.notifyBalancesSeized).to.have.been.calledOnce;
+      });
 
-      return expect(
-        handler.handleNSCStart(challengedWallet, ethers.utils.bigNumberify(3), ethers.utils.parseEther('15'), null, ct, id)
-      ).to.eventually.be.rejectedWith(/Received unexpected disqualified NSC/);
-    });
-
-    it('in #handleDSCStart()', async function () {
-      driipSettlementChallengeByPaymentContract.challengeByPayment.throws(new Error('failure'));
-      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
-      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
-
-      return expect(
-        handler.handleDSCStart(challengedWallet, ethers.utils.bigNumberify(3), null, ethers.utils.parseEther('5'), null, ct, id)
-      ).to.eventually.be.rejectedWith(NestedError);
-    });
-
-    it('in #handleNSCStart() 2', async function () {
-      nullSettlementChallengeByPaymentContract.challengeByPayment.throws(new Error('failure'));
-      balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
-      balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
-
-      return expect(
-        handler.handleNSCStart(challengedWallet, ethers.utils.bigNumberify(3), ethers.utils.parseEther('5'), null, ct, id)
-      ).to.eventually.be.rejectedWith(NestedError);
-    });
-
-    xit('in #handleWalletLocked()', async function () {
-      clientFundContract.seizeBalances.throws(new Error('failure'));
-      return expect(
-        handler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengerWallet)
-      ).to.eventually.be.rejectedWith(NestedError);
+      then('#handleBalancesSeized() ignores event when challenger addresses do not match', async function () {
+        sinon.spy(stubbedChallengeHandler.notifier, 'notifyBalancesSeized');
+        await stubbedChallengeHandler.handleBalancesSeized (challengedWallet, challengedWallet, bnZero, ct, id);
+        expect(stubbedChallengeHandler.notifier.notifyBalancesSeized).to.not.have.been.called;
+      });
     });
   });
 
-  describe('#getProofCandidate()', function () {
-    it ('handles non-continuous nonces', function () {
-      const stubbedChallengeHandler = proxyquireStubbedChallengeHandlerModule(
-        proxyquireStubbedProgressNotifierModule(), proxyquireStubbedContractRepositoryModule(fakeNahmiiSdk)
-      );
-      const stagedAmount = ethers.utils.bigNumberify(1);
-      const clonedReceipts = JSON.parse(JSON.stringify(receipts));
-      const senderReceipts = clonedReceipts.filter(r => r.sender.wallet === challengedWallet).map(r => (r.sender.nonce *= 2, r));
-      return expect(stubbedChallengeHandler.getProofCandidate(balanceTrackerContract, senderReceipts, challengedWallet, ct, id, stagedAmount)).to.eventually.be.fulfilled;
+  describe('Given an ChallengeHandler', () => {
+    describe('when inner exceptions are captured', () => {
+      then('#handleNSCStart() 1 re-throws', async function () {
+        nullSettlementChallengeByPaymentContract.challengeByPayment.throws(new Error('failure'));
+        balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
+        balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
+
+        return expect(
+          handler.handleNSCStart(challengedWallet, ethers.utils.bigNumberify(3), ethers.utils.parseEther('15'), null, ct, id)
+        ).to.eventually.be.rejectedWith(/Received unexpected disqualified NSC/);
+      });
+
+      then('#handleDSCStart() re-throws', async function () {
+        driipSettlementChallengeByPaymentContract.challengeByPayment.throws(new Error('failure'));
+        balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
+        balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
+
+        return expect(
+          handler.handleDSCStart(challengedWallet, ethers.utils.bigNumberify(3), null, ethers.utils.parseEther('5'), null, ct, id)
+        ).to.eventually.be.rejectedWith(NestedError);
+      });
+
+      then('#handleNSCStart() 2 re-throws', async function () {
+        nullSettlementChallengeByPaymentContract.challengeByPayment.throws(new Error('failure'));
+        balanceTrackerContract.get.returns(Promise.resolve(ethers.utils.parseEther('5')));
+        balanceTrackerContract.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: ethers.utils.parseEther('5') }));
+
+        return expect(
+          handler.handleNSCStart(challengedWallet, ethers.utils.bigNumberify(3), ethers.utils.parseEther('5'), null, ct, id)
+        ).to.eventually.be.rejectedWith(NestedError);
+      });
+
+      it('#handleWalletLocked() re-throws', async function () {
+        clientFundContract.connect = sinon.stub().throws(new Error('failure'));
+        return expect(
+          handler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengerWallet)
+        ).to.eventually.be.rejectedWith(NestedError);
+      });
+    });
+  });
+
+  describe('Given an ChallengeHandler', () => {
+    describe('when it receives receipts with non-continuous nonces', function () {
+      then('#getProofCandidate() can handle them', function () {
+        const stubbedChallengeHandler = proxyquireStubbedChallengeHandlerModule(
+          proxyquireStubbedProgressNotifierModule(), proxyquireStubbedContractRepositoryModule(fakeNahmiiSdk)
+        );
+        const stagedAmount = ethers.utils.bigNumberify(1);
+        const clonedReceipts = JSON.parse(JSON.stringify(receipts));
+        const senderReceipts = clonedReceipts.filter(r => r.sender.wallet === challengedWallet).map(r => (r.sender.nonce *= 2, r));
+        return expect(stubbedChallengeHandler.getProofCandidate(balanceTrackerContract, senderReceipts, challengedWallet, ct, id, stagedAmount)).to.eventually.be.fulfilled;
+      });
     });
   });
 });

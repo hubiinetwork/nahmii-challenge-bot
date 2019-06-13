@@ -9,11 +9,16 @@ class FakeNahmiiContract {
 
     switch (contractName) {
 
+    case 'UnknownContract':
+      throw new Error('Failed to construct an unknown contract');
+
+    case 'InvalidContract':
+      sinon.stub(this, 'validate').returns(false);
+      break;
+
     case 'ClientFund':
       this.seizeBalances = sinon.stub();
-      this.emitSeizeBalancesEvent = function (...args) {
-        this.emit('SeizeBalancesEvent', ...args);
-      };
+      this.signer = { address: '0xdeadfeeddeadfeeddeadfeeddeadfeeddeadfeed' };
       break;
 
     case 'DriipSettlementChallengeByPayment':
