@@ -24,7 +24,6 @@
   "homepage": "https://github.com/hubiinetwork/nahmii-challenge-bot#readme",
   "devDependencies": {
     "@hubiinetwork/eslint-config": "github:hubiinetwork/eslint-config",
-    "babel-eslint": "^10.0.1",
     "chai": "^4.2.0",
     "chai-almost": "^1.0.1",
     "chai-as-promised": "^7.1.1",
@@ -39,11 +38,12 @@
   },
   "dependencies": {
     "@hubiinetwork/logger": "github:hubiinetwork/logger",
-    "bignumber.js": "^8.1.1",
     "ethers": "^4.0.29",
     "keythereum": "^1.0.4",
     "nahmii-sdk": "^2.2.4",
     "socket.io-client": "^2.2.0",
-    "yargs": "^13.2.4"
+    "superagent": "^5.0.8",
+    "yargs": "^13.2.4",
+    "yargs-get-help": "^1.1.1"
   }
 }
