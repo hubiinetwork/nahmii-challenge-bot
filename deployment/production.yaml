@@ -27,6 +27,8 @@ spec:
           value: production
         - name: NAHMII_BASE_URL
           value: api.nahmii.io
+        - name: ETHEREUM_GAS_LIMIT
+          value: '2000000'
         - name: ETHEREUM_NODE_URL
           value: http://ethereum.hubii.com
         - name: CHALLENGE_BOT_UTCADDRESS
