@@ -50,6 +50,8 @@ spec:
           value: development
         - name: NAHMII_BASE_URL
           value: api2.dev.hubii.net
+        - name: ETHEREUM_GAS_LIMIT
+          value: '2000000'
         - name: ETHEREUM_NODE_URL
           value: http://geth-ropsten.dev.hubii.net
         - name: CHALLENGE_BOT_UTCADDRESS
