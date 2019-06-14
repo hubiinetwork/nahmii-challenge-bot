@@ -10,6 +10,7 @@ module.exports = function (ctx, title, walletName, contentName, symbol) {
     throw new Error('symbol undefined');
 
   step(title, async function () {
+    this.timeout(8000);
     const wallet = ctx.wallets[walletName];
     const purse = ctx.purses[walletName];
 

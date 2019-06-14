@@ -12,7 +12,7 @@ chai.use(require('chai-as-promised'));
   C challenges A’s NSC with the payment as proof
 */
 
-describe('Challengeable Single NSC simplified seized', () => {
+describe('1-single-nsc-simple-fulfilled-disputed-seized', () => {
   const ctx = {};
 
   describe('A. Acquire resources', () => {

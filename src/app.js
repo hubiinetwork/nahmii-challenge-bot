@@ -5,14 +5,13 @@ const nahmii = require('nahmii-sdk');
 const keythereum = require('keythereum');
 const path = require('path');
 const ethers = require('ethers');
-const http = require('http');
 
 const config = require('./config');
 const ClusterInformation = require('./cluster-information');
-const ContractFactory = require('./contract-factory');
 const ChallengeHandler = require('./challenge-handler');
 const NestedError = require('./utils/nested-error');
-const metrics = require('./metrics');
+const NahmiiProviderFactory = require('./nahmii-provider-factory');
+const ChallengeHandlerFactory = require('./challenge-handler/challenge-handler-factory');
 
 process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.error(NestedError.asStringified(reason));
@@ -47,11 +46,7 @@ async function registerEthBalance (wallet) {
   logger.info(`     network : '${ethereum.net}'`);
   logger.info('');
 
-  const provider = new nahmii.NahmiiProvider(
-    config.services.baseUrl,
-    config.identity.appId, config.identity.appSecret,
-    config.ethereum.nodeUrl, ethereum.net
-  );
+  const provider = await NahmiiProviderFactory.acquireProvider();
 
   logger.info('Reading utc keystore ...');
 
@@ -60,17 +55,9 @@ async function registerEthBalance (wallet) {
 
   logger.info('Creating challenge handler ...');
 
-  const wallet = new nahmii.Wallet(privateKey, provider);
-
-  const challengeHandler = new ChallengeHandler(
-    wallet,
-    ethers.utils.bigNumberify(config.ethereum.gasLimit),
-    await ContractFactory.create('ClientFund', provider),
-    await ContractFactory.create('DriipSettlementChallengeByPayment', provider),
-    await ContractFactory.create('NullSettlementChallengeByPayment', provider),
-    await ContractFactory.create('BalanceTracker', provider),
-    await ContractFactory.create('DriipSettlementDisputeByPayment', provider),
-    await ContractFactory.create('NullSettlementDisputeByPayment', provider)
+  const challengeHandler = ChallengeHandlerFactory.create(
+    new nahmii.Wallet(privateKey, provider),
+    ethers.utils.bigNumberify(config.ethereum.gasLimit)
   );
 
   const metricsServer = http.createServer(metrics.app);
