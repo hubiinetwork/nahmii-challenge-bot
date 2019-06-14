@@ -169,39 +169,28 @@ describe('challenge-handler', () => {
 
   describe('Given an ChallengeHandler', () => {
     describe('when it receives contract events with challenger address', () => {
-      let stubbedChallengeHandler;
-
-      beforeEach (async () => {
-        const loggerMock = { logger: { info: sinon.stub() }};
-        const StubbedProgressNotifier = proxyquire('./progress-notifier', {
-          '@hubiinetwork/logger': loggerMock
-        });
-        const stubbedChallengeHandlerFactory = proxyquireStubbedChallengeHandlerFactoryModule(StubbedProgressNotifier, stubbedContractRepositoryModule);
-        stubbedChallengeHandler = await stubbedChallengeHandlerFactory.create(walletMock, gasLimit);
-      });
-
       then('#handleWalletLocked() consumes event when challenger addresses match', async function () {
-        sinon.spy(stubbedChallengeHandler.notifier, 'notifyWalletLocked');
-        await stubbedChallengeHandler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengerWallet);
-        expect(stubbedChallengeHandler.notifier.notifyWalletLocked).to.have.been.calledWith('caption SEIZING:', challengerWallet, challengedWallet, ct, id);
+        sinon.spy(handler.notifier, 'notifyWalletLocked');
+        await handler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengerWallet);
+        expect(handler.notifier.notifyWalletLocked).to.have.been.calledWith('caption SEIZING:', challengerWallet, challengedWallet, ct, id);
       });
 
       then('#handleWalletLocked() ignores event when challenger addresses do not match', async function () {
-        sinon.spy(stubbedChallengeHandler.notifier, 'notifyWalletLocked');
-        await stubbedChallengeHandler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengedWallet);
-        expect(stubbedChallengeHandler.notifier.notifyWalletLocked).to.have.been.calledWith('caption NOT SEIZING:', challengedWallet, challengedWallet, ct, id);
+        sinon.spy(handler.notifier, 'notifyWalletLocked');
+        await handler.handleWalletLocked ('caption', challengedWallet, bnZero, bnZero, bnZero, ct, id, challengedWallet);
+        expect(handler.notifier.notifyWalletLocked).to.have.been.calledWith('caption NOT SEIZING:', challengedWallet, challengedWallet, ct, id);
       });
 
       then('#handleBalancesSeized() consumes event when challenger addresses match', function () {
-        sinon.spy(stubbedChallengeHandler.notifier, 'notifyBalancesSeized');
-        stubbedChallengeHandler.handleBalancesSeized (challengedWallet, challengerWallet, bnZero, ct, id);
-        expect(stubbedChallengeHandler.notifier.notifyBalancesSeized).to.have.been.calledOnce;
+        sinon.spy(handler.notifier, 'notifyBalancesSeized');
+        handler.handleBalancesSeized (challengedWallet, challengerWallet, bnZero, ct, id);
+        expect(handler.notifier.notifyBalancesSeized).to.have.been.calledOnce;
       });
 
       then('#handleBalancesSeized() ignores event when challenger addresses do not match', async function () {
-        sinon.spy(stubbedChallengeHandler.notifier, 'notifyBalancesSeized');
-        await stubbedChallengeHandler.handleBalancesSeized (challengedWallet, challengedWallet, bnZero, ct, id);
-        expect(stubbedChallengeHandler.notifier.notifyBalancesSeized).to.not.have.been.called;
+        sinon.spy(handler.notifier, 'notifyBalancesSeized');
+        await handler.handleBalancesSeized (challengedWallet, challengedWallet, bnZero, ct, id);
+        expect(handler.notifier.notifyBalancesSeized).to.not.have.been.called;
       });
     });
   });

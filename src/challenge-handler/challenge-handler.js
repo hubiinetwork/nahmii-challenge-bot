@@ -122,20 +122,8 @@ class ChallengeHandler {
       try {
         const signedClientFund = (await contracts.getClientFund()).connect(wallet);
         const gasLimitOpt = _gasLimitOpt.get(this);
-
-        console.log('challengerWallet: ' + signedClientFund.signer.address);
-        console.log('challengedWallet: ' + challengedWallet);
-        console.log('              ct: ' + ct);
-        console.log('              id: ' + id);
-        console.log('     gasLimitOpt: ' + JSON.stringify(gasLimitOpt));
-        console.log(' ');
-        console.log('********************************');
-        console.log('NOT IMPLEMENTED: seizeBalances()');
-        console.log('********************************');
-
         /*
-          TODO 1: Store seize information in DB
-          TODO 2: Activate seizig based on timeout of visible time
+          TODO: Activate seizing based on timeout of visible time
           const eth = '0x0000000000000000000000000000000000000000';
           const standard = (ct === eth) ? 'ETH' : 'ERC20';
           await signedClientFund.seizeBalances(challengedWallet, ct, id, standard, gasLimitOpt);

@@ -24,7 +24,7 @@ describe('nahmii-provider-factory', () => {
 
     afterEach(() => {
       nock.cleanAll();
-      nock.disableNetConnect();
+      nock.enableNetConnect();
     });
 
     it ('creates provider', () => {

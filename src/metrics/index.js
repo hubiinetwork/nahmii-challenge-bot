@@ -1,6 +1,6 @@
 'use strict';
 
-const app = require('./app');
+const app = require('./metrics');
 const prometheus = require('prom-client');
 const ethers = require('ethers');
 

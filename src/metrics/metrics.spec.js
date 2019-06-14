@@ -1,13 +1,24 @@
 'use strict';
 
 const request = require('supertest');
+const nock = require('nock');
 
 const metrics = require('./index'); // Metrics must be loaded before app to create the counters
 metrics.initProgressCounter();
 
-const app = require('./app');
+const app = require('./metrics');
 
-describe('Integration tests', () => {
+describe('metrics', () => {
+  beforeEach (() => {
+    nock.disableNetConnect();
+    nock.enableNetConnect('127.0.0.1');
+  });
+
+  afterEach(() => {
+    nock.cleanAll();
+    nock.enableNetConnect();
+  });
+
   const api = request(app);
 
   describe('GET /metrics', () => {

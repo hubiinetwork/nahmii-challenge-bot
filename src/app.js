@@ -8,10 +8,11 @@ const ethers = require('ethers');
 
 const config = require('./config');
 const ClusterInformation = require('./cluster-information');
-const ChallengeHandler = require('./challenge-handler');
 const NestedError = require('./utils/nested-error');
 const NahmiiProviderFactory = require('./nahmii-provider-factory');
 const ChallengeHandlerFactory = require('./challenge-handler/challenge-handler-factory');
+const metrics = require('./metrics');
+const http = require('http');
 
 process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.error(NestedError.asStringified(reason));
@@ -55,9 +56,10 @@ async function registerEthBalance (wallet) {
 
   logger.info('Creating challenge handler ...');
 
+  const wallet = new nahmii.Wallet(privateKey, provider);
+
   const challengeHandler = ChallengeHandlerFactory.create(
-    new nahmii.Wallet(privateKey, provider),
-    ethers.utils.bigNumberify(config.ethereum.gasLimit)
+    wallet, ethers.utils.bigNumberify(config.ethereum.gasLimit)
   );
 
   const metricsServer = http.createServer(metrics.app);
@@ -105,5 +107,4 @@ async function registerEthBalance (wallet) {
 
   logger.info('');
   logger.info('We are in business! Waiting for events ...');
-
 })();

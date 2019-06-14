@@ -31,40 +31,42 @@ describe('balance-provider', () => {
     ]));
   });
 
-  describe('Can retrieve active balances for wallet', () => {
-    it('Returns active balance when backend works', async function () {
-      balanceTrackerContractMock.get.returns(Promise.resolve(bnZero));
-      const promisedBalance = balances.getActiveBalance(balanceTrackerContractMock, address, ct, id).then(res => res.toString());
-      return expect(promisedBalance).to.eventually.be.fulfilled.and.equal('0');
-    });
+  describe('given a balance provider', () => {
+    describe('when active balances is retrieved for a wallet', () => {
+      it('returns active balance when backend works', async function () {
+        balanceTrackerContractMock.get.returns(Promise.resolve(bnZero));
+        const promisedBalance = balances.getActiveBalance(balanceTrackerContractMock, address, ct, id).then(res => res.toString());
+        return expect(promisedBalance).to.eventually.be.fulfilled.and.equal('0');
+      });
 
-    it('Failes when getter fails', async function () {
-      balanceTrackerContractMock.get.rejects(new Error(''));
-      const promisedBalance = balances.getActiveBalance(balanceTrackerContractMock, address, ct, id).then(res => res.toString());
-      return expect(promisedBalance).to.eventually.be.rejected;
-    });
+      it('failes when getter fails', async function () {
+        balanceTrackerContractMock.get.rejects(new Error(''));
+        const promisedBalance = balances.getActiveBalance(balanceTrackerContractMock, address, ct, id).then(res => res.toString());
+        return expect(promisedBalance).to.eventually.be.rejected;
+      });
 
-    it('Failes when balance types fail', async function () {
-      balanceTrackerContractMock.activeBalanceTypes.rejects(new Error(''));
-      const promisedBalance = balances.getActiveBalance(balanceTrackerContractMock, address, ct, id).then(res => res.toString());
-      return expect(promisedBalance).to.eventually.be.rejected;
+      it('failes when balance types fail', async function () {
+        balanceTrackerContractMock.activeBalanceTypes.rejects(new Error(''));
+        const promisedBalance = balances.getActiveBalance(balanceTrackerContractMock, address, ct, id).then(res => res.toString());
+        return expect(promisedBalance).to.eventually.be.rejected;
+      });
     });
-  });
+  })
 
-  describe('Can retrieve active balances at block', () => {
-    it('Returns active balanceat block when backend works', async function () {
+  describe('when active balances is retrieved for a block number', () => {
+    it('returns active balanceat block when backend works', async function () {
       balanceTrackerContractMock.fungibleRecordByBlockNumber.returns(Promise.resolve({ amount: bnZero }));
       const promisedBalance = balances.getActiveBalanceAtBlock(balanceTrackerContractMock, address, ct, id, blockNo).then(res => res.toString());
       return expect(promisedBalance).to.eventually.be.fulfilled.and.equal('0');
     });
 
-    it('Failes when getter fails', async function () {
+    it('failes when getter fails', async function () {
       balanceTrackerContractMock.fungibleRecordByBlockNumber.rejects(new Error(''));
       const promisedBalance = balances.getActiveBalanceAtBlock(balanceTrackerContractMock, address, ct, id, blockNo).then(res => res.toString());
       return expect(promisedBalance).to.eventually.be.rejected;
     });
 
-    it('Failes when balance types fail', async function () {
+    it('failes when balance types fail', async function () {
       balanceTrackerContractMock.activeBalanceTypes.rejects(new Error(''));
       const promisedBalance = balances.getActiveBalanceAtBlock(balanceTrackerContractMock, address, ct, id, blockNo).then(res => res.toString());
       return expect(promisedBalance).to.eventually.be.rejected;

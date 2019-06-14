@@ -2,73 +2,111 @@
 
 const chai = require('chai');
 const expect = chai.expect;
-const proxyquire = require('proxyquire');
+const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 
-const variableNames = [
-  'NODE_ENV',
-  'NAHMII_BASE_URL',
-  'CHALLENGE_BOT_UTCADDRESS',
-  'CHALLENGE_BOT_UTCSECRET',
-  'CHALLENGE_BOT_APPID',
-  'CHALLENGE_BOT_APPSECRET',
-  'ETHEREUM_NODE_URL',
-  'ETHEREUM_GAS_LIMIT'
-];
-
-function backupEnv () {
-  const backup = {};
-
-  for (const variableName of variableNames)
-    backup[variableName] = process.env[variableName];
-
-  return backup;
-}
-
-function restoreEnv (backup) {
-  for (const variableName of variableNames) {
-    if (backup[variableName])
-      process.env[variableName] = backup[variableName];
-    else
-      delete process.env[variableName];
-  }
-}
-
-function fakeupEnv () {
-  for (const variableName of variableNames)
-    process.env[variableName] = variableName;
-}
-
-describe ('config', () => {
-  let envBackup, config;
+describe ('Config', () => {
+  let backupEnv;
 
   beforeEach (() => {
-    envBackup = backupEnv();
-    fakeupEnv();
-    config = proxyquire('./config', { '': {} });
+    backupEnv = Object.assign({}, process.env);
   });
 
   afterEach (() => {
-    restoreEnv(envBackup);
+    process.env = backupEnv;
   });
 
-  describe ('#validateConfig() detects ill-defined variables', () => {
-    for (const variableName of variableNames) {
-      it (`Throws if ${variableName} is not defined`, function () {
-        delete process.env[variableName];
-        expect(config.validateConfig).to.throw(new RegExp(`^${variableName}`));
+  describe ('given the Config instance', () => {
+    let Config;
+
+    beforeEach(() => {
+      Config = proxyquire('./config', {});
+    });
+
+    describe ('when called serving only default values in development environment', () => {
+      beforeEach(() => {
+        delete process.env['NODE_ENV'];
       });
-    }
 
-    it ('Throws if \'NAHMII_BASE_URL\' contains protocol info', function () {
-      process.env['NAHMII_BASE_URL'] = 'http://localhost';
-      expect(config.validateConfig).to.throw(/must contain base URL without protocol/);
+      [
+        'services.baseUrl',
+        'wallet.utcAddress',
+        'wallet.utcSecret',
+        'ethereum.nodeUrl',
+        'ethereum.gasLimit'
+      ].forEach(prop => {
+        it(`has default value for #${prop}`, () => {
+          const keys = prop.split('.');
+          expect(Config[keys[0]][keys[1]]).not.to.be.undefined;
+        });
+      });
+
+      [
+        'identity.appId',
+        'identity.appSecret'
+      ].forEach(prop => {
+        it(`does not have default value for #${prop}`, () => {
+          const keys = prop.split('.');
+          expect(Config[keys[0]][keys[1]]).to.be.undefined;
+        });
+      });
+    });
+
+    describe ('called serving only default values in production environment', () => {
+      beforeEach(() => {
+        process.env['NODE_ENV'] = 'production';
+      });
+
+      [
+        'ethereum.gasLimit'
+      ].forEach(prop => {
+        it(`has default value for #${prop}`, () => {
+          const keys = prop.split('.');
+          expect(Config[keys[0]][keys[1]]).not.to.be.undefined;
+        });
+      });
+
+      [
+        'services.baseUrl',
+        'wallet.utcAddress',
+        'wallet.utcSecret',
+        'identity.appId',
+        'identity.appSecret',
+        'ethereum.nodeUrl'
+      ].forEach(prop => {
+        it(`does not have default value for #${prop}`, () => {
+          const keys = prop.split('.');
+          expect(Config[keys[0]][keys[1]]).to.be.undefined;
+        });
+      });
+    });
+
+    const variableNames = [
+      'NAHMII_BASE_URL',
+      'CHALLENGE_BOT_UTCADDRESS',
+      'CHALLENGE_BOT_UTCSECRET',
+      'CHALLENGE_BOT_APPID',
+      'CHALLENGE_BOT_APPSECRET',
+      'ETHEREUM_NODE_URL'
+    ];
+
+    describe ('when it is validated', () => {
+      beforeEach(() => {
+        variableNames.forEach(name => process.env[name] = 'dummy');
+        process.env['NODE_ENV'] = 'production';
+      });
+
+      it ('succeeds if all properties are defined', () => {
+        Config = proxyquire('./config', {});
+        expect(Config.isValid()).to.be.true;
+      });
+
+      variableNames.forEach(name => {
+        it (`fails if property corresponding to ${name} is undefined`, () => {
+          delete process.env[name];
+          Config = proxyquire('./config', {});
+          expect(Config.isValid()).to.be.false;
+        });
+      });
     });
   });
-
-  describe ('#validateConfig() accepts defined variables', () => {
-    it ('Accepts all variables', function () {
-      expect(config.validateConfig).to.not.throw();
-    });
-  });
-
 });

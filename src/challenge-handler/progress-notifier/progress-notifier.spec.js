@@ -24,70 +24,71 @@ describe('progress-notifier', () => {
 
   beforeEach (() => {
     const loggerMock = { logger: { info: sinon.stub() }}
-    const ProgressNotifyer = proxyquire('./progress-notifier', {
+    const ProgressNotifier = proxyquire('./progress-notifier', {
       '@hubiinetwork/logger': loggerMock
     });
 
-    notifier = new ProgressNotifyer();
+    notifier = new ProgressNotifier();
   });
 
-  describe('Notifies callbacks', () => {
+  describe('given a ProgressNotifier', () => {
+    describe('when it notifies callbacks', () => {
 
-    it('#notifyDSCStart() notifies #onDSCStart()', function () {
-      return expect(new Promise(resolve => {
-        notifier.onDSCStart(resolve);
-        notifier.notifyDSCStart(initiator, nonce, stagedAmount);
-      })).to.eventually.be.fulfilled;
+      it('#notifyDSCStart() notifies #onDSCStart()', function () {
+        return expect(new Promise(resolve => {
+          notifier.onDSCStart(resolve);
+          notifier.notifyDSCStart(initiator, nonce, stagedAmount);
+        })).to.eventually.be.fulfilled;
+      });
+
+      it('#notifyDSCAgreed() notifies #onDSCAgreed()', function () {
+        return expect(new Promise(resolve => {
+          notifier.onDSCAgreed(resolve);
+          notifier.notifyDSCAgreed(initiator, receipts[0], targetBalance);
+        })).to.eventually.be.fulfilled;
+      });
+
+      it('#notifyDSCDisputed() notifies #onDSCDisputed()', function () {
+        return expect(new Promise(resolve => {
+          notifier.onDSCDisputed(resolve);
+          notifier.notifyDSCDisputed(initiator, receipts[0], targetBalance);
+        })).to.eventually.be.fulfilled;
+      });
+
+      it('#notifyNSCStart() notifies #onNSCStart()', function () {
+        return expect(new Promise(resolve => {
+          notifier.onNSCStart(resolve);
+          notifier.notifyNSCStart(initiator, stagedAmount, ct, id);
+        })).to.eventually.be.fulfilled;
+      });
+
+      it('#notifyNSCAgreed() notifies #onNSCAgreed()', function () {
+        return expect(new Promise(resolve => {
+          notifier.onNSCAgreed(resolve);
+          notifier.notifyNSCAgreed(initiator);
+        })).to.eventually.be.fulfilled;
+      });
+
+      it('#notifyNSCDisputed() notifies #onNSCDisputed()', function () {
+        return expect(new Promise(resolve => {
+          notifier.onNSCDisputed(resolve);
+          notifier.notifyNSCDisputed(initiator, receipts[0], targetBalance);
+        })).to.eventually.be.fulfilled;
+      });
+
+      it('#notifyWalletLocked() notifies #onWalletLocked()', function () {
+        return expect(new Promise(resolve => {
+          notifier.onWalletLocked(resolve);
+          notifier.notifyWalletLocked('caption', challenger, lockedWallet, ct, id);
+        })).to.eventually.be.fulfilled;
+      });
+
+      it('#notifyBalancesSeized() notifies #onBalancesSeized()', function () {
+        return expect(new Promise(resolve => {
+          notifier.onBalancesSeized(resolve);
+          notifier.notifyBalancesSeized(challenger, lockedWallet, amount, ct, id);
+        })).to.eventually.be.fulfilled;
+      });
     });
-
-    it('#notifyDSCAgreed() notifies #onDSCAgreed()', function () {
-      return expect(new Promise(resolve => {
-        notifier.onDSCAgreed(resolve);
-        notifier.notifyDSCAgreed(initiator, receipts[0], targetBalance);
-      })).to.eventually.be.fulfilled;
-    });
-
-    it('#notifyDSCDisputed() notifies #onDSCDisputed()', function () {
-      return expect(new Promise(resolve => {
-        notifier.onDSCDisputed(resolve);
-        notifier.notifyDSCDisputed(initiator, receipts[0], targetBalance);
-      })).to.eventually.be.fulfilled;
-    });
-
-    it('#notifyNSCStart() notifies #onNSCStart()', function () {
-      return expect(new Promise(resolve => {
-        notifier.onNSCStart(resolve);
-        notifier.notifyNSCStart(initiator, stagedAmount, ct, id);
-      })).to.eventually.be.fulfilled;
-    });
-
-    it('#notifyNSCAgreed() notifies #onNSCAgreed()', function () {
-      return expect(new Promise(resolve => {
-        notifier.onNSCAgreed(resolve);
-        notifier.notifyNSCAgreed(initiator);
-      })).to.eventually.be.fulfilled;
-    });
-
-    it('#notifyNSCDisputed() notifies #onNSCDisputed()', function () {
-      return expect(new Promise(resolve => {
-        notifier.onNSCDisputed(resolve);
-        notifier.notifyNSCDisputed(initiator, receipts[0], targetBalance);
-      })).to.eventually.be.fulfilled;
-    });
-
-    it('#notifyWalletLocked() notifies #onWalletLocked()', function () {
-      return expect(new Promise(resolve => {
-        notifier.onWalletLocked(resolve);
-        notifier.notifyWalletLocked('caption', challenger, lockedWallet, ct, id);
-      })).to.eventually.be.fulfilled;
-    });
-
-    it('#notifyBalancesSeized() notifies #onBalancesSeized()', function () {
-      return expect(new Promise(resolve => {
-        notifier.onBalancesSeized(resolve);
-        notifier.notifyBalancesSeized(challenger, lockedWallet, amount, ct, id);
-      })).to.eventually.be.fulfilled;
-    });
-
   });
 });
