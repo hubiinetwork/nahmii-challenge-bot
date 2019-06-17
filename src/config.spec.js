@@ -4,6 +4,15 @@ const chai = require('chai');
 const expect = chai.expect;
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 
+const variableNames = [
+  'NAHMII_BASE_URL',
+  'CHALLENGE_BOT_UTCADDRESS',
+  'CHALLENGE_BOT_UTCSECRET',
+  'CHALLENGE_BOT_APPID',
+  'CHALLENGE_BOT_APPSECRET',
+  'ETHEREUM_NODE_URL'
+];
+
 describe ('Config', () => {
   let backupEnv;
 
@@ -19,6 +28,7 @@ describe ('Config', () => {
     let Config;
 
     beforeEach(() => {
+      variableNames.forEach(name => delete process.env[name]);
       Config = proxyquire('./config', {});
     });
 
@@ -80,15 +90,6 @@ describe ('Config', () => {
       });
     });
 
-    const variableNames = [
-      'NAHMII_BASE_URL',
-      'CHALLENGE_BOT_UTCADDRESS',
-      'CHALLENGE_BOT_UTCSECRET',
-      'CHALLENGE_BOT_APPID',
-      'CHALLENGE_BOT_APPSECRET',
-      'ETHEREUM_NODE_URL'
-    ];
-
     describe ('when it is validated', () => {
       beforeEach(() => {
         variableNames.forEach(name => process.env[name] = 'dummy');
@@ -105,6 +106,25 @@ describe ('Config', () => {
           delete process.env[name];
           Config = proxyquire('./config', {});
           expect(Config.isValid()).to.be.false;
+        });
+      });
+    });
+
+    describe ('when status string is requested', () => {
+      beforeEach(() => {
+        variableNames.forEach(name => process.env[name] = 'dummy');
+        process.env['NODE_ENV'] = 'production';
+      });
+
+      it ('status string reflects all properties are defined', () => {
+        expect(Config.getValidationStr()).to.be.equal('OK');
+      });
+
+      variableNames.forEach(name => {
+        it (`status string reflects undefined ${name}`, () => {
+          delete process.env[name];
+          Config = proxyquire('./config', {});
+          expect(Config.getValidationStr()).to.match(/is undefined/);
         });
       });
     });
