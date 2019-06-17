@@ -60,7 +60,7 @@ async function registerEthBalance (wallet) {
 
   const wallet = new nahmii.Wallet(privateKey, provider);
 
-  const challengeHandler = ChallengeHandlerFactory.create(
+  const challengeHandler = await ChallengeHandlerFactory.create(
     wallet, ethers.utils.bigNumberify(config.ethereum.gasLimit)
   );
 
@@ -72,37 +72,37 @@ async function registerEthBalance (wallet) {
 
   metrics.initProgressCounter();
 
-  challengeHandler.onBalancesSeized(() => {
+  challengeHandler.notifier.onDSCStart(() => {
     metrics.registerDscStarted();
     registerEthBalance(wallet);
   });
 
-  challengeHandler.onBalancesSeized(() => {
+  challengeHandler.notifier.onDSCAgreed(() => {
     metrics.registerDscAgreed();
     registerEthBalance(wallet);
   });
 
-  challengeHandler.onBalancesSeized(() => {
+  challengeHandler.notifier.onDSCDisputed(() => {
     metrics.registerDscDisputed();
     registerEthBalance(wallet);
   });
 
-  challengeHandler.onBalancesSeized(() => {
+  challengeHandler.notifier.onNSCStart(() => {
     metrics.registerNscStarted();
     registerEthBalance(wallet);
   });
 
-  challengeHandler.onBalancesSeized(() => {
+  challengeHandler.notifier.onNSCAgreed(() => {
     metrics.registerNscAgreed();
     registerEthBalance(wallet);
   });
 
-  challengeHandler.onBalancesSeized(() => {
+  challengeHandler.notifier.onNSCDisputed(() => {
     metrics.registerNscDisputed();
     registerEthBalance(wallet);
   });
 
-  challengeHandler.onBalancesSeized(() => {
+  challengeHandler.notifier.onBalancesSeized(() => {
     metrics.registerBalancesSeized();
     registerEthBalance(wallet);
   });

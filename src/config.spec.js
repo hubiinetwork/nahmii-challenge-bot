@@ -4,6 +4,15 @@ const chai = require('chai');
 const expect = chai.expect;
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 
+const variableNames = [
+  'NAHMII_BASE_URL',
+  'CHALLENGE_BOT_UTCADDRESS',
+  'CHALLENGE_BOT_UTCSECRET',
+  'CHALLENGE_BOT_APPID',
+  'CHALLENGE_BOT_APPSECRET',
+  'ETHEREUM_NODE_URL'
+];
+
 describe ('Config', () => {
   let backupEnv;
 
@@ -19,6 +28,7 @@ describe ('Config', () => {
     let Config;
 
     beforeEach(() => {
+      variableNames.forEach(name => delete process.env[name]);
       Config = proxyquire('./config', {});
     });
 
@@ -79,15 +89,6 @@ describe ('Config', () => {
         });
       });
     });
-
-    const variableNames = [
-      'NAHMII_BASE_URL',
-      'CHALLENGE_BOT_UTCADDRESS',
-      'CHALLENGE_BOT_UTCSECRET',
-      'CHALLENGE_BOT_APPID',
-      'CHALLENGE_BOT_APPSECRET',
-      'ETHEREUM_NODE_URL'
-    ];
 
     describe ('when it is validated', () => {
       beforeEach(() => {
