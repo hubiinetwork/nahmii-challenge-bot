@@ -41,7 +41,9 @@
   "dependencies": {
     "@hubiinetwork/logger": "github:hubiinetwork/logger",
     "bignumber.js": "^8.1.1",
+    "cors": "^2.8.5",
     "ethers": "4.0.18",
+    "express": "^4.17.1",
     "helmet": "^3.16.0",
     "keythereum": "^1.0.4",
     "nahmii-sdk": "^2.2.4",
