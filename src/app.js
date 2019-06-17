@@ -35,7 +35,9 @@ async function registerEthBalance (wallet) {
   logger.info(`\n### ## # NAHMII CHALLENGE BOT STARTED ${now} # ## ###\n`);
 
   logger.info('Validating config ...');
-  config.validateConfig();
+
+  if (! config.isValid())
+    throw new Error(`Config is not valid. ${config.getValidationStr()}`);
 
   logger.info('');
   logger.info(`   nahmi URL : '${config.services.baseUrl}'`);

@@ -16,6 +16,22 @@ class Config {
       !!Config.ethereum.gasLimit;
   }
 
+  static getValidationStr () {
+    if (!Config.services.baseUrl)
+      return 'Config.services.baseUrl is undefined';
+    if (!Config.wallet.utcAddress)
+      return 'Config.wallet.utcAddress is undefined';
+    if (!Config.wallet.utcSecret)
+      return 'Config.wallet.utcSecret is undefined';
+    if (!Config.identity.appId)
+      return 'Config.identity.appId is undefined';
+    if (!Config.identity.appSecret)
+      return 'Config.identity.appSecret is undefined';
+    if (!Config.ethereum.nodeUrl)
+      return 'Config.ethereum.nodeUrl is undefined';
+    return 'OK';
+  }
+
   static get services () {
     return {
       baseUrl: process.env['NAHMII_BASE_URL'] || devDefault('api2.dev.hubii.net')

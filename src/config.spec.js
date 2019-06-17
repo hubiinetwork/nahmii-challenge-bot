@@ -108,5 +108,24 @@ describe ('Config', () => {
         });
       });
     });
+
+    describe ('when status string is requested', () => {
+      beforeEach(() => {
+        variableNames.forEach(name => process.env[name] = 'dummy');
+        process.env['NODE_ENV'] = 'production';
+      });
+
+      it ('status string reflects all properties are defined', () => {
+        expect(Config.getValidationStr()).to.be.equal('OK');
+      });
+
+      variableNames.forEach(name => {
+        it (`status string reflects undefined ${name}`, () => {
+          delete process.env[name];
+          Config = proxyquire('./config', {});
+          expect(Config.getValidationStr()).to.match(/is undefined/);
+        });
+      });
+    });
   });
 });
