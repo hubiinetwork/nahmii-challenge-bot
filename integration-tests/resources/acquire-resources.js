@@ -7,6 +7,7 @@ module.exports = function (ctx) {
     process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
   });
   ctx.gasLimit = ethers.utils.bigNumberify('8000000');
+  require('./acquire-minikube-config');
   require('./acquire-context')(ctx);
   require('./acquire-currencies')(ctx);
   require('./acquire-provider')(ctx);

@@ -10,7 +10,7 @@ if [ ! -e $mini_cluster_abi_path ]; then
   exit 1
 fi
 
-abstractions_abi_path='./node_modules/nahmii-contract-abstractions-ropsten/build/contracts'
+abstractions_abi_path='./node_modules/nahmii-sdk/node_modules/nahmii-contract-abstractions-ropsten/build/contracts'
 
 if [ ! -e $abstractions_abi_path ]; then
   echo FAILURE Could not find ABI path: $abstractions_abi_path

@@ -6,7 +6,6 @@ const expect = chai.expect;
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
-const NestedError = require('../../src/utils/nested-error');
 
 module.exports = function (ctx, walletName, assignedEth) {
   step(`${walletName} has new wallet`, function () {

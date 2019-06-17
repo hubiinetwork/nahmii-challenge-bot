@@ -4,9 +4,7 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 
-const { execSync } = require('child_process');
 const ethers = require('ethers');
-const request = require('superagent');
 
 const minikube = require('../utils/minikube');
 const config = require('../../src/config');
