@@ -36,7 +36,7 @@ async function registerEthBalance (wallet) {
 
   logger.info('Validating config ...');
 
-  if (! config.isValid())
+  if (!config.isValid())
     throw new Error(`Config is not valid. ${config.getValidationStr()}`);
 
   logger.info('');

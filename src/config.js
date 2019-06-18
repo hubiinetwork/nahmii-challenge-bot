@@ -5,31 +5,24 @@ function devDefault (str) {
 }
 
 class Config {
+  static getStateMap () {
+    return [
+      [ Config.services.baseUrl, 'Config.services.baseUrl is undefined' ],
+      [ Config.wallet.utcAddress, 'Config.wallet.utcAddress is undefined' ],
+      [ Config.wallet.utcSecret, 'Config.wallet.utcSecret is undefined' ],
+      [ Config.identity.appId, 'Config.identity.appId is undefined' ],
+      [ Config.identity.appSecret, 'Config.identity.appSecret is undefined' ],
+      [ Config.ethereum.nodeUrl, 'Config.ethereum.nodeUrl is undefined' ]
+    ];
+  }
+
   static isValid () {
-    return true &&
-      !!Config.services.baseUrl &&
-      !!Config.wallet.utcAddress &&
-      !!Config.wallet.utcSecret &&
-      !!Config.identity.appId &&
-      !!Config.identity.appSecret &&
-      !!Config.ethereum.nodeUrl &&
-      !!Config.ethereum.gasLimit;
+    return Config.getStateMap().every(item => item[0]);
   }
 
   static getValidationStr () {
-    if (!Config.services.baseUrl)
-      return 'Config.services.baseUrl is undefined';
-    if (!Config.wallet.utcAddress)
-      return 'Config.wallet.utcAddress is undefined';
-    if (!Config.wallet.utcSecret)
-      return 'Config.wallet.utcSecret is undefined';
-    if (!Config.identity.appId)
-      return 'Config.identity.appId is undefined';
-    if (!Config.identity.appSecret)
-      return 'Config.identity.appSecret is undefined';
-    if (!Config.ethereum.nodeUrl)
-      return 'Config.ethereum.nodeUrl is undefined';
-    return 'OK';
+    const item = Config.getStateMap().find(item => !item[0]);
+    return item ? item[1] : 'OK';
   }
 
   static get services () {
