@@ -39,6 +39,7 @@ describe ('Config', () => {
 
       [
         'services.baseUrl',
+        'services.metricsPort',
         'wallet.utcAddress',
         'wallet.utcSecret',
         'ethereum.nodeUrl',
@@ -67,6 +68,7 @@ describe ('Config', () => {
       });
 
       [
+        'services.metricsPort',
         'ethereum.gasLimit'
       ].forEach(prop => {
         it(`has default value for #${prop}`, () => {
