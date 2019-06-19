@@ -8,6 +8,7 @@ class Config {
   static getStateMap () {
     return [
       [ Config.services.baseUrl, 'Config.services.baseUrl is undefined' ],
+      [ Config.services.metricsPort, 'Config.services.metricsPort is undefined' ],
       [ Config.wallet.utcAddress, 'Config.wallet.utcAddress is undefined' ],
       [ Config.wallet.utcSecret, 'Config.wallet.utcSecret is undefined' ],
       [ Config.identity.appId, 'Config.identity.appId is undefined' ],
@@ -27,7 +28,8 @@ class Config {
 
   static get services () {
     return {
-      baseUrl: process.env['NAHMII_BASE_URL'] || devDefault('api2.dev.hubii.net')
+      baseUrl: process.env['NAHMII_BASE_URL'] || devDefault('api2.dev.hubii.net'),
+      metricsPort: process.env['METRICS_PORT'] || 8079
     };
   }
 

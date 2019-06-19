@@ -65,9 +65,9 @@ async function registerEthBalance (wallet) {
   );
 
   const metricsServer = http.createServer(metrics.app);
-  metricsServer.listen(config.metricsPort);
+  metricsServer.listen(config.services.metricsPort);
   metricsServer.on('listening', () => {
-    console.log(`Metrics available on http://localhost:${config.metricsPort}/metrics`);
+    console.log(`Metrics available on http://localhost:${config.services.metricsPort}/metrics`);
   });
 
   metrics.initProgressCounter();
