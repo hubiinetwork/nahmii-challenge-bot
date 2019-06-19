@@ -13,7 +13,7 @@ module.exports = function (ctx, walletName, symbol) {
     throw new Error('symbol undefined');
 
   step(`Ensure ${walletName}'s nahmii balance updates`, async function () {
-    this.timeout(12000); // Sometimes takes excessive time
+    this.timeout(16000); // Sometimes takes excessive time
 
     const balance0 = ctx.purses[walletName]['nahmiiBalanceBeforeAction'];
     expect(balance0[symbol]).to.not.be.undefined;
