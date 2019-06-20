@@ -39,13 +39,12 @@ async function registerEthBalance (wallet) {
   if (!config.isValid())
     throw new Error(`Config is not valid. ${config.getValidationStr()}`);
 
+  const ethereum = await ClusterInformation.acquireEthereum();
+
   logger.info('');
   logger.info(`   nahmi URL : '${config.services.baseUrl}'`);
   logger.info(`ethereum URL : '${config.ethereum.nodeUrl}'`);
   logger.info(` wallet addr : '${config.wallet.utcAddress}'`);
-
-  const ethereum = await ClusterInformation.acquireEthereum();
-
   logger.info(`     network : '${ethereum.net}'`);
   logger.info('');
 

@@ -4,6 +4,7 @@ const config = require('../config');
 const NestedError = require('../utils/nested-error');
 const ClusterInformation = require('../cluster-information');
 const nahmii = require('nahmii-sdk');
+const { logger } = require('@hubiinetwork/logger');
 
 let _nahmiiProvider;
 
@@ -12,6 +13,8 @@ class NahmiiProviderFactory {
     if (!_nahmiiProvider) {
       try {
         const ethereum = await ClusterInformation.acquireEthereum();
+
+        logger.info(`NahmiiProvider: ${config.services.baseUrl}, ${config.ethereum.nodeUrl}, ${ethereum.net}`);
 
         _nahmiiProvider = new nahmii.NahmiiProvider(
           config.services.baseUrl,

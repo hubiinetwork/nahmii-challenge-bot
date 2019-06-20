@@ -3,6 +3,7 @@
 const NestedError = require('../../utils/nested-error');
 const NahmiiProviderFactory = require('../../nahmii-provider-factory');
 const nahmii = require('nahmii-sdk');
+const { logger } = require('@hubiinetwork/logger');
 
 const _contracts = {};
 
@@ -12,6 +13,8 @@ class ContractRepository {
       if (!_contracts[contractName]) {
         const provider = await NahmiiProviderFactory.acquireProvider();
         _contracts[contractName] = new nahmii.NahmiiContract(contractName, provider);
+
+        logger.info(`Aquired: '${contractName}', '${_contracts[contractName].address}'`);
 
         if (!_contracts[contractName].validate())
           throw Error('Failed to validate contract.');
