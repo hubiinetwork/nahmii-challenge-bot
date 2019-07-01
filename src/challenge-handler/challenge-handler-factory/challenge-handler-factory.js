@@ -1,55 +1,64 @@
 'use strict';
 
+const { logger } = require('@hubiinetwork/logger');
+
 const ChallengeHandler = require('../challenge-handler');
 const contracts = require('../contract-repository');
 const NestedError = require('../../utils/nested-error');
-const { logger } = require('@hubiinetwork/logger');
+const EventGenerator = require('../../event-generator');
+const config = require('../../config');
+
+const _eventGenerator = new EventGenerator();
+_eventGenerator.config.setConfirmationsDepth(config.services.confirmationsDepth);
 
 async function create (wallet, gasLimit) {
   const handler = new ChallengeHandler(wallet, gasLimit);
+  const topics = [];
 
   try {
-    logger.info(`Listen to 'DriipSettlementChallengeByPayment.StartChallengeFromPaymentEvent', '${(await contracts.getDriipSettlementChallengeByPayment()).address}'`);
-    (await contracts.getDriipSettlementChallengeByPayment()).on('StartChallengeFromPaymentEvent', (wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id) => {
-      logger.info('Received DriipSettlementChallengeByPayment.StartChallengeFromPaymentEvent');
-      handler.handleDSCStart(wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
+
+    const subscribe = async (eventTag, callback) => {
+      const [ contractName, eventName ] = eventTag.split('.');
+      const contract = await contracts.acquireContract(contractName);
+
+      topics.push(contract.interface.events[eventName].topic);
+
+      _eventGenerator.on(eventTag, async (blockNo, ...args) => {
+        logger.info(' ');
+        logger.info(`${(new Date()).toISOString()} ${blockNo} ${eventTag}`);
+        await callback(...args);
+      });
+    };
+
+    await subscribe('DriipSettlementChallengeByPayment.StartChallengeFromPaymentEvent', async (wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id) => {
+      await handler.handleDSCStart(wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    logger.info(`Listen to 'DriipSettlementChallengeByPayment.StartChallengeFromPaymentByProxyEvent', '${(await contracts.getDriipSettlementChallengeByPayment()).address}'`);
-    (await contracts.getDriipSettlementChallengeByPayment()).on('StartChallengeFromPaymentByProxyEvent', (wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
-      logger.info('Received DriipSettlementChallengeByPayment.StartChallengeFromPaymentByProxyEvent');
-      handler.handleDSCStart(wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
+    await subscribe('DriipSettlementChallengeByPayment.StartChallengeFromPaymentByProxyEvent', async (wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
+      await handler.handleDSCStart(wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    logger.info(`Listen to 'DriipSettlementChallengeByPayment.ChallengeByPaymentEvent', '${(await contracts.getDriipSettlementChallengeByPayment()).address}'`);
-    (await contracts.getDriipSettlementChallengeByPayment()).on('ChallengeByPaymentEvent', (challengedWallet, nonce, _cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
-      logger.info('Received DriipSettlementChallengeByPayment.ChallengeByPaymentEvent');
-      handler.handleWalletLocked('DSC Locked', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
+    await subscribe('DriipSettlementChallengeByPayment.ChallengeByPaymentEvent', async (challengedWallet, nonce, _cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
+      await handler.handleWalletLocked('DSC Locked', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
     });
 
-    logger.info(`Listen to 'NullSettlementChallengeByPayment.StartChallengeEvent', '${(await contracts.getNullSettlementChallengeByPayment()).address}'`);
-    (await contracts.getNullSettlementChallengeByPayment()).on('StartChallengeEvent', (wallet, nonce, stageAmount, targetBalanceAmount, ct, id) => {
-      logger.info('Received NullSettlementChallengeByPayment.StartChallengeEvent');
-      handler.handleNSCStart(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
+    await subscribe('NullSettlementChallengeByPayment.StartChallengeEvent', async (wallet, nonce, stageAmount, targetBalanceAmount, ct, id) => {
+      await handler.handleNSCStart(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    logger.info(`Listen to 'NullSettlementChallengeByPayment.StartChallengeByProxyEvent', '${(await contracts.getNullSettlementChallengeByPayment()).address}'`);
-    (await contracts.getNullSettlementChallengeByPayment()).on('StartChallengeByProxyEvent', (wallet, nonce, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
-      logger.info('Received NullSettlementChallengeByPayment.StartChallengeByProxyEvent');
-      handler.handleNSCStart(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
+    await subscribe('NullSettlementChallengeByPayment.StartChallengeByProxyEvent', async (wallet, nonce, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
+      await handler.handleNSCStart(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
     });
 
-    logger.info(`Listen to 'NullSettlementChallengeByPayment.ChallengeByPaymentEvent', '${(await contracts.getNullSettlementChallengeByPayment()).address}'`);
-    (await contracts.getNullSettlementChallengeByPayment()).on('ChallengeByPaymentEvent', (challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
-      logger.info('Received NullSettlementChallengeByPayment.ChallengeByPaymentEvent');
-      handler.handleWalletLocked('NSC Locked', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
+    await subscribe('NullSettlementChallengeByPayment.ChallengeByPaymentEvent', async (challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
+      await handler.handleWalletLocked('NSC Locked', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
     });
 
-    logger.info(`Listen to 'ClientFund.SeizeBalancesEvent', '${(await contracts.getClientFund()).address}'`);
-    (await contracts.getClientFund()).on('SeizeBalancesEvent', (seizedWallet, seizerWallet, value, ct, id) => {
-      logger.info('Received ClientFund.SeizeBalancesEvent');
-      handler.handleBalancesSeized(seizedWallet, seizerWallet, value, ct, id);
+    await subscribe('ClientFund.SeizeBalancesEvent', async (seizedWallet, seizerWallet, value, ct, id) => {
+      await handler.handleBalancesSeized(seizedWallet, seizerWallet, value, ct, id);
     });
+
+    _eventGenerator.start([topics]); // Nested array to invoke or-options
   }
   catch (err) {
     throw new NestedError (err, 'Failed to initialize contract event handlers. ' + err.message);

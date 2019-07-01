@@ -1,5 +1,7 @@
 'use strict';
 
+const { logger } = require('@hubiinetwork/logger');
+
 const NestedError = require('../utils/nested-error');
 const { getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
@@ -68,8 +70,14 @@ class ChallengeHandler {
       try {
         const gasLimitOpt = _gasLimitOpt.get(this);
         const driipSettlementChallengeByPayment = (await contracts.getDriipSettlementChallengeByPayment()).connect(wallet);
-        await driipSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
-        _progressNotifier.get(this).notifyDSCDisputed(initiator, finalReceipt, targetBalance);
+
+        try {
+          await driipSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
+          _progressNotifier.get(this).notifyDSCDisputed(initiator, finalReceipt, targetBalance);
+        }
+        catch (err) {
+          logger.info('DSC Dispute REJECTED. ' + err.message);
+        }
       }
       catch (err) {
         throw new NestedError(err, 'Failed to challenge by payment. ' + err.message);
@@ -103,8 +111,14 @@ class ChallengeHandler {
         const wallet = _wallet.get(this);
         const gasLimitOpt = _gasLimitOpt.get(this);
         const nullSettlementChallengeByPayment = (await contracts.getNullSettlementChallengeByPayment()).connect(wallet);
-        await nullSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
-        _progressNotifier.get(this).notifyNSCDisputed(initiator, finalReceipt, targetBalance);
+
+        try {
+          await nullSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
+          _progressNotifier.get(this).notifyNSCDisputed(initiator, finalReceipt, targetBalance);
+        }
+        catch (err) {
+          logger.info('NSC Dispute REJECTED. ' + err.message);
+        }
       }
       catch (err) {
         throw new NestedError(err, 'Failed to challenge null payment. ' + err.message);
@@ -136,7 +150,7 @@ class ChallengeHandler {
       caption += ' SEIZING:';
     }
     else {
-      caption += ' NOT SEIZING:';
+      caption += ' IGNORED (not mine):';
     }
 
     _progressNotifier.get(this).notifyWalletLocked(caption, challengerWallet, challengedWallet, ct, id);

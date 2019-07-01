@@ -24,6 +24,6 @@ module.exports = function (ctx, walletName, settleAmount, symbol) {
   // Balances
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-staged-eth-balance-after-action')(ctx, walletName, null);
-  require('../../../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, '0.0', symbol);
+  require('../../../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, '-' + settleAmount, symbol);
   require('../../../work-steps/balances/verify-staged-eth-balance-change')(ctx, walletName, settleAmount);
 };

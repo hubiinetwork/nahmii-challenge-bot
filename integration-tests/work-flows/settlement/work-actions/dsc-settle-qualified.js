@@ -24,7 +24,7 @@ module.exports = function (ctx, walletName, paymentName, settleAmount, symbol) {
 
   // Action
   //require('../work-steps/settlement/settlement-settle')(ctx, walletName, symbol);
-  require('../../../work-steps/contracts/DriipSettlement/SettlePayment')(ctx, walletName, paymentName);
+  require('../../../work-steps/contracts/DriipSettlement/SettlePayment')(ctx, walletName, paymentName, symbol);
 
   // Events
   require('../../../work-steps/contract-events/validate-DriipSettlement-SettlePaymentEvent-promise')(ctx);
@@ -33,6 +33,6 @@ module.exports = function (ctx, walletName, paymentName, settleAmount, symbol) {
   // Balances
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-staged-eth-balance-after-action')(ctx, walletName, null);
-  require('../../../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, '0.0', symbol);
+  require('../../../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, '-' + settleAmount, symbol);
   require('../../../work-steps/balances/verify-staged-eth-balance-change')(ctx, walletName, settleAmount);
 };

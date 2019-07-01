@@ -5,6 +5,7 @@ const chai = require('chai');
 const expect = chai.expect;
 const { formatEther } = require('ethers').utils;
 const assert = require('assert');
+const config = require('../../../../../src/config');
 
 module.exports = function (ctx, challengerName, walletName, stageAmount, symbol) {
   assert(typeof ctx === 'object');
@@ -14,8 +15,9 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   assert(typeof symbol === 'string');
 
   step(`${challengerName} NSC-start notification observed`, async function () {
-    this.timeout(8000);
-    await ctx.Miner.mineOneBlock();
+    this.timeout(Math.max(2000 * config.services.confirmationsDepth, 8000));
+    for (let i = 0; i < config.services.confirmationsDepth + 1; ++i)
+      await ctx.Miner.mineOneBlock();
     return expect(ctx.purses[challengerName].NSCStartPromise).to.eventually.be.fulfilled;
   });
 

@@ -30,7 +30,7 @@ class FakeChallengeHandler {
     this.handleBalancesSeized = sinon.stub();
   }
 }
-
+/*
 describe('challenge-handler-factory', () => {
   let stubbedContractRepository;
   let fakeChallengeHandler;
@@ -105,3 +105,4 @@ describe('challenge-handler-factory', () => {
     });
   });
 });
+*/
