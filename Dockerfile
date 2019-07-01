@@ -15,9 +15,8 @@ ADD src ./src
 ADD index.js .
 RUN npm install --only=production
 
-FROM alpine:3.9
+FROM node:10.16
 
-ENV NODE_VERSION 10.16.0
 WORKDIR /app
 COPY --from=build /app .
 
