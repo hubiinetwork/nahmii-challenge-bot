@@ -94,12 +94,22 @@ class EventGenerator extends EventEmitter {
   async * genLatestConfirmedBlockNumbers () {
     try {
       const provider = await providerFactory.acquireProvider();
+      let oldLatestBlockNo;
 
       for await (const estimatedConfirmationDepth of this.genEstimatedConfirmationDepth()) {
         const latestBlockNo = await provider.getBlockNumber();
-        const latestConfirmedBlockNo = Math.max(latestBlockNo - estimatedConfirmationDepth, 0);
 
-        yield latestConfirmedBlockNo;
+        if (latestBlockNo === oldLatestBlockNo) {
+          await new Promise(resolve => setTimeout(resolve, this.config.getBlockPullDelayMs()));
+        }
+        else {
+          const latestConfirmedBlockNo = Math.max(latestBlockNo - estimatedConfirmationDepth, 0);
+
+          logger.info(`Block gap ${latestConfirmedBlockNo} ${latestBlockNo}`);
+
+          yield latestConfirmedBlockNo;
+          oldLatestBlockNo = latestBlockNo;
+        }
       }
     }
     catch (err) {
@@ -111,19 +121,14 @@ class EventGenerator extends EventEmitter {
    * Generate latest block numbers in strictly increasing order of step 1
    */
   async * genSequenceOfLatestConfirmedBlockNumbers() {
-    let oldBlockNo;
+    let oldConfirmedBlockNo;
 
     for await (const confirmedBlockNo of this.genLatestConfirmedBlockNumbers()) {
-      if (confirmedBlockNo === oldBlockNo) {
-        await new Promise(resolve => setTimeout(resolve, this.config.getBlockPullDelayMs()));
-      }
-      else {
-        const startBlockNo = oldBlockNo === undefined ? confirmedBlockNo : oldBlockNo + 1;
-        for (let i = startBlockNo; i <= confirmedBlockNo; ++i)
-          yield i;
+      const startBlockNo = oldConfirmedBlockNo === undefined ? confirmedBlockNo : oldConfirmedBlockNo + 1;
+      for (let i = startBlockNo; i <= confirmedBlockNo; ++i)
+        yield i;
 
-        oldBlockNo = confirmedBlockNo;
-      }
+      oldConfirmedBlockNo = confirmedBlockNo;
     }
   }
 
