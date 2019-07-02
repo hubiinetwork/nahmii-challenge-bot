@@ -137,6 +137,7 @@ class EventGenerator extends EventEmitter {
 
     for await (const blockNo of this.genSequenceOfLatestConfirmedBlockNumbers()) {
       const logs = await provider.getLogs({ fromBlock: blockNo, toBlock: blockNo, topics });
+      logger.info(`logs ${logs.length}`);
       for (const log of logs)
         yield log;
     }
