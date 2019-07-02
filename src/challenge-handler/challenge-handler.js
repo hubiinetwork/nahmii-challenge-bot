@@ -62,12 +62,12 @@ class ChallengeHandler {
     const balanceTracker = await contracts.getBalanceTracker();
 
     const proofCandidate = await ChallengeHandler.getProofCandidate(balanceTracker, recentPayments, initiator, ct, id, stagedAmount.toString());
-    const hasProof = proofCandidate.targetBalance.lt(0);
-    const finalReceipt = proofCandidate.receipt;
-    const targetBalance = proofCandidate.targetBalance.toString();
+    const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
 
     if (hasProof) {
       try {
+        const finalReceipt = proofCandidate.receipt;
+        const targetBalance = proofCandidate.targetBalance.toString();
         const gasLimitOpt = _gasLimitOpt.get(this);
         const driipSettlementChallengeByPayment = (await contracts.getDriipSettlementChallengeByPayment()).connect(wallet);
 
@@ -84,7 +84,7 @@ class ChallengeHandler {
       }
     }
     else {
-      _progressNotifier.get(this).notifyDSCAgreed(initiator, finalReceipt, targetBalance);
+      _progressNotifier.get(this).notifyDSCAgreed(initiator);
     }
   }
 

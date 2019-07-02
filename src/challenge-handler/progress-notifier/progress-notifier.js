@@ -38,9 +38,11 @@ class ProgressNotifier {
     this.notifyCallback('onDSCStart', initiator, nonce, stagedAmount);
   }
 
-  notifyDSCAgreed (sender, receipt, targetBalance) {
-    logReceipt('DSC Agreed', receipt, targetBalance);
-    this.notifyCallback('onDSCAgreed', sender, receipt, targetBalance);
+  notifyDSCAgreed (sender) {
+    logger.info('    DSC Agreed without payment');
+    logger.info(`    Sender   : address '${sender}'`);
+    logger.info(' ');
+    this.notifyCallback('onDSCAgreed', sender);
   }
 
   notifyDSCDisputed (sender, receipt, targetBalance) {
