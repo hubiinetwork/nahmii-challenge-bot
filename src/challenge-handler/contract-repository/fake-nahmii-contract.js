@@ -67,6 +67,19 @@ class FakeNahmiiContract {
   validate () {
     return true;
   }
+
+  get interface () {
+    return {
+      events: {
+        'StartChallengeFromPaymentEvent': { topic: 'xxx' },
+        'StartChallengeFromPaymentByProxyEvent': { topic: 'xxx' },
+        'ChallengeByPaymentEvent': { topic: 'xxx' },
+        'StartChallengeEvent': { topic: 'xxx' },
+        'StartChallengeByProxyEvent': { topic: 'xxx' },
+        'SeizeBalancesEvent': { topic: 'xxx' }
+      }
+    };
+  }
 }
 
 module.exports = FakeNahmiiContract;

@@ -29,7 +29,8 @@ class Config {
   static get services () {
     return {
       baseUrl: process.env['NAHMII_BASE_URL'] || devDefault('api2.dev.hubii.net'),
-      metricsPort: process.env['METRICS_PORT'] || 8079
+      metricsPort: process.env['METRICS_PORT'] || 8079,
+      confirmationsDepth: process.env['CONFIRMATIONS_DEPTH'] || 12
     };
   }
 

@@ -5,13 +5,6 @@ const { logger } = require('@hubiinetwork/logger');
 
 const _callbacks = new WeakMap;
 
-function logReceipt (verdict, receipt, targetBalance) {
-  logger.info(`    ${verdict} by payment at block ${receipt.blockNumber}`);
-  logger.info(`    Sender   : address '${receipt.sender.wallet}', nonce '${receipt.sender.nonce}', balance '${receipt.sender.balances.current}', tau '${targetBalance}'`);
-  logger.info(`    Recipient: address '${receipt.recipient.wallet}', nonce '${receipt.recipient.nonce}'`);
-  logger.info(' ');
-}
-
 class ProgressNotifier {
 
   constructor () {
@@ -38,13 +31,14 @@ class ProgressNotifier {
     this.notifyCallback('onDSCStart', initiator, nonce, stagedAmount);
   }
 
-  notifyDSCAgreed (sender, receipt, targetBalance) {
-    logReceipt('DSC Agreed', receipt, targetBalance);
-    this.notifyCallback('onDSCAgreed', sender, receipt, targetBalance);
+  notifyDSCAgreed (sender) {
+    logger.info('    DSC Agreed without payment');
+    logger.info(`    Sender   : address '${sender}'`);
+    logger.info(' ');
+    this.notifyCallback('onDSCAgreed', sender);
   }
 
   notifyDSCDisputed (sender, receipt, targetBalance) {
-    logReceipt('DSC Disputed', receipt, targetBalance);
     this.notifyCallback('onDSCDisputed', sender, receipt, targetBalance);
   }
 
@@ -61,7 +55,6 @@ class ProgressNotifier {
   }
 
   notifyNSCDisputed (initiatorAddress, receipt, targetBalance) {
-    logReceipt('NSC Disputed', receipt, targetBalance);
     this.notifyCallback('onNSCDisputed', initiatorAddress, receipt, targetBalance);
   }
 

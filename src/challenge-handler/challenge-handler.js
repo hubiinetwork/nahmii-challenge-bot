@@ -1,5 +1,7 @@
 'use strict';
 
+const { logger } = require('@hubiinetwork/logger');
+
 const NestedError = require('../utils/nested-error');
 const { getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
@@ -9,6 +11,16 @@ const contracts = require('./contract-repository');
 const _wallet = new WeakMap;
 const _gasLimitOpt = new WeakMap;
 const _progressNotifier = new WeakMap;
+
+
+function logReceipt (verdict, receipt, targetBalance) {
+  logger.info(`    ${verdict}`);
+  logger.info(`    Block    : ${receipt.blockNumber}`);
+  logger.info(`    Sender   : address '${receipt.sender.wallet}', nonce '${receipt.sender.nonce}', balance '${receipt.sender.balances.current}', tau '${targetBalance}'`);
+  logger.info(`    Recipient: address '${receipt.recipient.wallet}', nonce '${receipt.recipient.nonce}'`);
+  logger.info(' ');
+}
+
 
 class ChallengeHandler {
 
@@ -60,23 +72,36 @@ class ChallengeHandler {
     const balanceTracker = await contracts.getBalanceTracker();
 
     const proofCandidate = await ChallengeHandler.getProofCandidate(balanceTracker, recentPayments, initiator, ct, id, stagedAmount.toString());
-    const hasProof = proofCandidate.targetBalance.lt(0);
-    const finalReceipt = proofCandidate.receipt;
-    const targetBalance = proofCandidate.targetBalance.toString();
+    const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
 
     if (hasProof) {
       try {
+        const finalReceipt = proofCandidate.receipt;
+        const targetBalance = proofCandidate.targetBalance.toString();
         const gasLimitOpt = _gasLimitOpt.get(this);
         const driipSettlementChallengeByPayment = (await contracts.getDriipSettlementChallengeByPayment()).connect(wallet);
-        await driipSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
-        _progressNotifier.get(this).notifyDSCDisputed(initiator, finalReceipt, targetBalance);
+
+        let disputeResult;
+
+        try {
+          await driipSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
+          disputeResult = 'ACCEPTED.';
+        }
+        catch (err) {
+          disputeResult = 'REJECTED. ' + err.message;
+        }
+
+        if (/ACCEPTED/.test(disputeResult))
+          _progressNotifier.get(this).notifyDSCDisputed(initiator, finalReceipt, targetBalance);
+
+        logReceipt(`DSC Dispute ${disputeResult}`, finalReceipt, targetBalance);
       }
       catch (err) {
         throw new NestedError(err, 'Failed to challenge by payment. ' + err.message);
       }
     }
     else {
-      _progressNotifier.get(this).notifyDSCAgreed(initiator, finalReceipt, targetBalance);
+      _progressNotifier.get(this).notifyDSCAgreed(initiator);
     }
   }
 
@@ -103,8 +128,21 @@ class ChallengeHandler {
         const wallet = _wallet.get(this);
         const gasLimitOpt = _gasLimitOpt.get(this);
         const nullSettlementChallengeByPayment = (await contracts.getNullSettlementChallengeByPayment()).connect(wallet);
-        await nullSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
-        _progressNotifier.get(this).notifyNSCDisputed(initiator, finalReceipt, targetBalance);
+
+        let disputeResult;
+
+        try {
+          await nullSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
+          disputeResult = 'ACCEPTED.';
+        }
+        catch (err) {
+          disputeResult = 'REJECTED. ' + err.message;
+        }
+
+        if (/ACCEPTED/.test(disputeResult))
+          _progressNotifier.get(this).notifyNSCDisputed(initiator, finalReceipt, targetBalance);
+
+        logReceipt(`NSC Dispute ${disputeResult}`, finalReceipt, targetBalance);
       }
       catch (err) {
         throw new NestedError(err, 'Failed to challenge null payment. ' + err.message);
@@ -136,7 +174,7 @@ class ChallengeHandler {
       caption += ' SEIZING:';
     }
     else {
-      caption += ' NOT SEIZING:';
+      caption += ' IGNORED (not mine):';
     }
 
     _progressNotifier.get(this).notifyWalletLocked(caption, challengerWallet, challengedWallet, ct, id);

@@ -14,4 +14,5 @@ module.exports = function (ctx) {
   require('./acquire-faucet')(ctx);
   require('./acquire-miner')(ctx);
   require('./acquire-contracts')(ctx);
+  require('./donate-to-external-challenge-bot')(ctx, '0x026e46ff3d3b2c72b07ed9a2ec4d17d5b98c7ce0', '0.1');
 };
