@@ -95,21 +95,15 @@ class Miner extends nahmii.Wallet {
     });
   }
 
-  async mineCount (count = 1) {
-    try {
-      await this.mineOnce();
+  async mineBlocksWhile (conditionCB) {
+    while (conditionCB())
+      await this.mineOneBlock();
+  }
 
-      for (let i = 1; i < count; ++i) {
-        await this.mineOnce();
-
-        // Slow down according to Ethers polling capacity.
-        // Ethers drops log/events that has more than 12 blocks coverage per poll.
-        await new Promise(resolve => setTimeout(resolve, this.provider.pollingInterval / 6));
-      }
-    }
-    catch (err) {
-      throw new NestedError(err, 'Miner.mineCount() failed. ' + err.message);
-    }
+  async mineBlocksUntilResolved(promise) {
+    let isResolved = false;
+    promise.then(() => isResolved = true);
+    await this.mineBlocksWhile(() => !isResolved);
   }
 }
 

@@ -34,17 +34,17 @@ describe('event-generator', () => {
       // config
 
       it('has a mutable confirmation depth config', () => {
-        expect(eventGenerator.config.getConfirmationsDepth()).to.not.be.undefined;
-        const v0 = eventGenerator.config.getConfirmationsDepth();
-        eventGenerator.config.setConfirmationsDepth(v0 + 1);
-        expect(eventGenerator.config.getConfirmationsDepth()).to.equal(v0 + 1);
+        expect(eventGenerator.config.confirmationsDepth).to.not.be.undefined;
+        const v0 = eventGenerator.config.confirmationsDepth;
+        eventGenerator.config.confirmationsDepth = v0 + 1;
+        expect(eventGenerator.config.confirmationsDepth).to.equal(v0 + 1);
       });
 
       it('has a mutable block pull delay config', () => {
-        expect(eventGenerator.config.getBlockPullDelayMs()).to.not.be.undefined;
-        const v0 = eventGenerator.config.getBlockPullDelayMs();
-        eventGenerator.config.setBlockPullDelayMs(v0 + 1);
-        expect(eventGenerator.config.getBlockPullDelayMs()).to.equal(v0 + 1);
+        expect(eventGenerator.config.blockPullDelayMs).to.not.be.undefined;
+        const v0 = eventGenerator.config.blockPullDelayMs;
+        eventGenerator.config.blockPullDelayMs = v0 + 1;
+        expect(eventGenerator.config.blockPullDelayMs).to.equal(v0 + 1);
       });
 
       // generators
@@ -75,41 +75,41 @@ describe('event-generator', () => {
     let stubbedEventGenerator, blockNoItr;
 
     const fakeProvider = {
-      getBlockNumber: sinon.stub()
+      once: sinon.stub()
     };
 
     beforeEach(() => {
       stubbedEventGenerator = getNewStubbedEventGenerator(fakeProvider);
-      stubbedEventGenerator.config.setBlockPullDelayMs(100);
+      stubbedEventGenerator.config.blockPullDelayMs = 100;
       blockNoItr = stubbedEventGenerator.genLatestConfirmedBlockNumbers();
     });
 
     afterEach(() => {
-      fakeProvider.getBlockNumber.reset();
+      fakeProvider.once.reset();
     });
 
     when('generating block numbers', () => {
       it('generates block numbers with no confirmations', async () => {
-        stubbedEventGenerator.config.setConfirmationsDepth(0);
+        stubbedEventGenerator.config.confirmationsDepth = 0;
 
         for (let i = 10; i <= 20; ++i) {
-          fakeProvider.getBlockNumber.resolves(i);
+          fakeProvider.once.callsArgWith(1, i);
           expect((await blockNoItr.next()).value).to.be.equal(i);
         }
       });
 
       it('generates block numbers with confirmations', async () => {
-        stubbedEventGenerator.config.setConfirmationsDepth(2);
+        stubbedEventGenerator.config.confirmationsDepth = 2;
 
         for (let i = 10; i <= 20; ++i) {
-          fakeProvider.getBlockNumber.resolves(i);
+          fakeProvider.once.callsArgWith(1, i);
           expect((await blockNoItr.next()).value).to.be.equal(i - 2);
         }
       });
 
       it('generates block numbers that are strictly positive despite large confirmation requirement', async () => {
-        stubbedEventGenerator.config.setConfirmationsDepth(100);
-        fakeProvider.getBlockNumber.resolves(10);
+        stubbedEventGenerator.config.confirmationsDepth = 100;
+        fakeProvider.once.callsArgWith(1, 10);
         expect((await blockNoItr.next()).value).to.be.equal(0);
       });
     });
@@ -119,29 +119,29 @@ describe('event-generator', () => {
     let stubbedEventGenerator, blockNoGen;
 
     const fakeProvider = {
-      getBlockNumber: sinon.stub()
+      once: sinon.stub()
     };
 
     beforeEach(() => {
       stubbedEventGenerator = getNewStubbedEventGenerator(fakeProvider);
-      stubbedEventGenerator.config.setConfirmationsDepth(0);
-      stubbedEventGenerator.config.setBlockPullDelayMs(100);
+      stubbedEventGenerator.config.confirmationsDepth = 0;
+      stubbedEventGenerator.config.blockPullDelayMs = 100;
       blockNoGen = stubbedEventGenerator.genSequenceOfLatestConfirmedBlockNumbers();
     });
 
     afterEach(() => {
-      fakeProvider.getBlockNumber.reset();
+      fakeProvider.once.reset();
     });
 
     when('generating block numbers', () => {
       it('creates unique and strictly increasing block numbers', async () => {
         const blockNos = [];
 
-        fakeProvider.getBlockNumber.resolves(0);
+        fakeProvider.once.callsArgWith(1, 0);
         blockNos.push((await blockNoGen.next()).value);
 
         for (let i = 2; i < (3 * 2); i += 2) {
-          fakeProvider.getBlockNumber.resolves(i);
+          fakeProvider.once.callsArgWith(1, i);
           blockNos.push((await blockNoGen.next()).value);
           blockNos.push((await blockNoGen.next()).value);
         }
@@ -162,10 +162,10 @@ describe('event-generator', () => {
         let blockCounter = 0;
 
         for (const scenario of scenarios) {
-          fakeProvider.getBlockNumber.resolves(scenario.blockNo);
+          fakeProvider.once.callsArgWith(1, scenario.blockNo);
 
           blockNoGen.next().then(() => ++blockCounter);
-          const interval = stubbedEventGenerator.config.getBlockPullDelayMs() + 100;
+          const interval = stubbedEventGenerator.config.blockPullDelayMs + 100;
           await delay(interval);
           expect(blockCounter).to.equal(scenario.blockCounter);
         }

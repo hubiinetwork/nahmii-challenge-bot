@@ -12,6 +12,16 @@ const _wallet = new WeakMap;
 const _gasLimitOpt = new WeakMap;
 const _progressNotifier = new WeakMap;
 
+
+function logReceipt (verdict, receipt, targetBalance) {
+  logger.info(`    ${verdict}`);
+  logger.info(`    Block    : ${receipt.blockNumber}`);
+  logger.info(`    Sender   : address '${receipt.sender.wallet}', nonce '${receipt.sender.nonce}', balance '${receipt.sender.balances.current}', tau '${targetBalance}'`);
+  logger.info(`    Recipient: address '${receipt.recipient.wallet}', nonce '${receipt.recipient.nonce}'`);
+  logger.info(' ');
+}
+
+
 class ChallengeHandler {
 
   constructor(wallet, gasLimit) {
@@ -71,13 +81,20 @@ class ChallengeHandler {
         const gasLimitOpt = _gasLimitOpt.get(this);
         const driipSettlementChallengeByPayment = (await contracts.getDriipSettlementChallengeByPayment()).connect(wallet);
 
+        let disputeResult;
+
         try {
           await driipSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
-          _progressNotifier.get(this).notifyDSCDisputed(initiator, finalReceipt, targetBalance);
+          disputeResult = 'ACCEPTED.';
         }
         catch (err) {
-          logger.info('DSC Dispute REJECTED. ' + err.message);
+          disputeResult = 'REJECTED. ' + err.message;
         }
+
+        if (/ACCEPTED/.test(disputeResult))
+          _progressNotifier.get(this).notifyDSCDisputed(initiator, finalReceipt, targetBalance);
+
+        logReceipt(`DSC Dispute ${disputeResult}`, finalReceipt, targetBalance);
       }
       catch (err) {
         throw new NestedError(err, 'Failed to challenge by payment. ' + err.message);
@@ -112,13 +129,20 @@ class ChallengeHandler {
         const gasLimitOpt = _gasLimitOpt.get(this);
         const nullSettlementChallengeByPayment = (await contracts.getNullSettlementChallengeByPayment()).connect(wallet);
 
+        let disputeResult;
+
         try {
           await nullSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
-          _progressNotifier.get(this).notifyNSCDisputed(initiator, finalReceipt, targetBalance);
+          disputeResult = 'ACCEPTED.';
         }
         catch (err) {
-          logger.info('NSC Dispute REJECTED. ' + err.message);
+          disputeResult = 'REJECTED. ' + err.message;
         }
+
+        if (/ACCEPTED/.test(disputeResult))
+          _progressNotifier.get(this).notifyNSCDisputed(initiator, finalReceipt, targetBalance);
+
+        logReceipt(`NSC Dispute ${disputeResult}`, finalReceipt, targetBalance);
       }
       catch (err) {
         throw new NestedError(err, 'Failed to challenge null payment. ' + err.message);

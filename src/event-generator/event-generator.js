@@ -15,21 +15,22 @@ class EventGeneratorConfig {
   constructor () {
     _blockPullDelayMs.set(this, 1000);
     _confirmationsDepth.set(this, 12);
+    Object.seal(this);
   }
 
-  getBlockPullDelayMs () {
+  get blockPullDelayMs () {
     return _blockPullDelayMs.get(this);
   }
 
-  setBlockPullDelayMs (delayMs) {
+  set blockPullDelayMs (delayMs) {
     _blockPullDelayMs.set(this, delayMs);
   }
 
-  getConfirmationsDepth () {
+  get confirmationsDepth () {
     return _confirmationsDepth.get(this);
   }
 
-  setConfirmationsDepth (depth) {
+  set confirmationsDepth (depth) {
     _confirmationsDepth.set(this, depth);
   }
 }
@@ -73,17 +74,17 @@ class EventGenerator extends EventEmitter {
       const avgSecPrBlock = Math.trunc((blockTimestampSecLatest - blockTimestampSec0) / Math.max(blockWindowSize, 1));
       const timeoutMarginFactor = 0.5;
       const maxConfirmationDepth = Math.trunc(timeoutMarginFactor * challengeTimeoutSec / avgSecPrBlock);
-      const estimatedConfirmationDepth = Math.min(maxConfirmationDepth, this.config.getConfirmationsDepth());
+      const estimatedConfirmationDepth = Math.min(maxConfirmationDepth, this.config.confirmationsDepth());
 
       yield estimatedConfirmationDepth;
 
       if (oldEstimatedConfirmationDepth !== estimatedConfirmationDepth) {
-        logger.info(`Confirmation depth: configured ${this.config.getConfirmationsDepth()},  estimated ${estimatedConfirmationDepth}`);
+        logger.info(`Confirmation depth: configured ${this.config.confirmationsDepth()},  estimated ${estimatedConfirmationDepth}`);
         oldEstimatedConfirmationDepth = estimatedConfirmationDepth;
       }
     }
   */
-    const confirmationsDepth = this.config.getConfirmationsDepth();
+    const confirmationsDepth = this.config.confirmationsDepth;
 
     while (true) {
       await new Promise(resolve => setTimeout(resolve, 0)); // Avoids heap exhaustion
@@ -94,22 +95,14 @@ class EventGenerator extends EventEmitter {
   async * genLatestConfirmedBlockNumbers () {
     try {
       const provider = await providerFactory.acquireProvider();
-      let oldLatestBlockNo;
 
       for await (const estimatedConfirmationDepth of this.genEstimatedConfirmationDepth()) {
-        const latestBlockNo = await provider.getBlockNumber();
+        const latestBlockNo = await new Promise(resolve => provider.once('block', resolve));
+        const latestConfirmedBlockNo = Math.max(latestBlockNo - estimatedConfirmationDepth, 0);
 
-        if (latestBlockNo === oldLatestBlockNo) {
-          await new Promise(resolve => setTimeout(resolve, this.config.getBlockPullDelayMs()));
-        }
-        else {
-          const latestConfirmedBlockNo = Math.max(latestBlockNo - estimatedConfirmationDepth, 0);
+        logger.info(`Block ${latestConfirmedBlockNo} (${latestBlockNo})`);
 
-          logger.info(`Block gap ${latestConfirmedBlockNo} ${latestBlockNo}`);
-
-          yield latestConfirmedBlockNo;
-          oldLatestBlockNo = latestBlockNo;
-        }
+        yield latestConfirmedBlockNo;
       }
     }
     catch (err) {
@@ -137,7 +130,7 @@ class EventGenerator extends EventEmitter {
 
     for await (const blockNo of this.genSequenceOfLatestConfirmedBlockNumbers()) {
       const logs = await provider.getLogs({ fromBlock: blockNo, toBlock: blockNo, topics });
-      logger.info(`logs ${logs.length}`);
+
       for (const log of logs)
         yield log;
     }

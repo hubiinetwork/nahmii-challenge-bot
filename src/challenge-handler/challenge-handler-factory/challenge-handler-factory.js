@@ -9,7 +9,7 @@ const EventGenerator = require('../../event-generator');
 const config = require('../../config');
 
 const _eventGenerator = new EventGenerator();
-_eventGenerator.config.setConfirmationsDepth(config.services.confirmationsDepth);
+_eventGenerator.config.confirmationsDepth = config.services.confirmationsDepth;
 
 async function create (wallet, gasLimit) {
   const handler = new ChallengeHandler(wallet, gasLimit);
