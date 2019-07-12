@@ -11,6 +11,7 @@ module.exports = function (ctx) {
   require('./acquire-context')(ctx);
   require('./acquire-currencies')(ctx);
   require('./acquire-provider')(ctx);
+  require('./acquire-owner')(ctx);
   require('./acquire-faucet')(ctx);
   require('./acquire-miner')(ctx);
   require('./acquire-contracts')(ctx);

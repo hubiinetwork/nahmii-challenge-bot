@@ -3,7 +3,16 @@
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 
-describe('Start Single DSC accepted', () => {
+/*
+2.1 Challengeable Single NSC (simplified)
+-----------------------------------------
+  A deposits 10 ETH
+  A pays B 5 ETH
+  A starts NSC
+  C challenges A’s NSC with the payment as proof
+*/
+
+describe('1-single-nsc-simple-fulfilled-disputed-seized', () => {
   const ctx = {};
 
   describe('A. Acquire resources', () => {
@@ -22,24 +31,20 @@ describe('Start Single DSC accepted', () => {
     require('../../../resources/acquire-actor')(ctx, 'Bob', '5.0');
   });
 
+  // A deposits 10 ETH - Balance 10 ETH
   describe('E. Alice deposits ETH to nahmii', () => {
-    require('../../../work-actions/deposit-eth')(ctx, 'Alice', '10.0', 'ETH');
+    require('../../../work-actions/deposit-amount')(ctx, 'Alice', '10.0', 'ETH');
   });
 
+  // A pays B 5 ETH - Balance 4.9 ETH
   describe('F. Alice pays Bob', () => {
     require('../../../work-actions/make-nahmii-payment')(ctx, 'Alice', 'Bob', 'Receipt_1', '5.0', 'ETH');
   });
 
-  describe('G. Alice starts challenge process ETH', () => {
-    require('../work-actions/start-dsc-challenge-fulfilled-agreed')(ctx, 'Carol', 'Alice', 'Receipt_1', '2.0', 'ETH');
-  });
-
-  describe('H. Alice settles ETH', () => {
-    require('../work-actions/dsc-settle-qualified')(ctx, 'Alice', 'Receipt_1', '2.0', 'ETH');
-  });
-
-  describe('I. Alice withdraws ETH', () => {
-    require('../work-actions/withdraw-qualified')(ctx, 'Alice', '2.0', 'ETH');
+  // C challenges A’s NSC with the payment as proof - Balance 4.9 ETH - Withdraw 5.0 ETH
+  describe('G. Alice starts disputed challenge process seized by Carol', () => {
+    require('../work-actions/start-nsc-challenge-fulfilled-disputed-locked')(ctx, 'Carol', 'Alice', '5.0', 'ETH');
   });
 
 });
+

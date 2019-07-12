@@ -1,6 +1,14 @@
 'use strict';
 
-module.exports = function (ctx, walletName, settleAmount, symbol) {
+const assert = require('assert');
+
+module.exports = function (ctx, walletName, settleAmount, symbol, dummy) {
+  assert(typeof ctx === 'object');
+  assert(typeof walletName === 'string');
+  assert(typeof settleAmount === 'string');
+  assert(typeof symbol === 'string');
+  assert(dummy === undefined);
+
   // Events
   require('../../../work-steps/contract-events/create-ClientFund-StageEvent-promise')(ctx);
   require('../../../work-steps/contract-events/create-NullSettlement-SettleNullEvent-promise')(ctx);
@@ -8,7 +16,7 @@ module.exports = function (ctx, walletName, settleAmount, symbol) {
   // Balances
   require('../../../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
   require('../../../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
-  require('../../../work-steps/balances/capture-staged-eth-balance-before-action')(ctx, walletName);
+  require('../../../work-steps/balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
 
   // Proposals
   require('../work-steps/proposals/capture-nsc-proposal-expiration-time')(ctx, walletName, symbol);
@@ -23,7 +31,7 @@ module.exports = function (ctx, walletName, settleAmount, symbol) {
 
   // Balances
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
-  require('../../../work-steps/balances/capture-staged-eth-balance-after-action')(ctx, walletName, null);
+  require('../../../work-steps/balances/capture-staged-balance-after-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, '-' + settleAmount, symbol);
-  require('../../../work-steps/balances/verify-staged-eth-balance-change')(ctx, walletName, settleAmount);
+  require('../../../work-steps/balances/verify-staged-balance-change')(ctx, walletName, settleAmount, symbol);
 };

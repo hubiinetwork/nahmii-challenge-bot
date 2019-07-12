@@ -5,7 +5,6 @@ const expect = chai.expect;
 const ethers = require('ethers');
 const { addUnits, subUnits } = require('../../src/utils/mixed-big-number-ops');
 const io = require('socket.io-client');
-const assert = require('assert');
 
 function promiseNextReceiptFromEvent () {
   return new Promise((resolve, reject) => {
@@ -34,13 +33,6 @@ function promiseNextReceiptFromEvent () {
   });
 }
 
-function fmtDepositFromData (data, unit) {
-  const amountStr = '0x' + data.substring((1 + 36) * 2, (1 + 36 + 32) * 2);
-  const amountBn = new ethers.utils.bigNumberify(amountStr);
-  const amountFmt = ethers.utils.formatUnits(amountBn, unit);
-  return amountFmt;
-}
-
 module.exports = function (ctx, walletName, depositAmount, symbol, dummy) {
   assert(typeof ctx === 'object');
   assert(typeof walletName === 'string');
@@ -65,20 +57,17 @@ module.exports = function (ctx, walletName, depositAmount, symbol, dummy) {
   step(`${walletName} deposits`, async function () {
     if (symbol === 'ETH') {
       depositTransaction = await ctx.wallets[walletName].depositEth(depositAmount, { gasLimit: ctx.gasLimit });
-      expect(ethers.utils.formatEther(depositTransaction.value)).to.equal(depositAmount);
     } else {
-      const contract = ctx.contracts[symbol].connect(ctx.wallets[walletName]);
-      const clientFund = ctx.contracts.clientFund.connect(ctx.wallets[walletName]);
+      const contract = ctx.contracts[symbol];
+      const clientFund = ctx.contracts['ClientFund'];
       const amountBN = ethers.utils.parseUnits(depositAmount, ctx.currencies[symbol].unit);
-
       await contract.approve(clientFund.address, amountBN, { gasLimit: ctx.gasLimit });
       depositTransaction = await clientFund.receiveTokens('', amountBN, contract.address, 0, 'ERC20', { gasLimit: ctx.gasLimit });
-
-      const amountStr = fmtDepositFromData(depositTransaction.data, ctx.currencies[symbol].unit);
-      expect(amountStr).to.equal(depositAmount);
     }
 
-    this.test.title += `: ${depositAmount} ${symbol}, with hash ${depositTransaction.hash}`;
+    expect(depositTransaction).to.not.be.undefined.and.not.be.instanceof(Error);
+    expect(ethers.utils.formatUnits(depositTransaction.value, ctx.currencies[symbol].unit)).to.equal(depositAmount);
+    this.test.title += `: ${depositAmount} ${symbol}, staged with hash ${depositTransaction.hash}`;
   });
 
   step(`${walletName} receives`, async function () {
@@ -95,31 +84,17 @@ module.exports = function (ctx, walletName, depositAmount, symbol, dummy) {
   step(`${walletName} has a reduced onchain ${symbol} balance`, async function () {
     const purse = ctx.purses[walletName];
     const unit = ctx.currencies[symbol].unit;
+    const actualDeduction = subUnits(purse.onchainBalanceBeforeAction, purse.onchainBalanceAfterAction, unit);
+    const expectedDeduction = addUnits(depositAmount, depositReceipt.gasUsed.mul('1000000000'), unit);
 
-    expect(purse['onchainBalanceBeforeAction']).to.not.be.undefined;
-    expect(purse['onchainBalanceBeforeAction'][symbol]).to.not.be.undefined;
-    expect(purse['onchainBalanceAfterAction']).to.not.be.undefined;
-    expect(purse['onchainBalanceAfterAction'][symbol]).to.not.be.undefined;
+    this.test.title += '\n' +
+      '        actualDeduction  : ' + actualDeduction + '\n' +
+      '        expectedDeduction: ' + expectedDeduction;
 
-    const balanceBefore = purse['onchainBalanceBeforeAction'][symbol];
-    const balanceAfter = purse['onchainBalanceAfterAction'][symbol];
-    const actualDeduction = subUnits(balanceBefore, balanceAfter, unit);
+    // ISSUE: Does not match
+    // expect(actualDeduction).to.equal(expectedDeduction);
 
-    if (symbol === 'ETH') {
-      const expectedDeduction = addUnits(depositAmount, depositReceipt.gasUsed.mul('1000000000'), 18);
-
-      this.test.title += '\n' +
-        '        actualDeduction  : ' + actualDeduction + '\n' +
-        '        expectedDeduction: ' + expectedDeduction;
-
-      // ISSUE: Does not match
-      // expect(actualDeduction).to.equal(expectedDeduction);
-
-      expect(Number(actualDeduction)).to.gte(Number(expectedDeduction));
-    }
-    else {
-      expect(Number(actualDeduction)).to.equal(Number(depositAmount));
-    }
+    expect(Number(actualDeduction)).to.gte(Number(expectedDeduction));
   });
 
   require('../work-steps/balances/ensure-nahmii-balance-updates')(ctx, walletName, symbol);

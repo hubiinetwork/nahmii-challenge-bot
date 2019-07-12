@@ -22,15 +22,15 @@ describe('Start Single DSC accepted', () => {
     require('../../../resources/acquire-actor')(ctx, 'Bob', '5.0');
   });
 
-  describe('E. Alice deposits ETH to nahmii', () => {
-    require('../../../work-actions/deposit-eth')(ctx, 'Alice', '10.0', 'ETH');
+  describe('E. Alice deposits T18 to nahmii', () => {
+    require('../../../work-actions/deposit-amount')(ctx, 'Alice', '10.0', 'T18');
   });
 
   describe('F. Alice pays Bob', () => {
-    require('../../../work-actions/make-nahmii-payment')(ctx, 'Alice', 'Bob', 'Receipt_1', '5.0', 'ETH');
+    require('../../../work-actions/make-nahmii-payment')(ctx, 'Alice', 'Bob', 'Receipt_1', '5.0', 'T18');
   });
 
-  describe('G. Alice starts challenge process ETH', () => {
-    require('../work-actions/start-dsc-challenge-rejected')(ctx, 'Carol', 'Alice', 'Receipt_1', '5.0', 'ETH');
+  describe('G. Alice starts challenge process T18', () => {
+    require('../work-actions/start-dsc-challenge-rejected')(ctx, 'Carol', 'Alice', 'Receipt_1', '5.0', 'T18');
   });
 });

@@ -6,10 +6,11 @@ function isRevertContractException(error) {
   return error.code === 'CALL_EXCEPTION' || error.code === -32000;
 }
 
-module.exports = function (ctx, walletName, symbol) {
+module.exports = function (ctx, walletName, symbol, dummy) {
   assert(typeof ctx === 'object');
   assert(typeof walletName === 'string');
-  assert(symbol === 'ETH' || symbol === '???');
+  assert(typeof symbol === 'string');
+  assert(dummy === undefined);
 
   step(`${walletName} has no NSC proposal status`, done => {
     ctx.contracts.nullSettlementChallengeByPayment.proposalStatus(ctx.wallets[walletName].address, ctx.currencies[symbol].ct, 0)

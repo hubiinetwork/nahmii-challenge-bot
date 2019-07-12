@@ -17,6 +17,21 @@ function subEth (s1, s2) {
   return ethers.utils.formatEther(a.sub(b));
 }
 
+function addUnits (s1, s2, decimals) {
+  const a = (typeof s1 === 'string') ? ethers.utils.parseUnits(s1, decimals) : s1;
+  const b = (typeof s2 === 'string') ? ethers.utils.parseUnits(s2, decimals) : s2;
+
+  return ethers.utils.formatUnits(a.add(b), decimals);
+}
+
+function subUnits (s1, s2, decimals) {
+  const a = (typeof s1 === 'string') ? ethers.utils.parseUnits(s1, decimals) : s1;
+  const b = (typeof s2 === 'string') ? ethers.utils.parseUnits(s2, decimals) : s2;
+
+  return ethers.utils.formatUnits(a.sub(b), decimals);
+}
+
 module.exports = {
-  addEth, subEth
+  addEth, subEth,
+  addUnits, subUnits
 };

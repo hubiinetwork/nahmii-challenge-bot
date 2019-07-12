@@ -19,7 +19,7 @@ describe('Start Single NSC rejected', () => {
   });
 
   describe('D. Alice deposits ETH to nahmii', () => {
-    require('../../../work-actions/deposit-eth')(ctx, 'Alice', '2.0', 'ETH');
+    require('../../../work-actions/deposit-amount')(ctx, 'Alice', '2.0', 'ETH');
   });
 
   describe('E. Alice starts challenge process staging ETH', () => {
