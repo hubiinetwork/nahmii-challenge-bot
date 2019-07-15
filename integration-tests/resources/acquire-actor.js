@@ -6,8 +6,17 @@ const expect = chai.expect;
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
+const assert = require('assert');
 
-module.exports = function (ctx, walletName, assignedAmount) {
+module.exports = function (ctx, walletName, assignedAmountArr, dummy) {
+  assert(typeof ctx === 'object');
+  assert(typeof walletName === 'string');
+  assert(Array.isArray(assignedAmountArr));
+  assert(assignedAmountArr.length >= 1);
+  for (let i = 0; i < assignedAmountArr.length; ++i)
+    assert(assignedAmountArr[i].length === 2);
+  assert(dummy === undefined);
+
   step(`${walletName} has new wallet`, function () {
     ctx.purses[walletName] = {};
     ctx.wallets[walletName] = new nahmii.Wallet(ethers.Wallet.createRandom().privateKey, ctx.provider);
@@ -15,9 +24,8 @@ module.exports = function (ctx, walletName, assignedAmount) {
     this.test.title += `: ${ctx.wallets[walletName].address}`;
   });
 
-  require('./donate-amount-to-actor')(ctx, walletName, assignedAmount, 'ETH');
-  require('./donate-amount-to-actor')(ctx, walletName, assignedAmount, 'T18'); // TODO: make t18 assignment independent
-  require('./donate-amount-to-actor')(ctx, walletName, Number(assignedAmount * 1000).toFixed(1), 'T15'); // TODO: make t15 assignment independent
+  for ( const [amount, symbol] of assignedAmountArr)
+    require('./donate-amount-to-actor')(ctx, walletName, amount, symbol);
 
   step(`${walletName} has empty Nahmii balance`, async () => {
     const balance = await ctx.wallets[walletName].getNahmiiBalance();

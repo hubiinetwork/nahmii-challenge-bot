@@ -11,11 +11,11 @@ describe('Start Single NSC accepted', () => {
   });
 
   describe('B. Carol as challenger', () => {
-    require('../../../resources/acquire-challenger')(ctx, 'Carol', '10.0');
+    require('../../../resources/acquire-challenger')(ctx, 'Carol', [['1.0', 'ETH']]);
   });
 
   describe('C. Alice as actor', () => {
-    require('../../../resources/acquire-actor')(ctx, 'Alice', '10.0');
+    require('../../../resources/acquire-actor')(ctx, 'Alice', [['1.0', 'ETH'], ['10.0', 'T18']]);
   });
 
   describe('D. Alice deposits T18 to nahmii', () => {
@@ -33,5 +33,4 @@ describe('Start Single NSC accepted', () => {
   describe('G. Alice withdraws T18', () => {
     require('../work-actions/withdraw-qualified')(ctx, 'Alice', '2.0', 'T18');
   });
-
 });

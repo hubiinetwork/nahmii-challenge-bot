@@ -11,15 +11,15 @@ describe('Start Single DSC accepted', () => {
   });
 
   describe('B. Carol as challenger', () => {
-    require('../../../resources/acquire-challenger')(ctx, 'Carol', '10.0');
+    require('../../../resources/acquire-challenger')(ctx, 'Carol', [['1.0', 'ETH']]);
   });
 
   describe('C. Alice as actor', () => {
-    require('../../../resources/acquire-actor')(ctx, 'Alice', '15.0');
+    require('../../../resources/acquire-actor')(ctx, 'Alice', [['1.0', 'ETH'], ['15000.0', 'T15']]);
   });
 
   describe('D. Bob as actor', () => {
-    require('../../../resources/acquire-actor')(ctx, 'Bob', '5.0');
+    require('../../../resources/acquire-actor')(ctx, 'Bob', [['5000.0', 'T15']]);
   });
 
   describe('E. Alice deposits T15 to nahmii', () => {
@@ -41,5 +41,4 @@ describe('Start Single DSC accepted', () => {
   describe('I. Alice withdraws T15', () => {
     require('../work-actions/withdraw-qualified')(ctx, 'Alice', '2000.0', 'T15');
   });
-
 });

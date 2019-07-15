@@ -23,7 +23,7 @@ module.exports = function (ctx, challengerName, walletName, seizedBalance, symbo
     expect(seizerWallet).to.equal(ctx.wallets[challengerName].address);
     expect(seizedWallet).to.equal(ctx.wallets[walletName].address);
     expect(value).to.equal(seizedBalance);
-    expect(ct).to.equal(ctx.currencies[symbol].ct);
+    expect(ct.toLowerCase()).to.equal(ctx.currencies[symbol].ct.toLowerCase());
   });
 };
 

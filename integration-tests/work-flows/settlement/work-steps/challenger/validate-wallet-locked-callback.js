@@ -22,7 +22,7 @@ module.exports = function (ctx, challengerName, walletName, symbol) {
     const { challengerWallet, lockedWallet, ct, id } = await ctx.purses[challengerName].WalletLockedPromise;
     expect(challengerWallet).to.equal(ctx.wallets[challengerName].address);
     expect(lockedWallet).to.equal(ctx.wallets[walletName].address);
-    expect(ct).to.equal(ctx.currencies[symbol].ct);
+    expect(ct.toLowerCase()).to.equal(ctx.currencies[symbol].ct.toLowerCase());
   });
 };
 

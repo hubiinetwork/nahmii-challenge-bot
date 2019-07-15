@@ -36,7 +36,7 @@ async function getRecentSenderReceipts(provider, sender, ct, id, minSenderNonce,
 
   const filtered = receipts.filter(receipt =>
     (receipt.sender.wallet.toLowerCase() === lcSender) &&
-    (receipt.currency.ct === ct) && (receipt.currency.id === id.toString()) &&
+    (receipt.currency.ct.toLowerCase() === ct.toLowerCase()) && (receipt.currency.id === id.toString()) &&
     (receipt.sender.nonce >= minSenderNonce) && (receipt.blockNumber >= minBlockNo)
   );
 

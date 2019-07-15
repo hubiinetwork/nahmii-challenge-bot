@@ -7,7 +7,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   assert(/^\w+$/.test(challengerName));
   assert(/^\w+$/.test(walletName));
   assert(/^\d+\.\d*$/.test(stageAmount));
-  assert(/^[A-Z]+$/.test(symbol));
+  assert(/^[A-Z0-9]{3}$/.test(symbol));
 
   // Challenger callbacks
   require('../work-steps/challenger/subscribe-nsc-start-callback')(ctx, challengerName);
