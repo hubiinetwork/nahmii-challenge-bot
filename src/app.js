@@ -5,6 +5,7 @@ const nahmii = require('nahmii-sdk');
 const keythereum = require('keythereum');
 const path = require('path');
 const ethers = require('ethers');
+const http = require('http');
 
 const config = require('./config');
 const ClusterInformation = require('./cluster-information');
@@ -12,7 +13,8 @@ const NestedError = require('./utils/nested-error');
 const NahmiiProviderFactory = require('./nahmii-provider-factory');
 const ChallengeHandlerFactory = require('./challenge-handler/challenge-handler-factory');
 const metrics = require('./metrics');
-const http = require('http');
+const pkg = require('../package.json');
+
 
 process.on('unhandledRejection', (reason /*, promise*/) => {
   logger.error(NestedError.asStringified(reason));
@@ -32,7 +34,7 @@ async function registerEthBalance (wallet) {
 (async () => {
   const now = new Date(Date.now()).toISOString();
 
-  logger.info(`\n### ## # NAHMII CHALLENGE BOT STARTED ${now} # ## ###\n`);
+  logger.info(`\n### ## # NAHMII CHALLENGE BOT v${pkg.version} STARTED ${now} # ## ###\n`);
 
   logger.info('Validating config ...');
 
