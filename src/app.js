@@ -34,7 +34,7 @@ async function registerEthBalance (wallet) {
 (async () => {
   const now = new Date(Date.now()).toISOString();
 
-  logger.info(`\n### ## # NAHMII CHALLENGE BOT v${pkg.version} STARTED ${now} # ## ###\n`);
+  logger.info(`\n### ## # NAHMII CHALLENGE BOT v${pkg.version} STARTED ${now} # ## ###\n`);
 
   logger.info('Validating config ...');
 

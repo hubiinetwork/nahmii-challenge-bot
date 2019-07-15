@@ -32,7 +32,7 @@ class ProgressNotifier {
   }
 
   notifyDSCAgreed (sender) {
-    logger.info('    DSC Agreed without payment');
+    logger.info('    DSC Agreed');
     logger.info(`    Sender   : address '${sender}'`);
     logger.info(' ');
     this.notifyCallback('onDSCAgreed', sender);
@@ -48,7 +48,7 @@ class ProgressNotifier {
   }
 
   notifyNSCAgreed (sender) {
-    logger.info('    NSC Agreed without payment');
+    logger.info('    NSC Agreed');
     logger.info(`    Sender   : address '${sender}'`);
     logger.info(' ');
     this.notifyCallback('onNSCAgreed', sender);
