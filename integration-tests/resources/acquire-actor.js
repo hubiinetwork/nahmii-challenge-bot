@@ -6,8 +6,17 @@ const expect = chai.expect;
 const nahmii = require('nahmii-sdk');
 const ethers = require('ethers');
 const { formatEther, parseEther } = ethers.utils;
+const assert = require('assert');
 
-module.exports = function (ctx, walletName, assignedEth) {
+module.exports = function (ctx, walletName, assignedAmountArr, dummy) {
+  assert(typeof ctx === 'object');
+  assert(typeof walletName === 'string');
+  assert(Array.isArray(assignedAmountArr));
+  assert(assignedAmountArr.length >= 1);
+  for (let i = 0; i < assignedAmountArr.length; ++i)
+    assert(assignedAmountArr[i].length === 2);
+  assert(dummy === undefined);
+
   step(`${walletName} has new wallet`, function () {
     ctx.purses[walletName] = {};
     ctx.wallets[walletName] = new nahmii.Wallet(ethers.Wallet.createRandom().privateKey, ctx.provider);
@@ -15,26 +24,8 @@ module.exports = function (ctx, walletName, assignedEth) {
     this.test.title += `: ${ctx.wallets[walletName].address}`;
   });
 
-  step(`${walletName} has empty block chain balance`, async function () {
-    const balance = await ctx.wallets[walletName].getBalance();
-    expect(balance).to.not.be.undefined.and.not.be.instanceof(Error);
-    expect(balance.toString()).to.equal('0');
-  });
-
-  step(`${walletName} receives ${assignedEth} ETH from Faucet`, async () => {
-    return expect(
-      ctx.Faucet.sendTransaction({
-        to: ctx.wallets[walletName].address, value: parseEther(assignedEth), gasLimit: ctx.gasLimit
-      }).then(
-        () => ctx.Miner.mineOneBlock()
-      )).to.eventually.be.fulfilled;
-  });
-
-  step(`${walletName} has ETH in block chain balance`, async () => {
-    const balance = await ctx.wallets[walletName].getBalance();
-    expect(balance).to.not.be.undefined.and.not.be.instanceof(Error);
-    expect(formatEther(balance)).to.equal(assignedEth);
-  });
+  for (const [amount, symbol] of assignedAmountArr)
+    require('./donate-amount-to-actor')(ctx, walletName, amount, symbol);
 
   step(`${walletName} has empty Nahmii balance`, async () => {
     const balance = await ctx.wallets[walletName].getNahmiiBalance();

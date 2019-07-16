@@ -3,7 +3,7 @@
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 
-describe('Start Single NSC accepted', () => {
+describe('Start Single NSC fulfilled agreed ETH', () => {
   const ctx = {};
 
   describe('A. Acquire resources', () => {
@@ -11,15 +11,15 @@ describe('Start Single NSC accepted', () => {
   });
 
   describe('B. Carol as challenger', () => {
-    require('../../../resources/acquire-challenger')(ctx, 'Carol', '10.0');
+    require('../../../resources/acquire-challenger')(ctx, 'Carol', [['1.0', 'ETH']]);
   });
 
   describe('C. Alice as actor', () => {
-    require('../../../resources/acquire-actor')(ctx, 'Alice', '10.0');
+    require('../../../resources/acquire-actor')(ctx, 'Alice', [['10.0', 'ETH']]);
   });
 
   describe('D. Alice deposits ETH to nahmii', () => {
-    require('../../../work-actions/deposit-eth')(ctx, 'Alice', '2.0', 'ETH');
+    require('../../../work-actions/deposit-amount')(ctx, 'Alice', '2.0', 'ETH');
   });
 
   describe('E. Alice starts challenge process ETH', () => {
@@ -33,5 +33,4 @@ describe('Start Single NSC accepted', () => {
   describe('G. Alice withdraws ETH', () => {
     require('../work-actions/withdraw-qualified')(ctx, 'Alice', '2.0', 'ETH');
   });
-
 });

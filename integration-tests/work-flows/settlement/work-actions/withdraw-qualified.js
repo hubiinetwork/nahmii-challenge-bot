@@ -9,11 +9,11 @@ const { parseEther } = ethers.utils;
 module.exports = function (ctx, walletName, withdrawAmount, symbol) {
   require('../../../work-steps/balances/clear-all-balances-from-purse')(ctx, walletName);
 
-  require('../../../work-steps/balances/capture-l0-eth-balance-before-action')(ctx, walletName);
-  require('../../../work-steps/balances/capture-staged-eth-balance-before-action')(ctx, walletName);
+  require('../../../work-steps/balances/capture-onchain-balance-before-action')(ctx, walletName, symbol);
+  require('../../../work-steps/balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
 
   step(`${walletName} withdraws staged amount ${withdrawAmount} ${symbol}`, async function () {
-    const amount = nahmii.MonetaryAmount.from(parseEther(withdrawAmount), ctx.currencies['ETH'].ct, 0);
+    const amount = nahmii.MonetaryAmount.from(parseEther(withdrawAmount), ctx.currencies[symbol].ct, 0);
     const transaction = await ctx.wallets[walletName].withdraw(amount);
 
     expect(transaction).to.not.be.undefined.and.not.be.instanceof(Error);
@@ -23,9 +23,9 @@ module.exports = function (ctx, walletName, withdrawAmount, symbol) {
 
   require('../../../work-steps/blockchain/advance-blocks')(ctx, 3);
 
-  require('../../../work-steps/balances/capture-l0-eth-balance-after-action')(ctx, walletName);
-  require('../../../work-steps/balances/capture-staged-eth-balance-after-action')(ctx, walletName, null);
+  require('../../../work-steps/balances/capture-onchain-balance-after-action')(ctx, walletName, symbol);
+  require('../../../work-steps/balances/capture-staged-balance-after-action')(ctx, walletName, symbol);
 
-  require('../../../work-steps/balances/verify-l0-eth-balance-change')(ctx, walletName, withdrawAmount, 0.004);
-  require('../../../work-steps/balances/verify-staged-eth-balance-change')(ctx, walletName, '-' + withdrawAmount);
+  require('../../../work-steps/balances/verify-onchain-balance-change')(ctx, walletName, withdrawAmount, symbol, 0.004);
+  require('../../../work-steps/balances/verify-staged-balance-change')(ctx, walletName, '-' + withdrawAmount, symbol);
 };

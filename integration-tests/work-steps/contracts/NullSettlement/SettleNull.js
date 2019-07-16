@@ -37,10 +37,12 @@ module.exports = function (ctx, walletName, symbol) {
     }
   });
 
-  step (`${walletName} settles NSC`, async () => {
+  step (`${walletName} settles NSC`, async function () {
+    this.timeout(16000);
     const contract = ctx.contracts.nullSettlement.connect(ctx.wallets[walletName]);
     const standard = symbol === 'ETH' ? 'ETH' : 'ERC20';
     const promise = contract.settleNull(ctx.currencies[symbol].ct, 0, standard, { gasLimit: ctx.gasLimit });
+    await ctx.Miner.mineOneBlock();
 
     return expect(promise).to.eventually.be.fulfilled;
   });

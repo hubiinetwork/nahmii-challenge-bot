@@ -11,19 +11,19 @@ describe('Start Single DSC accepted', () => {
   });
 
   describe('B. Carol as challenger', () => {
-    require('../../../resources/acquire-challenger')(ctx, 'Carol', '10.0');
+    require('../../../resources/acquire-challenger')(ctx, 'Carol', [['1.0', 'ETH']]);
   });
 
   describe('C. Alice as actor', () => {
-    require('../../../resources/acquire-actor')(ctx, 'Alice', '15.0');
+    require('../../../resources/acquire-actor')(ctx, 'Alice', [['15.0', 'ETH']]);
   });
 
   describe('D. Bob as actor', () => {
-    require('../../../resources/acquire-actor')(ctx, 'Bob', '5.0');
+    require('../../../resources/acquire-actor')(ctx, 'Bob', [['5.0', 'ETH']]);
   });
 
   describe('E. Alice deposits ETH to nahmii', () => {
-    require('../../../work-actions/deposit-eth')(ctx, 'Alice', '10.0', 'ETH');
+    require('../../../work-actions/deposit-amount')(ctx, 'Alice', '10.0', 'ETH');
   });
 
   describe('F. Alice pays Bob', () => {

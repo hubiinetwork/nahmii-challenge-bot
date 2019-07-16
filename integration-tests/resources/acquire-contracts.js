@@ -56,4 +56,19 @@ module.exports = function (ctx) {
   step('NullSettlementDisputeByPayment contract', async () => {
     ctx.contracts.nullSettlementDisputeByPayment = await acquireContract(ctx, 'NullSettlementDisputeByPayment');
   });
+
+  async function aquireTokenContract (symbol, spec) {
+    const addr = spec.networks[3].address;
+    const curr = await minikube.getCurrency(symbol);
+    expect(addr).to.equal(curr.ct);
+    return new ethers.Contract(spec.networks[3].address, spec.abi, ctx.provider);
+  }
+
+  step('T18 contract', async () => {
+    ctx.contracts.T18 = await aquireTokenContract('T18', require('../utils/T18.json'));
+  });
+
+  step('T15 contract', async () => {
+    ctx.contracts.T15 = await aquireTokenContract('T15', require('../utils/T15.json'));
+  });
 };

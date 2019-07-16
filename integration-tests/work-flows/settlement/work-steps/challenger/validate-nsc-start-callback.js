@@ -3,7 +3,7 @@
 
 const chai = require('chai');
 const expect = chai.expect;
-const { formatEther } = require('ethers').utils;
+const { formatUnits } = require('ethers').utils;
 const assert = require('assert');
 const config = require('../../../../../src/config');
 
@@ -23,10 +23,11 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
 
   step('NSC-start payload is valid', async function () {
     const { initiatorWallet, stagedAmount, stagedCt, stageId } = await ctx.purses[challengerName].NSCStartPromise;
+    const unit = ctx.currencies[symbol].unit;
 
     expect(initiatorWallet).to.equal(ctx.wallets[walletName].address);
-    expect(formatEther(stagedAmount)).to.equal(stageAmount);
-    expect(stagedCt).to.equal(ctx.currencies[symbol].ct);
+    expect(formatUnits(stagedAmount, unit)).to.equal(stageAmount);
+    expect(stagedCt.toLowerCase()).to.equal(ctx.currencies[symbol].ct.toLowerCase());
     expect(stageId.toString()).to.equal('0');
   });
 };
