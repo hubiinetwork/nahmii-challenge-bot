@@ -2,31 +2,28 @@
 
 const ethers = require('ethers');
 
+function toBn (n, decimals) {
+  return (n instanceof ethers.utils.BigNumber) ? n : ethers.utils.parseUnits(n.toString(), decimals);
+}
 
 function addEth (s1, s2) {
-  const a = (typeof s1 === 'string') ? ethers.utils.parseEther(s1) : s1;
-  const b = (typeof s2 === 'string') ? ethers.utils.parseEther(s2) : s2;
-
-  return ethers.utils.formatEther(a.add(b));
+  return addUnits(s1, s2, 18);
 }
 
 function subEth (s1, s2) {
-  const a = (typeof s1 === 'string') ? ethers.utils.parseEther(s1) : s1;
-  const b = (typeof s2 === 'string') ? ethers.utils.parseEther(s2) : s2;
-
-  return ethers.utils.formatEther(a.sub(b));
+  return subUnits(s1, s2, 18);
 }
 
 function addUnits (s1, s2, decimals) {
-  const a = (typeof s1 === 'string') ? ethers.utils.parseUnits(s1, decimals) : s1;
-  const b = (typeof s2 === 'string') ? ethers.utils.parseUnits(s2, decimals) : s2;
+  const a = toBn(s1, decimals);
+  const b = toBn(s2, decimals);
 
   return ethers.utils.formatUnits(a.add(b), decimals);
 }
 
 function subUnits (s1, s2, decimals) {
-  const a = (typeof s1 === 'string') ? ethers.utils.parseUnits(s1, decimals) : s1;
-  const b = (typeof s2 === 'string') ? ethers.utils.parseUnits(s2, decimals) : s2;
+  const a = toBn(s1, decimals);
+  const b = toBn(s2, decimals);
 
   return ethers.utils.formatUnits(a.sub(b), decimals);
 }

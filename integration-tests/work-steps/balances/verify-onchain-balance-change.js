@@ -6,12 +6,12 @@ const assert = require('assert');
 
 const { subUnits } = require('../../../src/utils/mixed-big-number-ops');
 
-module.exports = function (ctx, walletName, expectedChange, symbol, fudge, dummy) {
+module.exports = function (ctx, walletName, expectedChange, symbol, epsilon, dummy) {
   assert(typeof ctx === 'object');
   assert(typeof walletName === 'string');
   assert(typeof expectedChange === 'string');
   assert(typeof symbol === 'string');
-  assert(typeof fudge === 'number');
+  assert(typeof epsilon === 'number');
   assert(dummy === undefined);
 
   step(`${walletName} onchain balance change: ${expectedChange} ${symbol}`, async function () {
@@ -27,7 +27,7 @@ module.exports = function (ctx, walletName, expectedChange, symbol, fudge, dummy
 
     const onchainBalanceDiff = subUnits(balanceAfter, balanceBefore, unit);
     const deviation = Math.abs(Number(onchainBalanceDiff) - Number(expectedChange));
-    expect(deviation).to.be.lte(fudge);
+    expect(deviation).to.be.lte(epsilon);
 
     this.test.title += ` got ${onchainBalanceDiff}`;
   });

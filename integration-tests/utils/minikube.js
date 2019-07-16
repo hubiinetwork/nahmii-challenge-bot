@@ -51,7 +51,6 @@ class Minikube {
     return 'ropsten';
   }
 
-  // TODO: remove async
   static async getCurrency (symbol) {
     const currencies = [
       {

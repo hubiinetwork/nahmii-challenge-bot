@@ -24,7 +24,7 @@ module.exports = function (ctx, walletName, assignedAmountArr, dummy) {
     this.test.title += `: ${ctx.wallets[walletName].address}`;
   });
 
-  for ( const [amount, symbol] of assignedAmountArr)
+  for (const [amount, symbol] of assignedAmountArr)
     require('./donate-amount-to-actor')(ctx, walletName, amount, symbol);
 
   step(`${walletName} has empty Nahmii balance`, async () => {

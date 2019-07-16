@@ -3,7 +3,7 @@
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 
-describe('Start Single NSC accepted', () => {
+describe('Start Single NSC fulfilled agreed T18', () => {
   const ctx = {};
 
   describe('A. Acquire resources', () => {

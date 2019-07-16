@@ -58,7 +58,6 @@ module.exports = function (ctx) {
   });
 
   async function aquireTokenContract (symbol, spec) {
-    const t18spec = require('../utils/T18.json');
     const addr = spec.networks[3].address;
     const curr = await minikube.getCurrency(symbol);
     expect(addr).to.equal(curr.ct);

@@ -2,13 +2,19 @@
 
 const chai = require('chai');
 const expect = chai.expect;
+const assert = require('assert');
 
 async function getNahmiiBalance(wallet, symbol) {
   const balances = await wallet.getNahmiiBalance();
   return (balances[symbol] === undefined) ? '0.0' : balances[symbol];
 }
 
-module.exports = function (ctx, walletName, symbol) {
+module.exports = function (ctx, walletName, symbol, dummy) {
+  assert(typeof ctx === 'object');
+  assert(typeof walletName === 'string');
+  assert(typeof symbol === 'string');
+  assert(dummy === undefined);
+
   if (!symbol)
     throw new Error('symbol undefined');
 
