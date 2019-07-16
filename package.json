@@ -41,6 +41,7 @@
   "dependencies": {
     "@hubiinetwork/logger": "github:hubiinetwork/logger",
     "bignumber.js": "^8.1.1",
+    "bson": "^4.0.2",
     "cors": "^2.8.5",
     "ethers": "4.0.18",
     "express": "^4.17.1",
