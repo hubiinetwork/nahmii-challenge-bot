@@ -3,34 +3,26 @@
 const request = require('superagent');
 const config = require('../config');
 const NestedError = require('../utils/nested-error');
+const { logger } = require('@hubiinetwork/logger');
 
-let clusterInfo;
-let timeToRefresh = 0;
-
-async function acquireInfo () {
-  try {
-    if (timeToRefresh < Date.now()) {
-      clusterInfo = (await request.get(`https://${config.services.baseUrl}`)).body;
-      timeToRefresh = Date.now() + 10000; // 10 sec
-    }
-
-    return clusterInfo;
-  }
-  catch (err) {
-    throw new NestedError(err, 'Failed to retrieve cluster information. ' + err.message);
-  }
-}
+let _ethereum;
 
 class ClusterInformation {
+  static async acquireEthereum () {
+    if (!_ethereum) {
+      try {
+        const url = `https://${config.services.baseUrl}`;
+        logger.info(`ClusterInformation: ${url}`);
 
-  static async getEthereum () {
-    try {
-      const { ethereum } = await acquireInfo();
-      return ethereum;
+        const clusterInfo = (await request.get(url)).body;
+        _ethereum = clusterInfo.ethereum;
+      }
+      catch (err) {
+        throw new NestedError(err, 'Failed to retrieve cluster information. ' + err.message);
+      }
     }
-    catch (err) {
-      throw new NestedError(err, 'Failed to retrieve ethereum info. ' + err.message);
-    }
+
+    return _ethereum;
   }
 }
 

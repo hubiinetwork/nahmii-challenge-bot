@@ -4,7 +4,7 @@
 const chai = require('chai');
 const expect = chai.expect;
 const assert = require('assert');
-const ethers = require('ethers');
+const config = require('../../../../../src/config');
 
 module.exports = function (ctx, challengerName, walletName, symbol) {
   assert(typeof ctx === 'object');
@@ -13,8 +13,8 @@ module.exports = function (ctx, challengerName, walletName, symbol) {
   assert(typeof symbol === 'string');
 
   step(`${challengerName} observed a wallet-locked notification`, async function () {
-    await ctx.Miner.mineOneBlock();
-    return expect(ctx.purses[challengerName].WalletLockedPromise).to.eventually.be.fulfilled;
+    this.timeout(Math.max(2000 * config.services.confirmationsDepth, 8000));
+    return expect(ctx.Miner.mineBlocksUntilResolved(ctx.purses[challengerName].WalletLockedPromise)).to.eventually.be.fulfilled;
   });
 
   step('Wallet-locked payload is valid', async function () {
@@ -22,7 +22,7 @@ module.exports = function (ctx, challengerName, walletName, symbol) {
     const { challengerWallet, lockedWallet, ct, id } = await ctx.purses[challengerName].WalletLockedPromise;
     expect(challengerWallet).to.equal(ctx.wallets[challengerName].address);
     expect(lockedWallet).to.equal(ctx.wallets[walletName].address);
-    expect(ct).to.equal(ctx.currencies[symbol].ct);
+    expect(ct.toLowerCase()).to.equal(ctx.currencies[symbol].ct.toLowerCase());
   });
 };
 

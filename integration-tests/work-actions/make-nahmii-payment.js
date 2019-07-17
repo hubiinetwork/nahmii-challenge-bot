@@ -2,8 +2,7 @@
 
 const chai = require('chai');
 const expect = chai.expect;
-const ethers = require('ethers');
-const { formatEther, parseEther, bigNumberify } = ethers.utils;
+const { formatUnits, parseUnits, bigNumberify } = require('ethers').utils;
 const nahmii = require('nahmii-sdk');
 
 module.exports = function (ctx, senderName, recipientName, receiptName, amount, symbol) {
@@ -19,8 +18,9 @@ module.exports = function (ctx, senderName, recipientName, receiptName, amount, 
     const senderWallet = ctx.wallets[senderName];
     const recipientWallet = ctx.wallets[recipientName];
     const senderPurse = ctx.purses[senderName];
+    const unit = ctx.currencies[symbol].unit;
 
-    const monetaryAmount = nahmii.MonetaryAmount.from(parseEther(amount), ctx.currencies[symbol].ct);
+    const monetaryAmount = nahmii.MonetaryAmount.from(parseUnits(amount, unit), ctx.currencies[symbol].ct);
     senderPurse.payment = new nahmii.Payment(monetaryAmount, senderWallet.address, recipientWallet.address, senderWallet);
 
     expect(senderPurse.payment).to.not.be.undefined.and.not.be.instanceof(Error);
@@ -36,12 +36,11 @@ module.exports = function (ctx, senderName, recipientName, receiptName, amount, 
   });
 
   step(`${senderName} registers payment`, async function () {
-    const promisedResult = ctx.purses[senderName].payment.register();
-    promisedResult.then(res => {
-      expect(formatEther(bigNumberify(res.amount))).to.equal(amount);
-      this.test.title += ` at ${res.blockNumber} ${res.id}`;
-    });
-    return expect(promisedResult).to.eventually.be.fulfilled;
+    this.timeout(8000);
+    const unit = ctx.currencies[symbol].unit;
+    const res = await ctx.purses[senderName].payment.register();
+    expect(formatUnits(bigNumberify(res.amount), unit)).to.equal(amount);
+    this.test.title += ` at ${res.blockNumber} ${res.id}`;
   });
 
   require('../work-steps/receipts/ensure-latest-receipt-updates')(ctx, senderName, symbol);

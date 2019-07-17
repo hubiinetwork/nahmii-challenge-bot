@@ -9,9 +9,9 @@ module.exports = function (ctx, challengerName) {
 
   step(`${challengerName} subscribes a wallet-locked notification`, async () => {
     ctx.purses[challengerName].WalletLockedPromise = new Promise(resolve => {
-      const challenger = ctx.wallets[challengerName].asChallenger;
-      challenger.onWalletLocked((challengerWallet, lockedWallet, ct, id) => {
-        challenger.onWalletLocked(null);
+      const callbacks = ctx.wallets[challengerName].asChallenger.callbacks;
+      callbacks.onWalletLocked((challengerWallet, lockedWallet, ct, id) => {
+        callbacks.onWalletLocked(null);
         resolve({ challengerWallet, lockedWallet, ct, id });
       });
     });

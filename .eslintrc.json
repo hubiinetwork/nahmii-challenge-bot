@@ -1,21 +1,23 @@
 {
-    "env": {
-        "es6": true,
-        "node": true,
-        "mocha": true
-    },
-    "parserOptions": {
-        "sourceType": "script",
-        "ecmaFeatures": {
-            "impliedStrict": false
-        }
-    },
-    "rules": {
-        "indent": ["error", 2, { "MemberExpression": "off" }],
-        "curly": ["error", "multi-or-nest", "consistent"],
-        "strict": ["error", "global"],
-        "eqeqeq" : ["error"],
-        "prefer-const" : ["error"]
-    },
-    "extends": "@hubiinetwork"
+  "env": {
+    "es6": true,
+    "node": true,
+    "mocha": true
+  },
+  "parserOptions": {
+    "sourceType": "script",
+    "ecmaFeatures": {
+      "impliedStrict": false
+    }
+  },
+  "rules": {
+    "indent": ["error", 2, { "MemberExpression": "off" }],
+    "curly": ["error", "multi-or-nest", "consistent"],
+    "strict": ["error", "global"],
+    "eqeqeq" : ["error"],
+    "prefer-const" : ["error"],
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^[_]\\w*" } ],
+    "space-unary-ops": ["error", {"words": true, "nonwords": false}]
+  },
+  "extends": "@hubiinetwork"
 }

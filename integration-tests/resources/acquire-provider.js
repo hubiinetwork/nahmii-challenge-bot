@@ -3,10 +3,11 @@
 const chai = require('chai');
 const minikube = require('../utils/minikube');
 const nahmii = require('nahmii-sdk');
+const providerFactory = require('../../src/nahmii-provider-factory');
 
 module.exports = function (ctx) {
   step('Provider', async () => {
-    ctx.provider = new nahmii.NahmiiProvider(minikube.baseUrl, minikube.appId, minikube.appSecret, minikube.nodeUrl, 'ropsten');
+    ctx.provider = await providerFactory.acquireProvider();
     chai.expect(ctx.provider).to.be.instanceof(nahmii.NahmiiProvider);
 
     // Increasing polling speed up from 4 sec in order to adapt to mining speed of ganache.
@@ -18,7 +19,7 @@ module.exports = function (ctx) {
     // Kick-start ethers polling loop by registering a dummy subscription
     ctx.provider.on('block', () => {});
 
-    // Wait a bit so that latency to next pull is reduced
+    // Wait a bit so that ethers log-puller get a chance to start
     await new Promise(resolve => setTimeout(resolve, 500));
   });
 };
