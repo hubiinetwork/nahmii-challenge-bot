@@ -89,6 +89,10 @@ describe('progress-notifier', () => {
           notifier.notifyBalancesSeized(challenger, lockedWallet, amount, ct, id);
         })).to.eventually.be.fulfilled;
       });
+
+      it('gracefully handles no subscribers (coverage)', function () {
+        notifier.notifyBalancesSeized(challenger, lockedWallet, amount, ct, id);
+      });
     });
   });
 });
