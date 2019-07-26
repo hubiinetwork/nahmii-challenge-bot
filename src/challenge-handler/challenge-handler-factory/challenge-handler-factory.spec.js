@@ -10,14 +10,14 @@ const nock = require('nock');
 const MetaServiceNocker = require('../../cluster-information/meta-service-nocker');
 
 
-const FakeNahmiiContract = require('../contract-repository/fake-nahmii-contract');
+const FakeNahmiiContract = require('../../contract-repository/fake-nahmii-contract');
 
 const fakeNahmiiSdk = {
   NahmiiContract: FakeNahmiiContract
 };
 
 function proxyquireStubbedContractRepositoryModule () {
-  return proxyquire('../contract-repository/contract-repository', {
+  return proxyquire('../../contract-repository/contract-repository', {
     'nahmii-sdk': fakeNahmiiSdk
   });
 }

@@ -3,7 +3,7 @@
 const EventEmitter = require('events');
 const { logger } = require('@hubiinetwork/logger');
 
-const contractRepository = require('../challenge-handler/contract-repository');
+const contractRepository = require('../contract-repository');
 const providerFactory = require('../nahmii-provider-factory');
 const NestedError = require('../utils/nested-error');
 

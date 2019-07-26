@@ -3,8 +3,8 @@
 const nahmii = require('nahmii-sdk');
 const { logger } = require('@hubiinetwork/logger');
 
-const NestedError = require('../../utils/nested-error');
-const NahmiiProviderFactory = require('../../nahmii-provider-factory');
+const NestedError = require('../utils/nested-error');
+const NahmiiProviderFactory = require('../nahmii-provider-factory');
 
 const _contracts = {};
 
