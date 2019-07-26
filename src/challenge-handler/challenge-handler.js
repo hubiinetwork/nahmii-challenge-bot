@@ -6,7 +6,7 @@ const NestedError = require('../utils/nested-error');
 const { getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
 const ProgressNotifier = require('./progress-notifier');
-const contracts = require('./contract-repository');
+const contracts = require('../contract-repository');
 
 const _wallet = new WeakMap;
 const _gasLimitOpt = new WeakMap;

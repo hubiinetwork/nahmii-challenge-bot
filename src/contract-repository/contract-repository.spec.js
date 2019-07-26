@@ -6,7 +6,7 @@ chai.use(require('chai-as-promised'));
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 const nock = require('nock');
 
-const metaServiceNocker = require('../../cluster-information/meta-service-nocker');
+const metaServiceNocker = require('../cluster-information/meta-service-nocker');
 
 describe ('contract-repository', () => {
   describe('given a ContractRepository', () => {
@@ -19,8 +19,8 @@ describe ('contract-repository', () => {
       metaServiceNocker.resolveWithData(2);
 
       repository = proxyquire('./contract-repository', {
-        '../../nahmii-provider-factory': proxyquire('../../nahmii-provider-factory/nahmii-provider-factory', {
-          '../cluster-information': proxyquire('../../cluster-information/cluster-information', {})
+        '../nahmii-provider-factory': proxyquire('../nahmii-provider-factory/nahmii-provider-factory', {
+          '../cluster-information': proxyquire('../cluster-information/cluster-information', {})
         }),
         'nahmii-sdk': { NahmiiContract: FakeNahmiiContract }
       });

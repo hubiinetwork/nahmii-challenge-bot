@@ -3,7 +3,7 @@
 const { logger } = require('@hubiinetwork/logger');
 
 const ChallengeHandler = require('../challenge-handler');
-const contracts = require('../contract-repository');
+const contracts = require('../../contract-repository');
 const NestedError = require('../../utils/nested-error');
 const EventGenerator = require('../../event-generator');
 const config = require('../../config');
