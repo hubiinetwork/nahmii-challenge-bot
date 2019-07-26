@@ -58,7 +58,7 @@ async function create (wallet, gasLimit) {
       await handler.handleBalancesSeized(seizedWallet, seizerWallet, value, ct, id);
     });
 
-    _eventGenerator.start([topics]); // Nested array to invoke or-options
+    _eventGenerator.runWhile([topics], () => true);
   }
   catch (err) {
     throw new NestedError (err, 'Failed to initialize contract event handlers. ' + err.message);

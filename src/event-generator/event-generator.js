@@ -160,15 +160,20 @@ class EventGenerator extends EventEmitter {
 
   // action
 
-  async start (topics) {
+  async runWhile (topics, shouldRunCB) {
     if (_isStarted.get(this))
       throw new Error('Cannot start event generator that is already started');
     else
       _isStarted.set(this, true);
 
-    for await (const { blockNo, eventTag, eventArgs } of this.genPseudoEvents(topics)) {
+    const pseudoEventsItr = this.genPseudoEvents(topics);
+
+    while (shouldRunCB()) {
+      const { blockNo, eventTag, eventArgs } = (await pseudoEventsItr.next()).value;
       this.emit(eventTag, blockNo, ...eventArgs);
     }
+
+    _isStarted.set(this, false);
   }
 }
 
