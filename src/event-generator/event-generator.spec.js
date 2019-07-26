@@ -1,34 +1,47 @@
 'use strict';
 
 const chai = require('chai');
+chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const sinon = require('sinon');
-const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 
 const given = describe;
 const when = describe;
 const then = it;
 
-const EventGenerator = require('./event-generator');
-
-function getNewStubbedEventGenerator (fakeProvider) {
-  return new (proxyquire('./event-generator', {
-    '../nahmii-provider-factory': { acquireProvider: async () => fakeProvider }
-  }))();
+function replaceModule(modulePath, replacementModule) {
+  require(modulePath);
+  require.cache[require.resolve(modulePath)].exports = replacementModule;
 }
 
+function deleteModule(modulePath) {
+  delete require.cache[require.resolve(modulePath)];
+}
+
+const fakeProvider = {
+  once: sinon.stub()
+};
+
+
 describe('event-generator', () => {
+  let EventGenerator, eventGenerator;
 
-  given('an EventGenerator constructor', () => {
-    when('called to construct an new instance', () => {
-      let eventGenerator;
+  beforeEach(() => {
+    replaceModule('../nahmii-provider-factory', { acquireProvider: async () => fakeProvider });
+    EventGenerator = require('./event-generator');
+    eventGenerator = new EventGenerator();
+    eventGenerator.config.blockPullDelayMs = 100;
+  });
 
-      beforeEach(() => {
-        eventGenerator = new EventGenerator();
-      });
+  afterEach(() => {
+    deleteModule('../nahmii-provider-factory');
+  });
+
+  given('an EventGenerator', () => {
+    when('constructing an new instance', () => {
 
       then('a new instance is created', () => {
-        expect(eventGenerator).to.be.instanceOf(EventGenerator);
+        expect(eventGenerator).to.be.instanceOf(require('./event-generator'));
       });
 
       // config
@@ -69,19 +82,55 @@ describe('event-generator', () => {
         expect(eventGenerator.genLatestConfirmedLogs.constructor.name).to.equal('AsyncGeneratorFunction');
       });
     });
+
+    when('started', () => {
+      it ('returns immediately if halted', () => {
+        return expect(eventGenerator.runWhile([], () => false)).to.eventually.be.fulfilled;
+      });
+
+      it ('can be started a second time if halted', () => {
+        eventGenerator.runWhile([], () => false);
+        return expect(eventGenerator.runWhile([], () => false)).to.eventually.be.fulfilled;
+      });
+
+      it ('throws if restarted before halted', () => {
+        let shouldRun = true;
+        eventGenerator.runWhile([], () => shouldRun);
+        const secondRun = eventGenerator.runWhile([], () => shouldRun);
+        secondRun.catch(() => shouldRun = false);
+        return expect(secondRun).to.eventually.be.rejectedWith(/Cannot start event generator that is already started/);
+      });
+
+      it ('returns events', () => {
+        let shouldRun = true;
+
+        sinon.stub(eventGenerator, 'genPseudoEvents');
+
+        eventGenerator.genPseudoEvents.returns(
+          ( async function* () {
+            while (true)
+              yield { blockNo: 0, eventTag: 'testEvent', eventArgs: [] };
+          })()
+        );
+
+        return new Promise(resolve => {
+
+          eventGenerator.once('testEvent', () => {
+            shouldRun = false;
+            resolve();
+          });
+
+          eventGenerator.runWhile([], () => shouldRun);
+        });
+      });
+    });
   });
 
   given('an confirmed block number generator', () => {
-    let stubbedEventGenerator, blockNoItr;
-
-    const fakeProvider = {
-      once: sinon.stub()
-    };
+    let blockNoItr;
 
     beforeEach(() => {
-      stubbedEventGenerator = getNewStubbedEventGenerator(fakeProvider);
-      stubbedEventGenerator.config.blockPullDelayMs = 100;
-      blockNoItr = stubbedEventGenerator.genLatestConfirmedBlockNumbers();
+      blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
     });
 
     afterEach(() => {
@@ -90,7 +139,7 @@ describe('event-generator', () => {
 
     when('generating block numbers', () => {
       it('generates block numbers with no confirmations', async () => {
-        stubbedEventGenerator.config.confirmationsDepth = 0;
+        eventGenerator.config.confirmationsDepth = 0;
 
         for (let i = 10; i <= 20; ++i) {
           fakeProvider.once.callsArgWith(1, i);
@@ -99,7 +148,7 @@ describe('event-generator', () => {
       });
 
       it('generates block numbers with confirmations', async () => {
-        stubbedEventGenerator.config.confirmationsDepth = 2;
+        eventGenerator.config.confirmationsDepth = 2;
 
         for (let i = 10; i <= 20; ++i) {
           fakeProvider.once.callsArgWith(1, i);
@@ -108,7 +157,7 @@ describe('event-generator', () => {
       });
 
       it('generates block numbers that are strictly positive despite large confirmation requirement', async () => {
-        stubbedEventGenerator.config.confirmationsDepth = 100;
+        eventGenerator.config.confirmationsDepth = 100;
         fakeProvider.once.callsArgWith(1, 10);
         expect((await blockNoItr.next()).value).to.be.equal(0);
       });
@@ -116,17 +165,11 @@ describe('event-generator', () => {
   });
 
   given('a generator creating sequence of latest block numbers', () => {
-    let stubbedEventGenerator, blockNoGen;
-
-    const fakeProvider = {
-      once: sinon.stub()
-    };
+    let blockNoGen;
 
     beforeEach(() => {
-      stubbedEventGenerator = getNewStubbedEventGenerator(fakeProvider);
-      stubbedEventGenerator.config.confirmationsDepth = 0;
-      stubbedEventGenerator.config.blockPullDelayMs = 100;
-      blockNoGen = stubbedEventGenerator.genSequenceOfLatestConfirmedBlockNumbers();
+      eventGenerator.config.confirmationsDepth = 0;
+      blockNoGen = eventGenerator.genSequenceOfLatestConfirmedBlockNumbers();
     });
 
     afterEach(() => {
@@ -165,7 +208,7 @@ describe('event-generator', () => {
           fakeProvider.once.callsArgWith(1, scenario.blockNo);
 
           blockNoGen.next().then(() => ++blockCounter);
-          const interval = stubbedEventGenerator.config.blockPullDelayMs + 100;
+          const interval = eventGenerator.config.blockPullDelayMs + 100;
           await delay(interval);
           expect(blockCounter).to.equal(scenario.blockCounter);
         }
