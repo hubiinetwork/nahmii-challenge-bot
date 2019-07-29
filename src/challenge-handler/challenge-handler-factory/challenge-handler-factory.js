@@ -8,9 +8,7 @@ const NestedError = require('../../utils/nested-error');
 const EventGenerator = require('../../event-generator');
 const config = require('../../config');
 
-const _eventGenerator = new EventGenerator();
-_eventGenerator.config.firstConfirmationsDepth = config.services.confirmationsDepth;
-_eventGenerator.config.generalConfirmationsDepth = config.services.confirmationsDepth;
+const _eventGenerator = new EventGenerator(100, config.services.confirmationsDepth, config.services.confirmationsDepth);
 
 async function create (wallet, gasLimit) {
   const handler = new ChallengeHandler(wallet, gasLimit);

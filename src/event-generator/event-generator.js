@@ -9,14 +9,23 @@ const NestedError = require('../utils/nested-error');
 
 // EventGeneratorConfig
 const _blockPullDelayMs = new WeakMap();
-const _firstConfirmationsDepth = new WeakMap();
+const _startConfirmationsDepth = new WeakMap();
 const _generalConfirmationsDepth = new WeakMap();
 
 class EventGeneratorConfig {
-  constructor () {
-    _blockPullDelayMs.set(this, 1000);
-    _firstConfirmationsDepth.set(this, 12);
-    _generalConfirmationsDepth.set(this, 12);
+  constructor (blockPullDelayMs, startConfirmationsDepth, generalConfirmationsDepth) {
+    if (!Number.isInteger(blockPullDelayMs))
+      throw new TypeError('blockPullDelayMs is not an integer');
+
+    if (!Number.isInteger(startConfirmationsDepth))
+      throw new TypeError('startConfirmationsDepth is not an integer');
+
+    if (!Number.isInteger(generalConfirmationsDepth))
+      throw new TypeError('generalConfirmationsDepth is not an integer');
+
+    _blockPullDelayMs.set(this, blockPullDelayMs);
+    _startConfirmationsDepth.set(this, startConfirmationsDepth);
+    _generalConfirmationsDepth.set(this, generalConfirmationsDepth);
     Object.seal(this);
   }
 
@@ -24,24 +33,12 @@ class EventGeneratorConfig {
     return _blockPullDelayMs.get(this);
   }
 
-  set blockPullDelayMs (delayMs) {
-    _blockPullDelayMs.set(this, delayMs);
-  }
-
-  get firstConfirmationsDepth () {
-    return _firstConfirmationsDepth.get(this);
-  }
-
-  set firstConfirmationsDepth (startBlockNo) {
-    _firstConfirmationsDepth.set(this, startBlockNo);
+  get startConfirmationsDepth () {
+    return _startConfirmationsDepth.get(this);
   }
 
   get generalConfirmationsDepth () {
     return _generalConfirmationsDepth.get(this);
-  }
-
-  set generalConfirmationsDepth (depth) {
-    _generalConfirmationsDepth.set(this, depth);
   }
 }
 
@@ -50,10 +47,10 @@ const _isStarted = new WeakMap();
 const _config = new WeakMap();
 
 class EventGenerator extends EventEmitter {
-  constructor () {
+  constructor (blockPullDelayMs, startConfirmationsDepth, generalConfirmationsDepth) {
     super();
     _isStarted.set(this, false);
-    _config.set(this, new EventGeneratorConfig());
+    _config.set(this, new EventGeneratorConfig(blockPullDelayMs, startConfirmationsDepth, generalConfirmationsDepth));
   }
 
   // properties
@@ -74,11 +71,11 @@ class EventGenerator extends EventEmitter {
         return latestConfirmedBlockNo;
       };
 
-      yield getConfirmedBlockNumber(await provider.getBlockNumber(), this.config.firstConfirmationsDepth);
+      yield getConfirmedBlockNumber(await provider.getBlockNumber(), this.config.startConfirmationsDepth);
 
       logger.info('CATCHUP STARTED');
 
-      if (this.config.firstConfirmationsDepth !== this.config.generalConfirmationsDepth)
+      if (this.config.startConfirmationsDepth !== this.config.generalConfirmationsDepth)
         yield getConfirmedBlockNumber(await provider.getBlockNumber(), this.config.generalConfirmationsDepth);
 
       logger.info('CATCHUP DONE');
@@ -121,10 +118,8 @@ class EventGenerator extends EventEmitter {
     for await (const log of this.genLatestConfirmedLogs(topics)) {
       const contract = contractRepository.tryGetContractFromAddress(log.address);
 
-      if (!contract) {
-        logger.info('Event generator could not find contract with address: ' + contract.address);
-        continue;
-      }
+      if (!contract)
+        throw new Error('Event generator could not find contract by address: ' + log.address);
 
       const parsedLog = contract.interface.parseLog(log);
       const eventArgs = [];
@@ -133,7 +128,7 @@ class EventGenerator extends EventEmitter {
         eventArgs.push(parsedLog.values[i]);
 
       const event = Object.values(contract.interface.events).find(event => event.topic === log.topics[0]);
-      const eventTag = contract.name + '.' + event.name;
+      const eventTag = contract.contractName + '.' + event.name;
 
       yield { blockNo: log.blockNumber, eventTag, eventArgs };
     }

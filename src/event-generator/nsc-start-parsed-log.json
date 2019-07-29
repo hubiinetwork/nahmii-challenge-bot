@@ -1,0 +1,20 @@
+[{
+  "name":"StartChallengeEvent",
+  "signature":"StartChallengeEvent(address,uint256,int256,int256,address,uint256)",
+  "topic":"0x9fd18f38c7e2276025a98cb5db3f31de60aafb2e54cc249475b00ed551204037",
+  "values":{
+    "0":"0x6F0c9e2A8b71a1E99333F640801Cf1C8896B88a2",
+    "1":{"_hex":"0x00"},
+    "2":{"_hex":"0x1bc16d674ec80000"},
+    "3":{"_hex":"0x00"},
+    "4":"0x0000000000000000000000000000000000000000",
+    "5":{"_hex":"0x00"},
+    "wallet":"0x6F0c9e2A8b71a1E99333F640801Cf1C8896B88a2",
+    "nonce":{"_hex":"0x00"},
+    "stageAmount":{"_hex":"0x1bc16d674ec80000"},
+    "targetBalanceAmount":{"_hex":"0x00"},
+    "currencyCt":"0x0000000000000000000000000000000000000000",
+    "currencyId":{"_hex":"0x00"},
+    "length":6
+  }
+}]
