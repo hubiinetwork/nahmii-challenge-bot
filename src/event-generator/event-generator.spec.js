@@ -101,23 +101,47 @@ describe('event-generator', () => {
         return expect(secondRun).to.eventually.be.rejectedWith(/Cannot start event generator that is already started/);
       });
 
-      it ('returns events', () => {
-        let shouldRun = true;
+      async function* genFakePseudoEvents () {
+        while (true)
+          yield { blockNo: 0, eventTag: 'testEvent', eventArgs: [] };
+      }
 
+      it ('emits events', () => {
         sinon.stub(eventGenerator, 'genPseudoEvents');
-
-        eventGenerator.genPseudoEvents.returns(
-          ( async function* () {
-            while (true)
-              yield { blockNo: 0, eventTag: 'testEvent', eventArgs: [] };
-          })()
-        );
+        eventGenerator.genPseudoEvents.returns(genFakePseudoEvents());
 
         return new Promise(resolve => {
+          let shouldRun = true;
 
           eventGenerator.once('testEvent', () => {
             shouldRun = false;
             resolve();
+          });
+
+          eventGenerator.runWhile([], () => shouldRun);
+        });
+      });
+
+      it ('awaits event handling', () => {
+        sinon.stub(eventGenerator, 'genPseudoEvents');
+        eventGenerator.genPseudoEvents.returns(genFakePseudoEvents());
+
+        return new Promise(resolve => {
+          let shouldRun = true;
+          let isEventHandlingInProgress = false;
+          let i = 0;
+
+          eventGenerator.on('testEvent', async () => {
+            expect(isEventHandlingInProgress).to.be.false;
+
+            isEventHandlingInProgress = true;
+            await new Promise(res => setTimeout(res, 100));
+            isEventHandlingInProgress = false;
+
+            shouldRun = ++i < 10;
+
+            if (!shouldRun)
+              resolve();
           });
 
           eventGenerator.runWhile([], () => shouldRun);
