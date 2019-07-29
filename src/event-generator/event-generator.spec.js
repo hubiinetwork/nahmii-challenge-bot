@@ -4,44 +4,32 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const sinon = require('sinon');
+const proxyquire = require('proxyquire');
 
 const given = describe;
 const when = describe;
 const then = it;
 
-function replaceModule(modulePath, replacementModule) {
-  require(modulePath);
-  require.cache[require.resolve(modulePath)].exports = replacementModule;
-}
-
-function deleteModule(modulePath) {
-  delete require.cache[require.resolve(modulePath)];
-}
-
 const fakeProvider = {
   once: sinon.stub()
 };
-
 
 describe('event-generator', () => {
   let EventGenerator, eventGenerator;
 
   beforeEach(() => {
-    replaceModule('../nahmii-provider-factory', { acquireProvider: async () => fakeProvider });
-    EventGenerator = require('./event-generator');
+    EventGenerator = proxyquire('./event-generator', {
+      '../nahmii-provider-factory': { acquireProvider: async () => fakeProvider }
+    });
     eventGenerator = new EventGenerator();
     eventGenerator.config.blockPullDelayMs = 100;
-  });
-
-  afterEach(() => {
-    deleteModule('../nahmii-provider-factory');
   });
 
   given('an EventGenerator', () => {
     when('constructing an new instance', () => {
 
       then('a new instance is created', () => {
-        expect(eventGenerator).to.be.instanceOf(require('./event-generator'));
+        expect(eventGenerator).to.be.instanceOf(EventGenerator);
       });
 
       // config
@@ -101,23 +89,47 @@ describe('event-generator', () => {
         return expect(secondRun).to.eventually.be.rejectedWith(/Cannot start event generator that is already started/);
       });
 
-      it ('returns events', () => {
-        let shouldRun = true;
+      async function* genFakePseudoEvents () {
+        while (true)
+          yield { blockNo: 0, eventTag: 'testEvent', eventArgs: [] };
+      }
 
+      it ('emits events', () => {
         sinon.stub(eventGenerator, 'genPseudoEvents');
-
-        eventGenerator.genPseudoEvents.returns(
-          ( async function* () {
-            while (true)
-              yield { blockNo: 0, eventTag: 'testEvent', eventArgs: [] };
-          })()
-        );
+        eventGenerator.genPseudoEvents.returns(genFakePseudoEvents());
 
         return new Promise(resolve => {
+          let shouldRun = true;
 
           eventGenerator.once('testEvent', () => {
             shouldRun = false;
             resolve();
+          });
+
+          eventGenerator.runWhile([], () => shouldRun);
+        });
+      });
+
+      it ('awaits event handling', () => {
+        sinon.stub(eventGenerator, 'genPseudoEvents');
+        eventGenerator.genPseudoEvents.returns(genFakePseudoEvents());
+
+        return new Promise(resolve => {
+          let shouldRun = true;
+          let isEventHandlingInProgress = false;
+          let i = 0;
+
+          eventGenerator.on('testEvent', async () => {
+            expect(isEventHandlingInProgress).to.be.false;
+
+            isEventHandlingInProgress = true;
+            await new Promise(res => setTimeout(res, 100));
+            isEventHandlingInProgress = false;
+
+            shouldRun = ++i < 10;
+
+            if (!shouldRun)
+              resolve();
           });
 
           eventGenerator.runWhile([], () => shouldRun);

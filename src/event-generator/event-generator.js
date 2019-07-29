@@ -170,7 +170,9 @@ class EventGenerator extends EventEmitter {
 
     while (shouldRunCB()) {
       const { blockNo, eventTag, eventArgs } = (await pseudoEventsItr.next()).value;
-      this.emit(eventTag, blockNo, ...eventArgs);
+
+      for (const callback of this.listeners(eventTag))
+        await callback(blockNo, ...eventArgs);
     }
 
     _isStarted.set(this, false);
