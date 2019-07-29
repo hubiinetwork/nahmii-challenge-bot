@@ -4,22 +4,21 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const sinon = require('sinon');
-const proxyquire = require('proxyquire');
+const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
+const FakeNahmiiProvider = require('../nahmii-provider-factory/fake-nahmii-provider');
 
 const given = describe;
 const when = describe;
 const then = it;
 
-const fakeProvider = {
-  once: sinon.stub()
-};
 
 describe('event-generator', () => {
-  let EventGenerator, eventGenerator;
+  let EventGenerator, eventGenerator, fakeNahmiiProvider;
 
   beforeEach(() => {
+    fakeNahmiiProvider = new FakeNahmiiProvider();
     EventGenerator = proxyquire('./event-generator', {
-      '../nahmii-provider-factory': { acquireProvider: async () => fakeProvider }
+      '../nahmii-provider-factory': { acquireProvider: async () => fakeNahmiiProvider }
     });
     eventGenerator = new EventGenerator();
     eventGenerator.config.blockPullDelayMs = 100;
@@ -34,19 +33,20 @@ describe('event-generator', () => {
 
       // config
 
-      it('has a mutable confirmation depth config', () => {
-        expect(eventGenerator.config.confirmationsDepth).to.not.be.undefined;
-        const v0 = eventGenerator.config.confirmationsDepth;
-        eventGenerator.config.confirmationsDepth = v0 + 1;
-        expect(eventGenerator.config.confirmationsDepth).to.equal(v0 + 1);
-      });
+      const mutableProperties = [
+        'firstConfirmationsDepth',
+        'generalConfirmationsDepth',
+        'blockPullDelayMs'
+      ];
 
-      it('has a mutable block pull delay config', () => {
-        expect(eventGenerator.config.blockPullDelayMs).to.not.be.undefined;
-        const v0 = eventGenerator.config.blockPullDelayMs;
-        eventGenerator.config.blockPullDelayMs = v0 + 1;
-        expect(eventGenerator.config.blockPullDelayMs).to.equal(v0 + 1);
-      });
+      for (const mutableProperty of mutableProperties) {
+        it(`has a configurable #${mutableProperty}`, () => {
+          expect(eventGenerator.config[mutableProperty]).to.not.be.undefined;
+          const v0 = eventGenerator.config[mutableProperty];
+          eventGenerator.config[mutableProperty] = v0 + 1;
+          expect(eventGenerator.config[mutableProperty]).to.equal(v0 + 1);
+        });
+      }
 
       // generators
 
@@ -72,6 +72,17 @@ describe('event-generator', () => {
     });
 
     when('started', () => {
+
+      async function* genFakePseudoEvents () {
+        while (true)
+          yield { blockNo: 0, eventTag: 'testEvent', eventArgs: [] };
+      }
+
+      beforeEach(() => {
+        sinon.stub(eventGenerator, 'genPseudoEvents');
+        eventGenerator.genPseudoEvents.returns(genFakePseudoEvents());
+      });
+
       it ('returns immediately if halted', () => {
         return expect(eventGenerator.runWhile([], () => false)).to.eventually.be.fulfilled;
       });
@@ -89,15 +100,7 @@ describe('event-generator', () => {
         return expect(secondRun).to.eventually.be.rejectedWith(/Cannot start event generator that is already started/);
       });
 
-      async function* genFakePseudoEvents () {
-        while (true)
-          yield { blockNo: 0, eventTag: 'testEvent', eventArgs: [] };
-      }
-
       it ('emits events', () => {
-        sinon.stub(eventGenerator, 'genPseudoEvents');
-        eventGenerator.genPseudoEvents.returns(genFakePseudoEvents());
-
         return new Promise(resolve => {
           let shouldRun = true;
 
@@ -111,9 +114,6 @@ describe('event-generator', () => {
       });
 
       it ('awaits event handling', () => {
-        sinon.stub(eventGenerator, 'genPseudoEvents');
-        eventGenerator.genPseudoEvents.returns(genFakePseudoEvents());
-
         return new Promise(resolve => {
           let shouldRun = true;
           let isEventHandlingInProgress = false;
@@ -145,32 +145,31 @@ describe('event-generator', () => {
       blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
     });
 
-    afterEach(() => {
-      fakeProvider.once.reset();
-    });
-
     when('generating block numbers', () => {
       it('generates block numbers with no confirmations', async () => {
-        eventGenerator.config.confirmationsDepth = 0;
+        eventGenerator.config.firstConfirmationsDepth = 0;
+        eventGenerator.config.generalConfirmationsDepth = 0;
 
         for (let i = 10; i <= 20; ++i) {
-          fakeProvider.once.callsArgWith(1, i);
+          fakeNahmiiProvider.setBlockNumber(i);
           expect((await blockNoItr.next()).value).to.be.equal(i);
         }
       });
 
       it('generates block numbers with confirmations', async () => {
-        eventGenerator.config.confirmationsDepth = 2;
+        eventGenerator.config.firstConfirmationsDepth = 2;
+        eventGenerator.config.generalConfirmationsDepth = 2;
 
         for (let i = 10; i <= 20; ++i) {
-          fakeProvider.once.callsArgWith(1, i);
+          fakeNahmiiProvider.setBlockNumber(i);
           expect((await blockNoItr.next()).value).to.be.equal(i - 2);
         }
       });
 
       it('generates block numbers that are strictly positive despite large confirmation requirement', async () => {
-        eventGenerator.config.confirmationsDepth = 100;
-        fakeProvider.once.callsArgWith(1, 10);
+        eventGenerator.config.firstConfirmationsDepth = 100;
+        eventGenerator.config.generalConfirmationsDepth = 100;
+        fakeNahmiiProvider.setBlockNumber(10);
         expect((await blockNoItr.next()).value).to.be.equal(0);
       });
     });
@@ -180,23 +179,20 @@ describe('event-generator', () => {
     let blockNoGen;
 
     beforeEach(() => {
-      eventGenerator.config.confirmationsDepth = 0;
+      eventGenerator.config.firstConfirmationsDepth = 0;
+      eventGenerator.config.generalConfirmationsDepth = 0;
       blockNoGen = eventGenerator.genSequenceOfLatestConfirmedBlockNumbers();
-    });
-
-    afterEach(() => {
-      fakeProvider.once.reset();
     });
 
     when('generating block numbers', () => {
       it('creates unique and strictly increasing block numbers', async () => {
         const blockNos = [];
 
-        fakeProvider.once.callsArgWith(1, 0);
+        fakeNahmiiProvider.setBlockNumber(0);
         blockNos.push((await blockNoGen.next()).value);
 
         for (let i = 2; i < (3 * 2); i += 2) {
-          fakeProvider.once.callsArgWith(1, i);
+          fakeNahmiiProvider.setBlockNumber(i);
           blockNos.push((await blockNoGen.next()).value);
           blockNos.push((await blockNoGen.next()).value);
         }
@@ -217,7 +213,7 @@ describe('event-generator', () => {
         let blockCounter = 0;
 
         for (const scenario of scenarios) {
-          fakeProvider.once.callsArgWith(1, scenario.blockNo);
+          fakeNahmiiProvider.setBlockNumber(scenario.blockNo);
 
           blockNoGen.next().then(() => ++blockCounter);
           const interval = eventGenerator.config.blockPullDelayMs + 100;
