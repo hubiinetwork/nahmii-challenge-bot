@@ -9,12 +9,14 @@ const NestedError = require('../utils/nested-error');
 
 // EventGeneratorConfig
 const _blockPullDelayMs = new WeakMap();
-const _confirmationsDepth = new WeakMap();
+const _firstConfirmationsDepth = new WeakMap();
+const _generalConfirmationsDepth = new WeakMap();
 
 class EventGeneratorConfig {
   constructor () {
     _blockPullDelayMs.set(this, 1000);
-    _confirmationsDepth.set(this, 12);
+    _firstConfirmationsDepth.set(this, 12);
+    _generalConfirmationsDepth.set(this, 12);
     Object.seal(this);
   }
 
@@ -26,12 +28,20 @@ class EventGeneratorConfig {
     _blockPullDelayMs.set(this, delayMs);
   }
 
-  get confirmationsDepth () {
-    return _confirmationsDepth.get(this);
+  get firstConfirmationsDepth () {
+    return _firstConfirmationsDepth.get(this);
   }
 
-  set confirmationsDepth (depth) {
-    _confirmationsDepth.set(this, depth);
+  set firstConfirmationsDepth (startBlockNo) {
+    _firstConfirmationsDepth.set(this, startBlockNo);
+  }
+
+  get generalConfirmationsDepth () {
+    return _generalConfirmationsDepth.get(this);
+  }
+
+  set generalConfirmationsDepth (depth) {
+    _generalConfirmationsDepth.set(this, depth);
   }
 }
 
@@ -48,62 +58,33 @@ class EventGenerator extends EventEmitter {
 
   // properties
 
-  get isStarted () {
-    return _isStarted.get(this);
-  }
-
   get config () {
     return _config.get(this);
   }
 
   // generators
 
-  async * genEstimatedConfirmationDepth () {
-  /*
-    const provider = await providerFactory.acquireProvider();
-    const configContract = await contractRepository.acquireContract('Configuration');
-    const challengeTimeoutSec = (await configContract.settlementChallengeTimeout()).toString();
-    const blockWindowSize = 10;
-
-    let oldEstimatedConfirmationDepth;
-
-    while (true) {
-      const latestBlockNo = await provider.getBlockNumber();
-      const blockTimestampSec0 = (await provider.getBlock(Math.max(latestBlockNo - blockWindowSize, 0))).timestamp;
-      const blockTimestampSecLatest = (await provider.getBlock(latestBlockNo)).timestamp;
-      const avgSecPrBlock = Math.trunc((blockTimestampSecLatest - blockTimestampSec0) / Math.max(blockWindowSize, 1));
-      const timeoutMarginFactor = 0.5;
-      const maxConfirmationDepth = Math.trunc(timeoutMarginFactor * challengeTimeoutSec / avgSecPrBlock);
-      const estimatedConfirmationDepth = Math.min(maxConfirmationDepth, this.config.confirmationsDepth());
-
-      yield estimatedConfirmationDepth;
-
-      if (oldEstimatedConfirmationDepth !== estimatedConfirmationDepth) {
-        logger.info(`Confirmation depth: configured ${this.config.confirmationsDepth()},  estimated ${estimatedConfirmationDepth}`);
-        oldEstimatedConfirmationDepth = estimatedConfirmationDepth;
-      }
-    }
-  */
-    const confirmationsDepth = this.config.confirmationsDepth;
-
-    while (true) {
-      await new Promise(resolve => setTimeout(resolve, 0)); // Avoids heap exhaustion
-      yield confirmationsDepth;
-    }
-  }
-
   async * genLatestConfirmedBlockNumbers () {
     try {
       const provider = await providerFactory.acquireProvider();
 
-      for await (const estimatedConfirmationDepth of this.genEstimatedConfirmationDepth()) {
-        const latestBlockNo = await new Promise(resolve => provider.once('block', resolve));
-        const latestConfirmedBlockNo = Math.max(latestBlockNo - estimatedConfirmationDepth, 0);
-
+      const getConfirmedBlockNumber = (latestBlockNo, confirmationsDepth) => {
+        const latestConfirmedBlockNo = Math.max(latestBlockNo - confirmationsDepth, 0);
         logger.info(`Block ${latestConfirmedBlockNo} (${latestBlockNo})`);
+        return latestConfirmedBlockNo;
+      };
 
-        yield latestConfirmedBlockNo;
-      }
+      yield getConfirmedBlockNumber(await provider.getBlockNumber(), this.config.firstConfirmationsDepth);
+
+      logger.info('CATCHUP STARTED');
+
+      if (this.config.firstConfirmationsDepth !== this.config.generalConfirmationsDepth)
+        yield getConfirmedBlockNumber(await provider.getBlockNumber(), this.config.generalConfirmationsDepth);
+
+      logger.info('CATCHUP DONE');
+
+      while (true)
+        yield getConfirmedBlockNumber(await new Promise(resolve => provider.once('block', resolve)), this.config.generalConfirmationsDepth);
     }
     catch (err) {
       throw new NestedError(err, 'Failed to generate block number. ' + err.message);
