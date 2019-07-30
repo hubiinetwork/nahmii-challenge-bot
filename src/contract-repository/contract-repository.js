@@ -14,7 +14,7 @@ class ContractRepository {
       if (!_contracts[contractName]) {
         const provider = await NahmiiProviderFactory.acquireProvider();
         _contracts[contractName] = new nahmii.NahmiiContract(contractName, provider);
-        _contracts[contractName].name = contractName;
+        _contracts[contractName].contractName = contractName; // Not a standard property
 
         logger.info(`Acquired: '${contractName}', '${_contracts[contractName].address}'`);
 

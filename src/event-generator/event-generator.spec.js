@@ -6,6 +6,7 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 const FakeNahmiiProvider = require('../nahmii-provider-factory/fake-nahmii-provider');
+const FakeContractRepository = require('../contract-repository/fake-contract-repository');
 
 const given = describe;
 const when = describe;
@@ -18,10 +19,10 @@ describe('event-generator', () => {
   beforeEach(() => {
     fakeNahmiiProvider = new FakeNahmiiProvider();
     EventGenerator = proxyquire('./event-generator', {
-      '../nahmii-provider-factory': { acquireProvider: async () => fakeNahmiiProvider }
+      '../nahmii-provider-factory': { acquireProvider: async () => fakeNahmiiProvider },
+      '../contract-repository': FakeContractRepository
     });
-    eventGenerator = new EventGenerator();
-    eventGenerator.config.blockPullDelayMs = 100;
+    eventGenerator = new EventGenerator(100, 0, 0);
   });
 
   given('an EventGenerator', () => {
@@ -33,18 +34,15 @@ describe('event-generator', () => {
 
       // config
 
-      const mutableProperties = [
-        'firstConfirmationsDepth',
+      const immutableProperties = [
+        'startConfirmationsDepth',
         'generalConfirmationsDepth',
         'blockPullDelayMs'
       ];
 
-      for (const mutableProperty of mutableProperties) {
-        it(`has a configurable #${mutableProperty}`, () => {
-          expect(eventGenerator.config[mutableProperty]).to.not.be.undefined;
-          const v0 = eventGenerator.config[mutableProperty];
-          eventGenerator.config[mutableProperty] = v0 + 1;
-          expect(eventGenerator.config[mutableProperty]).to.equal(v0 + 1);
+      for (const immutableProperty of immutableProperties) {
+        it(`has a configurable #${immutableProperty}`, () => {
+          expect(eventGenerator.config[immutableProperty]).to.not.be.undefined;
         });
       }
 
@@ -138,17 +136,12 @@ describe('event-generator', () => {
     });
   });
 
-  given('an confirmed block number generator', () => {
-    let blockNoItr;
-
-    beforeEach(() => {
-      blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
-    });
+  given('latest confirmed block number generator #genLatestConfirmedBlockNumbers()', () => {
 
     when('generating block numbers', () => {
       it('generates block numbers with no confirmations', async () => {
-        eventGenerator.config.firstConfirmationsDepth = 0;
-        eventGenerator.config.generalConfirmationsDepth = 0;
+        eventGenerator = new EventGenerator(100, 0, 0);
+        const blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
 
         for (let i = 10; i <= 20; ++i) {
           fakeNahmiiProvider.setBlockNumber(i);
@@ -157,8 +150,8 @@ describe('event-generator', () => {
       });
 
       it('generates block numbers with confirmations', async () => {
-        eventGenerator.config.firstConfirmationsDepth = 2;
-        eventGenerator.config.generalConfirmationsDepth = 2;
+        eventGenerator = new EventGenerator(100, 2, 2);
+        const blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
 
         for (let i = 10; i <= 20; ++i) {
           fakeNahmiiProvider.setBlockNumber(i);
@@ -167,20 +160,19 @@ describe('event-generator', () => {
       });
 
       it('generates block numbers that are strictly positive despite large confirmation requirement', async () => {
-        eventGenerator.config.firstConfirmationsDepth = 100;
-        eventGenerator.config.generalConfirmationsDepth = 100;
+        eventGenerator = new EventGenerator(100, 100, 100);
+        const blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
+
         fakeNahmiiProvider.setBlockNumber(10);
         expect((await blockNoItr.next()).value).to.be.equal(0);
       });
     });
   });
 
-  given('a generator creating sequence of latest block numbers', () => {
+  given('a sequential latest block number generator #genSequenceOfLatestConfirmedBlockNumbers()', () => {
     let blockNoGen;
 
     beforeEach(() => {
-      eventGenerator.config.firstConfirmationsDepth = 0;
-      eventGenerator.config.generalConfirmationsDepth = 0;
       blockNoGen = eventGenerator.genSequenceOfLatestConfirmedBlockNumbers();
     });
 
@@ -220,6 +212,45 @@ describe('event-generator', () => {
           await delay(interval);
           expect(blockCounter).to.equal(scenario.blockCounter);
         }
+      });
+    });
+  });
+
+  given('a pseudo-event generator #genPseudoEvents()', () => {
+    let pseudoEventItr, contractAddress;
+
+    async function* genFakeLatestConfirmedLogs () {
+      const log = require('./nsc-start-log.json')[0];
+      const contract = await FakeContractRepository.acquireContract('NullSettlementChallengeByPayment');
+      contract.address = contractAddress;
+      contract.interface.events.StartChallengeEvent.topic = log.topics[0];
+      contract.interface.parseLog.returns(require('./nsc-start-parsed-log.json')[0]);
+
+      while (true)
+        yield log;
+    }
+
+    beforeEach(() => {
+      contractAddress = undefined;
+      sinon.stub(eventGenerator, 'genLatestConfirmedLogs');
+      eventGenerator.genLatestConfirmedLogs.returns(genFakeLatestConfirmedLogs());
+      const fakeTopics = [{}];
+      pseudoEventItr = eventGenerator.genPseudoEvents(fakeTopics);
+    });
+
+    when('generating pseudo events', () => {
+      it ('can return a pseudo event if available', async () => {
+        contractAddress = require('./nsc-start-log.json')[0].address;
+        const pseudoEvent = (await pseudoEventItr.next()).value;
+
+        expect(pseudoEvent).not.to.be.undefined;
+        expect(pseudoEvent.blockNo).not.to.be.undefined;
+        expect(pseudoEvent.eventTag).not.to.be.undefined;
+        expect(pseudoEvent.eventArgs).not.to.be.undefined;
+      });
+
+      it ('fails if associated contract cannot be found by address', () => {
+        return expect(pseudoEventItr.next()).to.eventually.be.rejectedWith(/Event generator could not find contract by address/);
       });
     });
   });
