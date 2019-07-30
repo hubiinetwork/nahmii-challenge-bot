@@ -9,13 +9,17 @@ const NestedError = require('../utils/nested-error');
 
 // EventGeneratorConfig
 const _blockPullDelayMs = new WeakMap();
+const _maxBlockQueryRange = new WeakMap();
 const _startConfirmationsDepth = new WeakMap();
 const _generalConfirmationsDepth = new WeakMap();
 
 class EventGeneratorConfig {
-  constructor (blockPullDelayMs, startConfirmationsDepth, generalConfirmationsDepth) {
+  constructor (blockPullDelayMs, maxBlockQueryRange, startConfirmationsDepth, generalConfirmationsDepth) {
     if (!Number.isInteger(blockPullDelayMs))
       throw new TypeError('blockPullDelayMs is not an integer');
+
+    if (!Number.isInteger(maxBlockQueryRange))
+      throw new TypeError('maxBlockQueryRange is not an integer');
 
     if (!Number.isInteger(startConfirmationsDepth))
       throw new TypeError('startConfirmationsDepth is not an integer');
@@ -24,6 +28,7 @@ class EventGeneratorConfig {
       throw new TypeError('generalConfirmationsDepth is not an integer');
 
     _blockPullDelayMs.set(this, blockPullDelayMs);
+    _maxBlockQueryRange.set(this, maxBlockQueryRange);
     _startConfirmationsDepth.set(this, startConfirmationsDepth);
     _generalConfirmationsDepth.set(this, generalConfirmationsDepth);
     Object.seal(this);
@@ -31,6 +36,10 @@ class EventGeneratorConfig {
 
   get blockPullDelayMs () {
     return _blockPullDelayMs.get(this);
+  }
+
+  get maxBlockQueryRange () {
+    return _maxBlockQueryRange.get(this);
   }
 
   get startConfirmationsDepth () {
@@ -47,10 +56,10 @@ const _isStarted = new WeakMap();
 const _config = new WeakMap();
 
 class EventGenerator extends EventEmitter {
-  constructor (blockPullDelayMs, startConfirmationsDepth, generalConfirmationsDepth) {
+  constructor (blockPullDelayMs, maxBlockQueryRange, startConfirmationsDepth, generalConfirmationsDepth) {
     super();
     _isStarted.set(this, false);
-    _config.set(this, new EventGeneratorConfig(blockPullDelayMs, startConfirmationsDepth, generalConfirmationsDepth));
+    _config.set(this, new EventGeneratorConfig(blockPullDelayMs, maxBlockQueryRange, startConfirmationsDepth, generalConfirmationsDepth));
   }
 
   // properties
@@ -88,26 +97,34 @@ class EventGenerator extends EventEmitter {
     }
   }
 
-  /**
-   * Generate latest block numbers in strictly increasing order of step 1
-   */
-  async * genSequenceOfLatestConfirmedBlockNumbers() {
-    let oldConfirmedBlockNo;
+  async * genContiguousConfirmedBlockRanges() {
+    let fromBlock, toBlock;
 
-    for await (const confirmedBlockNo of this.genLatestConfirmedBlockNumbers()) {
-      const startBlockNo = oldConfirmedBlockNo === undefined ? confirmedBlockNo : oldConfirmedBlockNo + 1;
-      for (let i = startBlockNo; i <= confirmedBlockNo; ++i)
-        yield i;
+    for await (const latestConfirmedBlockNo of this.genLatestConfirmedBlockNumbers()) {
+      fromBlock = fromBlock || latestConfirmedBlockNo;
 
-      oldConfirmedBlockNo = confirmedBlockNo;
+      const blockCount = latestConfirmedBlockNo - fromBlock + 1;
+      const r = blockCount % this.config.maxBlockQueryRange;
+      toBlock = fromBlock + r - 1;
+
+      yield { fromBlock, toBlock };
+      fromBlock = toBlock + 1;
+
+      const q = Math.floor(blockCount / this.config.maxBlockQueryRange);
+
+      for (let i = 1; i <= q; ++i) {
+        toBlock = fromBlock + this.config.maxBlockQueryRange - 1;
+        yield { fromBlock, toBlock };
+        fromBlock = toBlock + 1;
+      }
     }
   }
 
   async * genLatestConfirmedLogs(topics) {
     const provider = await providerFactory.acquireProvider();
 
-    for await (const blockNo of this.genSequenceOfLatestConfirmedBlockNumbers()) {
-      const logs = await provider.getLogs({ fromBlock: blockNo, toBlock: blockNo, topics });
+    for await (const { fromBlock, toBlock } of this.genContiguousConfirmedBlockRanges()) {
+      const logs = await provider.getLogs({ fromBlock, toBlock, topics });
 
       for (const log of logs)
         yield log;

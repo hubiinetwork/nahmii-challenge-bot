@@ -10,6 +10,7 @@ const FakeContractRepository = require('../contract-repository/fake-contract-rep
 
 const given = describe;
 const when = describe;
+const xgiven = xdescribe;
 const then = it;
 
 
@@ -22,7 +23,7 @@ describe('event-generator', () => {
       '../nahmii-provider-factory': { acquireProvider: async () => fakeNahmiiProvider },
       '../contract-repository': FakeContractRepository
     });
-    eventGenerator = new EventGenerator(100, 0, 0);
+    eventGenerator = new EventGenerator(100, 1000, 0, 0);
   });
 
   given('an EventGenerator', () => {
@@ -54,8 +55,8 @@ describe('event-generator', () => {
       });
 
       it('has block number generator for sequence of latest confirmed blocks', () => {
-        expect(eventGenerator.genSequenceOfLatestConfirmedBlockNumbers).to.not.be.undefined;
-        expect(eventGenerator.genSequenceOfLatestConfirmedBlockNumbers.constructor.name).to.equal('AsyncGeneratorFunction');
+        expect(eventGenerator.genContiguousConfirmedBlockRanges).to.not.be.undefined;
+        expect(eventGenerator.genContiguousConfirmedBlockRanges.constructor.name).to.equal('AsyncGeneratorFunction');
       });
 
       it('has log generator for sequence of latest confirmed logs', () => {
@@ -140,7 +141,7 @@ describe('event-generator', () => {
 
     when('generating block numbers', () => {
       it('generates block numbers with no confirmations', async () => {
-        eventGenerator = new EventGenerator(100, 0, 0);
+        eventGenerator = new EventGenerator(100, 1000, 0, 0);
         const blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
 
         for (let i = 10; i <= 20; ++i) {
@@ -150,7 +151,7 @@ describe('event-generator', () => {
       });
 
       it('generates block numbers with confirmations', async () => {
-        eventGenerator = new EventGenerator(100, 2, 2);
+        eventGenerator = new EventGenerator(100, 1000, 2, 2);
         const blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
 
         for (let i = 10; i <= 20; ++i) {
@@ -160,7 +161,7 @@ describe('event-generator', () => {
       });
 
       it('generates block numbers that are strictly positive despite large confirmation requirement', async () => {
-        eventGenerator = new EventGenerator(100, 100, 100);
+        eventGenerator = new EventGenerator(100, 1000, 100, 100);
         const blockNoItr = eventGenerator.genLatestConfirmedBlockNumbers();
 
         fakeNahmiiProvider.setBlockNumber(10);
@@ -169,48 +170,54 @@ describe('event-generator', () => {
     });
   });
 
-  given('a sequential latest block number generator #genSequenceOfLatestConfirmedBlockNumbers()', () => {
-    let blockNoGen;
+  given('a contiguous block range generator #genContiguousConfirmedBlockRanges()', () => {
+    let blockRangeGen;
 
     beforeEach(() => {
-      blockNoGen = eventGenerator.genSequenceOfLatestConfirmedBlockNumbers();
+      blockRangeGen = eventGenerator.genContiguousConfirmedBlockRanges();
     });
 
-    when('generating block numbers', () => {
-      it('creates unique and strictly increasing block numbers', async () => {
-        const blockNos = [];
+    async function* fakeGenLatestConfirmedBlockNumbers (firstBlockNo, step) {
+      while (true) {
+        yield firstBlockNo;
+        firstBlockNo += step;
+      }
+    }
 
-        fakeNahmiiProvider.setBlockNumber(0);
-        blockNos.push((await blockNoGen.next()).value);
-
-        for (let i = 2; i < (3 * 2); i += 2) {
-          fakeNahmiiProvider.setBlockNumber(i);
-          blockNos.push((await blockNoGen.next()).value);
-          blockNos.push((await blockNoGen.next()).value);
+    when('generating block ranges', () => {
+      it ('creates contiguous block ranges if block step is 1', async () => {
+        sinon.stub(eventGenerator, 'genLatestConfirmedBlockNumbers').returns(fakeGenLatestConfirmedBlockNumbers(0, 1));
+        const contiguousItr = eventGenerator.genContiguousConfirmedBlockRanges();
+        for (let i = 0; i < 10; ++i) {
+          const { fromBlock, toBlock } = (await contiguousItr.next()).value;
+          expect(fromBlock).to.equal(i);
+          expect(toBlock).to.equal(i);
         }
-
-        for (let i = 1; i < blockNos.length; ++i)
-          expect(blockNos[i] - blockNos[i-1]).to.equal(1);
       });
 
-      it('it delays until next block number is available', async () => {
-        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+      it ('creates contiguous block ranges if block step is 10', async () => {
+        sinon.stub(eventGenerator, 'genLatestConfirmedBlockNumbers').returns(fakeGenLatestConfirmedBlockNumbers(0, 10));
+        const contiguousItr = eventGenerator.genContiguousConfirmedBlockRanges();
+        let oldToBlock = -1;
+        for (let i = 0; i < 10; ++i) {
+          const { fromBlock, toBlock } = (await contiguousItr.next()).value;
+          expect(fromBlock).to.equal(oldToBlock + 1);
+          expect(fromBlock).to.equal(i ? 1 + (i - 1) * 10 : 0);
+          expect(toBlock).to.equal(i ? i * 10 : 0);
+          oldToBlock = toBlock;
+        }
+      });
 
-        const scenarios = [
-          { blockNo: 10, blockCounter: 1 },
-          { blockNo: 10, blockCounter: 1 }, // Delayed
-          { blockNo: 11, blockCounter: 2 } //  until next blockNo
-        ];
-
-        let blockCounter = 0;
-
-        for (const scenario of scenarios) {
-          fakeNahmiiProvider.setBlockNumber(scenario.blockNo);
-
-          blockNoGen.next().then(() => ++blockCounter);
-          const interval = eventGenerator.config.blockPullDelayMs + 100;
-          await delay(interval);
-          expect(blockCounter).to.equal(scenario.blockCounter);
+      it ('creates contiguous block ranges if block step is larger than max range', async () => {
+        const blockRange = Math.floor(1.3 * eventGenerator.config.maxBlockQueryRange);
+        sinon.stub(eventGenerator, 'genLatestConfirmedBlockNumbers').returns(fakeGenLatestConfirmedBlockNumbers(0, blockRange));
+        const contiguousItr = eventGenerator.genContiguousConfirmedBlockRanges();
+        let oldToBlock = -1;
+        for (let i = 0; i < 10; ++i) {
+          const { fromBlock, toBlock } = (await contiguousItr.next()).value;
+          expect(fromBlock).to.equal(oldToBlock + 1);
+          expect(toBlock - fromBlock).to.be.lte(blockRange);
+          oldToBlock = toBlock;
         }
       });
     });
