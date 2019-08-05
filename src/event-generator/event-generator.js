@@ -5,31 +5,30 @@ const { logger } = require('@hubiinetwork/logger');
 
 const contractRepository = require('../contract-repository');
 const providerFactory = require('../nahmii-provider-factory');
-const NestedError = require('../utils/nested-error');
 
 // EventGeneratorConfig
 const _blockPullDelayMs = new WeakMap();
 const _maxBlockQueryRange = new WeakMap();
-const _startConfirmationsDepth = new WeakMap();
+const _catchupConfirmationsDepth = new WeakMap();
 const _generalConfirmationsDepth = new WeakMap();
 
 class EventGeneratorConfig {
-  constructor (blockPullDelayMs, maxBlockQueryRange, startConfirmationsDepth, generalConfirmationsDepth) {
+  constructor (blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth) {
     if (!Number.isInteger(blockPullDelayMs))
       throw new TypeError('blockPullDelayMs is not an integer');
 
     if (!Number.isInteger(maxBlockQueryRange))
       throw new TypeError('maxBlockQueryRange is not an integer');
 
-    if (!Number.isInteger(startConfirmationsDepth))
-      throw new TypeError('startConfirmationsDepth is not an integer');
+    if (!Number.isInteger(catchupConfirmationsDepth))
+      throw new TypeError('catchupConfirmationsDepth is not an integer');
 
     if (!Number.isInteger(generalConfirmationsDepth))
       throw new TypeError('generalConfirmationsDepth is not an integer');
 
     _blockPullDelayMs.set(this, blockPullDelayMs);
     _maxBlockQueryRange.set(this, maxBlockQueryRange);
-    _startConfirmationsDepth.set(this, startConfirmationsDepth);
+    _catchupConfirmationsDepth.set(this, catchupConfirmationsDepth);
     _generalConfirmationsDepth.set(this, generalConfirmationsDepth);
     Object.seal(this);
   }
@@ -42,8 +41,8 @@ class EventGeneratorConfig {
     return _maxBlockQueryRange.get(this);
   }
 
-  get startConfirmationsDepth () {
-    return _startConfirmationsDepth.get(this);
+  get catchupConfirmationsDepth () {
+    return _catchupConfirmationsDepth.get(this);
   }
 
   get generalConfirmationsDepth () {
@@ -56,10 +55,10 @@ const _isStarted = new WeakMap();
 const _config = new WeakMap();
 
 class EventGenerator extends EventEmitter {
-  constructor (blockPullDelayMs, maxBlockQueryRange, startConfirmationsDepth, generalConfirmationsDepth) {
+  constructor (blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth) {
     super();
     _isStarted.set(this, false);
-    _config.set(this, new EventGeneratorConfig(blockPullDelayMs, maxBlockQueryRange, startConfirmationsDepth, generalConfirmationsDepth));
+    _config.set(this, new EventGeneratorConfig(blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth));
   }
 
   // properties
@@ -68,62 +67,96 @@ class EventGenerator extends EventEmitter {
     return _config.get(this);
   }
 
+  // functions
+
+  getConfirmedBlockNumber (latestBlockNo, confirmationsDepth) {
+    const latestConfirmedBlockNo = Math.max(latestBlockNo - confirmationsDepth, 0);
+
+    logger.info(`Block ${latestConfirmedBlockNo} (${latestBlockNo})`);
+
+    return latestConfirmedBlockNo;
+  }
+
+  async getLatestBlockNumber () {
+    const provider = await providerFactory.acquireProvider();
+    const latestBlockNo = await provider.getBlockNumber();
+
+    return latestBlockNo;
+  }
+
+  async getNextEmittedBlockNumber () {
+    const provider = await providerFactory.acquireProvider();
+    const emittedBlockNo = await new Promise(resolve => provider.once('block', resolve));
+
+    return emittedBlockNo;
+  }
+
   // generators
 
+  async * genEmittedBlockNumbers () {
+    while (true)
+      yield await this.getNextEmittedBlockNumber();
+  }
+
+  async * genCatchupBlockNumbers () {
+    const fromBlock = await this.getLatestBlockNumber();
+
+    const toBlock = (this.config.catchupConfirmationsDepth === this.config.generalConfirmationsDepth)
+      ? await this.getNextEmittedBlockNumber()
+      : fromBlock;
+
+    yield this.getConfirmedBlockNumber(fromBlock, this.config.catchupConfirmationsDepth);
+    yield this.getConfirmedBlockNumber(toBlock, this.config.generalConfirmationsDepth);
+  }
+
   async * genLatestConfirmedBlockNumbers () {
-    try {
-      const provider = await providerFactory.acquireProvider();
+    for await (const latestBlockNo of this.genEmittedBlockNumbers())
+      yield this.getConfirmedBlockNumber(latestBlockNo, this.config.generalConfirmationsDepth);
+  }
 
-      const getConfirmedBlockNumber = (latestBlockNo, confirmationsDepth) => {
-        const latestConfirmedBlockNo = Math.max(latestBlockNo - confirmationsDepth, 0);
-        logger.info(`Block ${latestConfirmedBlockNo} (${latestBlockNo})`);
-        return latestConfirmedBlockNo;
-      };
+  async * genConfirmedBlockNumbers () {
+    for await (const catchupBlockNo of this.genCatchupBlockNumbers())
+      yield catchupBlockNo;
 
-      yield getConfirmedBlockNumber(await provider.getBlockNumber(), this.config.startConfirmationsDepth);
-
-      logger.info('CATCHUP STARTED');
-
-      if (this.config.startConfirmationsDepth !== this.config.generalConfirmationsDepth)
-        yield getConfirmedBlockNumber(await provider.getBlockNumber(), this.config.generalConfirmationsDepth);
-
-      logger.info('CATCHUP DONE');
-
-      while (true)
-        yield getConfirmedBlockNumber(await new Promise(resolve => provider.once('block', resolve)), this.config.generalConfirmationsDepth);
-    }
-    catch (err) {
-      throw new NestedError(err, 'Failed to generate block number. ' + err.message);
-    }
+    for await (const confirmedBlockNo of this.genLatestConfirmedBlockNumbers())
+      yield confirmedBlockNo;
   }
 
   async * genContiguousConfirmedBlockRanges() {
-    let fromBlock, toBlock;
+    const confirmedBlockNumbersItr = this.genConfirmedBlockNumbers();
+    let fromBlock = (await confirmedBlockNumbersItr.next()).value;
 
-    for await (const latestConfirmedBlockNo of this.genLatestConfirmedBlockNumbers()) {
-      fromBlock = fromBlock || latestConfirmedBlockNo;
-
-      const blockCount = latestConfirmedBlockNo - fromBlock + 1;
-      const r = blockCount % this.config.maxBlockQueryRange;
-      toBlock = fromBlock + r - 1;
-
+    for await (const toBlock of confirmedBlockNumbersItr) {
       yield { fromBlock, toBlock };
       fromBlock = toBlock + 1;
+    }
+  }
 
-      const q = Math.floor(blockCount / this.config.maxBlockQueryRange);
+  async * genClampedConfirmedBlockRanges() {
+    for await (const unclampedBlockRange of this.genContiguousConfirmedBlockRanges()) {
+      const unclampedRangeSize = unclampedBlockRange.toBlock - unclampedBlockRange.fromBlock + 1;
+      const clampedRangeSize = this.config.maxBlockQueryRange;
 
-      for (let i = 1; i <= q; ++i) {
-        toBlock = fromBlock + this.config.maxBlockQueryRange - 1;
-        yield { fromBlock, toBlock };
-        fromBlock = toBlock + 1;
-      }
+      const clampedRangeCount = Math.floor(unclampedRangeSize / clampedRangeSize);
+      const remainingRangeSize = unclampedRangeSize % clampedRangeSize;
+
+      const q = clampedRangeCount;
+      const r = remainingRangeSize;
+      const b0 = unclampedBlockRange.fromBlock;
+      const s = clampedRangeSize;
+
+      for (let i = 0; i < q; ++i)
+        yield { fromBlock: b0 + s * i, toBlock: b0 + s * (i + 1) - 1 };
+
+      if (r !== 0)
+        yield { fromBlock: b0 + s * q, toBlock: b0 + s * q + r - 1 };
     }
   }
 
   async * genLatestConfirmedLogs(topics) {
     const provider = await providerFactory.acquireProvider();
 
-    for await (const { fromBlock, toBlock } of this.genContiguousConfirmedBlockRanges()) {
+    for await (const { fromBlock, toBlock } of this.genClampedConfirmedBlockRanges()) {
       const logs = await provider.getLogs({ fromBlock, toBlock, topics });
 
       for (const log of logs)
