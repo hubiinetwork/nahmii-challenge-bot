@@ -5,6 +5,7 @@ const { logger } = require('@hubiinetwork/logger');
 
 const contractRepository = require('../contract-repository');
 const providerFactory = require('../nahmii-provider-factory');
+const t = require('../utils/type-validator');
 
 // EventGeneratorConfig
 const _blockPullDelayMs = new WeakMap();
@@ -14,17 +15,10 @@ const _generalConfirmationsDepth = new WeakMap();
 
 class EventGeneratorConfig {
   constructor (blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth) {
-    if (!Number.isInteger(blockPullDelayMs))
-      throw new TypeError('blockPullDelayMs is not an integer');
-
-    if (!Number.isInteger(maxBlockQueryRange))
-      throw new TypeError('maxBlockQueryRange is not an integer');
-
-    if (!Number.isInteger(catchupConfirmationsDepth))
-      throw new TypeError('catchupConfirmationsDepth is not an integer');
-
-    if (!Number.isInteger(generalConfirmationsDepth))
-      throw new TypeError('generalConfirmationsDepth is not an integer');
+    t.uint().assert(blockPullDelayMs);
+    t.uint().assert(maxBlockQueryRange);
+    t.uint().assert(catchupConfirmationsDepth);
+    t.uint().assert(generalConfirmationsDepth);
 
     _blockPullDelayMs.set(this, blockPullDelayMs);
     _maxBlockQueryRange.set(this, maxBlockQueryRange);

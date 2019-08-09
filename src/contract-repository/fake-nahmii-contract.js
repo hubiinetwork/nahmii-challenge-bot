@@ -51,6 +51,10 @@ class FakeNahmiiContract {
       this.get = sinon.stub();
       this.fungibleRecordByBlockNumber = sinon.stub();
       break;
+
+    case 'Configuration':
+      this.walletLockTimeout = sinon.stub().returns(5 * 60);
+      break;
     }
 
     this.interface = {
