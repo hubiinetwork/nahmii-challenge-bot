@@ -49,7 +49,7 @@
     "helmet": "^3.16.0",
     "keythereum": "^1.0.4",
     "nahmii-ethereum-address": "^2.0.1",
-    "nahmii-sdk": "^2.3.0",
+    "nahmii-sdk": "^3.0.3",
     "prom-client": "^11.3.0",
     "socket.io-client": "^2.2.0",
     "superagent": "^5.1.0",
