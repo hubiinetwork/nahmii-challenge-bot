@@ -193,7 +193,7 @@ describe('event-generator', () => {
 
       it ('generates first number according to catchup depth', async () => {
         for (let i = 0; i < 10; ++i) {
-          const catchupBlockItr = getPrimedIterator(0, 0, i, -1, [ 10, 33 ]);
+          const catchupBlockItr = getPrimedIterator(0, 0, i, 0, [ 10, 33 ]);
           expect((await catchupBlockItr.next()).value).to.equal(10 - i);
         }
       });

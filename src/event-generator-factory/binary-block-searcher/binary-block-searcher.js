@@ -1,6 +1,7 @@
 'use strict';
 
 const providerFactory = require('../../nahmii-provider-factory');
+const t = require('../../utils/type-validator');
 
 class SearchRange {
   constructor (provider, fromBlock, toBlock) {
@@ -9,9 +10,9 @@ class SearchRange {
     this.toBlock = toBlock;
   }
 
-  static async create (provider) {
-    const fromBlock = await provider.getBlock(0);
-    const toBlock = await provider.getBlock(await provider.getBlockNumber());
+  static async create (provider, fromBlockNo, toBlockNo) {
+    const fromBlock = await provider.getBlock(fromBlockNo);
+    const toBlock = await provider.getBlock(toBlockNo);
 
     return new SearchRange(provider, fromBlock, toBlock);
   }
@@ -38,27 +39,27 @@ class SearchRange {
 }
 
 class BinaryBlockSearcher {
-  static async findBlockLte (cmpFn) {
-
+  static async findBlockLte (cmpFn, fromBlockNo, toBlockNo) {
     const provider = await providerFactory.acquireProvider();
-    const searchRange = await SearchRange.create(provider);
+    fromBlockNo = fromBlockNo || 0;
+    toBlockNo = toBlockNo || await provider.getBlockNumber();
+
+    t.function().assert(cmpFn);
+    t.uint().assert(fromBlockNo);
+    t.uint().assert(toBlockNo);
+
+    const searchRange = await SearchRange.create(provider, fromBlockNo, toBlockNo);
 
     while (searchRange.size() > 1) {
-      const pilotBlock = await searchRange.getMidBlock();
-      const relativePilotPosition = cmpFn(pilotBlock);
+      const pivotBlock = await searchRange.getMidBlock();
+      const relativePilotPosition = cmpFn(pivotBlock);
 
-      if (relativePilotPosition < 0) {
-        // [p<=] -> [<=] or [p=] -> [=] or [p<>] -> [<>] or [p>] -> [>]
-        await searchRange.setFromBlock(pilotBlock.number + 1);
-      }
-      else if (relativePilotPosition > 0) {
-        // [=>p] -> [=>] or [=p] -> [=] or [<>p] -> [<]
-        await searchRange.setToBlock(pilotBlock.number - 1);
-      }
-      else {
-        // Exact match
-        searchRange.fromBlock = searchRange.toBlock = pilotBlock;
-      }
+      if (relativePilotPosition < 0)
+        await searchRange.setFromBlock(pivotBlock.number + 1);
+      else if (relativePilotPosition > 0)
+        await searchRange.setToBlock(pivotBlock.number - 1);
+      else
+        searchRange.fromBlock = searchRange.toBlock = pivotBlock;
     }
 
     let candidateBlock = searchRange.fromBlock; // size === 1

@@ -11,6 +11,10 @@ class FakeNahmiiProviderFactory {
 
     return _fakeNahmiiProvider;
   }
+
+  static reset () {
+    _fakeNahmiiProvider = undefined;
+  }
 }
 
 module.exports = FakeNahmiiProviderFactory;
