@@ -5,12 +5,12 @@ const { logger } = require('@hubiinetwork/logger');
 const ChallengeHandler = require('../challenge-handler');
 const contracts = require('../../contract-repository');
 const NestedError = require('../../utils/nested-error');
-const EventGenerator = require('../../event-generator');
-const config = require('../../config');
+const EventGeneratorFactory = require('../../event-generator-factory');
 
-const _eventGenerator = new EventGenerator(100, 1000, config.services.confirmationsDepth, config.services.confirmationsDepth);
+//const _eventGenerator = new EventGenerator(100, 1000, config.services.confirmationsDepth, config.services.confirmationsDepth);
 
 async function create (wallet, gasLimit) {
+  const eventGenerator = await EventGeneratorFactory.create();
   const handler = new ChallengeHandler(wallet, gasLimit);
   const topics = [];
 
@@ -22,7 +22,7 @@ async function create (wallet, gasLimit) {
 
       topics.push(contract.interface.events[eventName].topic);
 
-      _eventGenerator.on(eventTag, async (blockNo, ...args) => {
+      eventGenerator.on(eventTag, async (blockNo, ...args) => {
         logger.info(' ');
         logger.info(`${(new Date()).toISOString()} ${blockNo} ${eventTag}`);
         await callback(...args);
@@ -57,7 +57,7 @@ async function create (wallet, gasLimit) {
       await handler.handleBalancesSeized(seizedWallet, seizerWallet, value, ct, id);
     });
 
-    _eventGenerator.runWhile([topics], () => true);
+    eventGenerator.runWhile([topics], () => true);
   }
   catch (err) {
     throw new NestedError (err, 'Failed to initialize contract event handlers. ' + err.message);

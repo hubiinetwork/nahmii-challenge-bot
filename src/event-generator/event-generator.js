@@ -2,6 +2,7 @@
 
 const EventEmitter = require('events');
 const { logger } = require('@hubiinetwork/logger');
+const moment = require('../utils/moment');
 
 const contractRepository = require('../contract-repository');
 const providerFactory = require('../nahmii-provider-factory');
@@ -93,14 +94,17 @@ class EventGenerator extends EventEmitter {
   }
 
   async * genCatchupBlockNumbers () {
-    const fromBlock = await this.getLatestBlockNumber();
+    const unconfirmedFromBlock = await this.getLatestBlockNumber();
 
-    const toBlock = (this.config.catchupConfirmationsDepth === this.config.generalConfirmationsDepth)
+    const unconfirmedToBlock = (this.config.catchupConfirmationsDepth === this.config.generalConfirmationsDepth)
       ? await this.getNextEmittedBlockNumber()
-      : fromBlock;
+      : unconfirmedFromBlock;
 
-    yield this.getConfirmedBlockNumber(fromBlock, this.config.catchupConfirmationsDepth);
-    yield this.getConfirmedBlockNumber(toBlock, this.config.generalConfirmationsDepth);
+    const fromBlock = this.getConfirmedBlockNumber(unconfirmedFromBlock, this.config.catchupConfirmationsDepth);
+    const toBlock = this.getConfirmedBlockNumber(unconfirmedToBlock, this.config.generalConfirmationsDepth);
+
+    yield fromBlock;
+    yield toBlock;
   }
 
   async * genLatestConfirmedBlockNumbers () {
@@ -109,8 +113,19 @@ class EventGenerator extends EventEmitter {
   }
 
   async * genConfirmedBlockNumbers () {
+
+    const catchupStart = Date.now();
+    logger.info(' ');
+    logger.info('CATCHUP started');
+
     for await (const catchupBlockNo of this.genCatchupBlockNumbers())
       yield catchupBlockNo;
+
+    const catchupEnd = Date.now();
+    const catchupDuration = moment.duration((catchupEnd - catchupStart) / 1000, 'seconds');
+    logger.info(' ');
+    logger.info('CATCHUP ended after ' + catchupDuration.format('hh [h] mm [m] ss [s]'));
+    logger.info(' ');
 
     for await (const confirmedBlockNo of this.genLatestConfirmedBlockNumbers())
       yield confirmedBlockNo;
@@ -151,6 +166,8 @@ class EventGenerator extends EventEmitter {
     const provider = await providerFactory.acquireProvider();
 
     for await (const { fromBlock, toBlock } of this.genClampedConfirmedBlockRanges()) {
+      t.uint().assert(fromBlock);
+      t.uint().assert(toBlock);
       const logs = await provider.getLogs({ fromBlock, toBlock, topics });
 
       for (const log of logs)

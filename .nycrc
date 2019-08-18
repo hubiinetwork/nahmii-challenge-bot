@@ -13,8 +13,8 @@
   ],
   "check-coverage": true,
   "per-file": false,
-  "statements": 70,
-  "branches": 70,
-  "functions": 70,
-  "lines": 70
+  "statements": 92,
+  "branches": 95.29,
+  "functions": 84.55,
+  "lines": 91.97
 }
