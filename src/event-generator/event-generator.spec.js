@@ -10,15 +10,17 @@ const FakeContractRepository = require('../contract-repository/fake-contract-rep
 
 const given = describe;
 const when = describe;
-const xgiven = xdescribe;
 const then = it;
+
+const FakeLogger = { logger: { info: sinon.stub() } };
 
 function getNewStubbedEventGenerator (blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth) {
   const fakeNahmiiProvider = new FakeNahmiiProvider();
 
   const EventGenerator = proxyquire('./event-generator', {
     '../nahmii-provider-factory': { acquireProvider: async () => fakeNahmiiProvider },
-    '../contract-repository': FakeContractRepository
+    '../contract-repository': FakeContractRepository,
+    '@hubiinetwork/logger': FakeLogger
   });
 
   const eventGenerator = new EventGenerator(blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth);
@@ -40,6 +42,9 @@ function getNewStubbedEventGenerator (blockPullDelayMs, maxBlockQueryRange, catc
 
 
 describe('event-generator', () => {
+  beforeEach(() => {
+    FakeLogger.logger.info.reset();
+  });
 
   given('an EventGenerator', () => {
     let eventGenerator;
@@ -445,8 +450,10 @@ describe('event-generator', () => {
         expect(pseudoEvent.eventArgs).not.to.be.undefined;
       });
 
-      it ('fails if associated contract cannot be found by address', () => {
-        return expect(pseudoEventItr.next()).to.eventually.be.rejectedWith(/Event generator could not find contract by address/);
+      it ('fails if associated contract cannot be found by address', async () => {
+        pseudoEventItr.next();
+        await new Promise(resolve => setTimeout(resolve, 10));
+        expect(FakeLogger.logger.info.getCalls()[1].args[0]).to.matches(/^SKIPPED/);
       });
     });
   });

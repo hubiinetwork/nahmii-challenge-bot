@@ -16,9 +16,16 @@ class ContractRepository {
         _contracts[contractName] = new nahmii.NahmiiContract(contractName, provider);
         _contracts[contractName].contractName = contractName; // Not a standard property
 
+        const isValidContract = _contracts[contractName].validate();
+
         logger.info(`Acquired: '${contractName}', '${_contracts[contractName].address}'`);
 
-        if (!_contracts[contractName].validate())
+        const msg = `Acquired: '${contractName}', '${_contracts[contractName].address}'`;
+        const res = isValidContract ? ' Validation OK' : ' Validation FAILED';
+
+        logger.info(msg + res);
+
+        if (!isValidContract)
           throw Error('Failed to validate contract.');
       }
 

@@ -124,7 +124,7 @@ class EventGenerator extends EventEmitter {
     const catchupEnd = Date.now();
     const catchupDuration = moment.duration((catchupEnd - catchupStart) / 1000, 'seconds');
     logger.info(' ');
-    logger.info('CATCHUP ended after ' + catchupDuration.format('hh [h] mm [m] ss [s]'));
+    logger.info('CATCHUP ended after ' + catchupDuration.format('h[h] m[m] s[s]'));
     logger.info(' ');
 
     for await (const confirmedBlockNo of this.genLatestConfirmedBlockNumbers())
@@ -179,8 +179,13 @@ class EventGenerator extends EventEmitter {
     for await (const log of this.genLatestConfirmedLogs(topics)) {
       const contract = contractRepository.tryGetContractFromAddress(log.address);
 
-      if (!contract)
-        throw new Error('Event generator could not find contract by address: ' + log.address);
+      if (!contract) {
+        logger.info(' ');
+        logger.info('SKIPPED: Event generator could not find contract by address: ' + log.address);
+        logger.info('    Possibly event from an old nahmii contract.');
+        await new Promise(resolve => setTimeout(resolve, 0)); // Avoid event starving
+        continue;
+      }
 
       const parsedLog = contract.interface.parseLog(log);
       const eventArgs = [];
