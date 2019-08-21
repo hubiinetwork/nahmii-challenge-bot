@@ -48,6 +48,8 @@
     "flow-runtime": "^0.17.0",
     "helmet": "^3.16.0",
     "keythereum": "^1.0.4",
+    "moment": "^2.24.0",
+    "moment-duration-format": "^2.3.2",
     "nahmii-ethereum-address": "^2.0.1",
     "nahmii-sdk": "^3.0.3",
     "prom-client": "^11.3.0",

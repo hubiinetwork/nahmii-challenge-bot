@@ -1,3 +1,3 @@
 'use strict';
 
-module.exports = require('binary-block-searcher');
+module.exports = require('./binary-block-searcher');

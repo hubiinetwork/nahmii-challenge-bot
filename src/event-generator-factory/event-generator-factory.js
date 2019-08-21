@@ -14,12 +14,14 @@ class EventGeneratorFactory {
     const walletLockTimeout = (await configContract.walletLockTimeout()).toString();
 
     const provider = await providerFactory.acquireProvider();
+    const fromBlock = await provider.getBlock(0);
     const toBlock = await provider.getBlock(await provider.getBlockNumber());
-    const block0 = await provider.getBlock(0);
-    const startTimestamp = Math.max(toBlock.timestamp - walletLockTimeout, block0.timestamp);
+    const startTimestamp = Math.max(toBlock.timestamp - walletLockTimeout, fromBlock.timestamp);
 
-    const fromBlock = BinaryBlockSearcher.findBlockLte(block => block.timestamp - startTimestamp, block0, toBlock);
-    const catchupConfirmationsDepth = toBlock.number - fromBlock.number - 1;
+    const lte = block => block.timestamp - startTimestamp;
+
+    const firstCatchupBlock = await BinaryBlockSearcher.findBlockLte(lte, fromBlock.number, toBlock.number);
+    const catchupConfirmationsDepth = toBlock.number - firstCatchupBlock.number;
 
     return catchupConfirmationsDepth;
   }
