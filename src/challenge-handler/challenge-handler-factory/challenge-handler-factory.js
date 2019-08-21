@@ -7,7 +7,6 @@ const contracts = require('../../contract-repository');
 const NestedError = require('../../utils/nested-error');
 const EventGeneratorFactory = require('../../event-generator-factory');
 
-//const _eventGenerator = new EventGenerator(100, 1000, config.services.confirmationsDepth, config.services.confirmationsDepth);
 
 async function create (wallet, gasLimit) {
   const eventGenerator = await EventGeneratorFactory.create();
