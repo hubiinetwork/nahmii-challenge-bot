@@ -39,7 +39,8 @@ class FakeContractRepository {
   }
 
   static reset () {
-    _fakeContracts.clear();
+    // https://stackoverflow.com/questions/1232040/how-do-i-empty-an-array-in-javascript
+    _fakeContracts.length = 0;
   }
 }
 

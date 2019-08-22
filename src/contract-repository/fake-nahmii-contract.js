@@ -44,6 +44,9 @@ class FakeNahmiiContract {
       this.emitChallengeByPaymentEvent = function (...args) {
         this.emit('ChallengeByPaymentEvent', ...args);
       };
+      this.hasProposal = sinon.stub().resolves(true);
+      this.hasProposalTerminated = sinon.stub().resolves(false);
+      this.hasProposalExpired = sinon.stub().resolves(false);
       break;
 
     case 'BalanceTracker':
