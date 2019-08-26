@@ -15,7 +15,8 @@ ADD src ./src
 ADD index.js .
 RUN npm install --only=production
 
-FROM node:10.16
+FROM node:carbon-alpine
+ENV NODE_VERSION 10.16.3
 
 WORKDIR /app
 COPY --from=build /app .

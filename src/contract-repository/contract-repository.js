@@ -18,8 +18,6 @@ class ContractRepository {
 
         const isValidContract = _contracts[contractName].validate();
 
-        logger.info(`Acquired: '${contractName}', '${_contracts[contractName].address}'`);
-
         const msg = `Acquired: '${contractName}', '${_contracts[contractName].address}'`;
         const res = isValidContract ? ' Validation OK' : ' Validation FAILED';
 
