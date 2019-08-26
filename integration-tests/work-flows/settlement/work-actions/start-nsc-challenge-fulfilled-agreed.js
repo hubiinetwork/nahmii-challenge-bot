@@ -26,8 +26,9 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
   require('../work-steps/challenger/validate-nsc-start-callback')(ctx, challengerName, walletName, stageAmount, symbol);
 
   // Balances
+  require('../../../work-steps/balances/ensure-nahmii-balance-updates')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-nahmii-balance-after-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-staged-balance-after-action')(ctx, walletName, symbol);
-  require('../../../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, '0.0', symbol);
+  require('../../../work-steps/balances/verify-nahmii-balance-change')(ctx, walletName, '-' + stageAmount, symbol);
   require('../../../work-steps/balances/verify-staged-balance-change')(ctx, walletName, '0.0', symbol);
 };

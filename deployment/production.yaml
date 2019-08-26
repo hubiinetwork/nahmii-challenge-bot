@@ -43,7 +43,7 @@ spec:
     spec:
       containers:
       - name: challenge-bot
-        image: 856572510817.dkr.ecr.eu-west-1.amazonaws.com/challenge-bot:v178
+        image: 856572510817.dkr.ecr.eu-west-1.amazonaws.com/challenge-bot:v246
         imagePullPolicy: Always
         env:
         - name: METRICS_PORT
@@ -55,7 +55,7 @@ spec:
         - name: ETHEREUM_GAS_LIMIT
           value: '2000000'
         - name: ETHEREUM_NODE_URL
-          value: http://ethereum.hubii.com
+          value: http://ethereum.hubii.com:8545
         - name: CHALLENGE_BOT_UTCADDRESS
           value: ded8dc6316d23ce0bb5b5004b8e6f7018f48dbb8
         - name: CHALLENGE_BOT_UTCSECRET

@@ -13,7 +13,6 @@ const NestedError = require('./utils/nested-error');
 const NahmiiProviderFactory = require('./nahmii-provider-factory');
 const ChallengeHandlerFactory = require('./challenge-handler/challenge-handler-factory');
 const metrics = require('./metrics');
-const pkg = require('../package.json');
 
 
 process.on('unhandledRejection', (reason /*, promise*/) => {
@@ -34,7 +33,7 @@ async function registerEthBalance (wallet) {
 (async () => {
   const now = new Date(Date.now()).toISOString();
 
-  logger.info(`\n### ## # NAHMII CHALLENGE BOT v${pkg.version} STARTED ${now} # ## ###\n`);
+  logger.info(`\n### ## # NAHMII CHALLENGE BOT STARTED ${now} # ## ###\n`);
 
   logger.info('Validating config ...');
 

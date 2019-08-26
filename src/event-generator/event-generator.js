@@ -2,19 +2,29 @@
 
 const EventEmitter = require('events');
 const { logger } = require('@hubiinetwork/logger');
+const moment = require('../utils/moment');
 
-const contractRepository = require('../challenge-handler/contract-repository');
+const contractRepository = require('../contract-repository');
 const providerFactory = require('../nahmii-provider-factory');
-const NestedError = require('../utils/nested-error');
+const t = require('../utils/type-validator');
 
 // EventGeneratorConfig
 const _blockPullDelayMs = new WeakMap();
-const _confirmationsDepth = new WeakMap();
+const _maxBlockQueryRange = new WeakMap();
+const _catchupConfirmationsDepth = new WeakMap();
+const _generalConfirmationsDepth = new WeakMap();
 
 class EventGeneratorConfig {
-  constructor () {
-    _blockPullDelayMs.set(this, 1000);
-    _confirmationsDepth.set(this, 12);
+  constructor (blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth) {
+    t.uint().assert(blockPullDelayMs);
+    t.uint().assert(maxBlockQueryRange);
+    t.uint().assert(catchupConfirmationsDepth);
+    t.uint().assert(generalConfirmationsDepth);
+
+    _blockPullDelayMs.set(this, blockPullDelayMs);
+    _maxBlockQueryRange.set(this, maxBlockQueryRange);
+    _catchupConfirmationsDepth.set(this, catchupConfirmationsDepth);
+    _generalConfirmationsDepth.set(this, generalConfirmationsDepth);
     Object.seal(this);
   }
 
@@ -22,16 +32,16 @@ class EventGeneratorConfig {
     return _blockPullDelayMs.get(this);
   }
 
-  set blockPullDelayMs (delayMs) {
-    _blockPullDelayMs.set(this, delayMs);
+  get maxBlockQueryRange () {
+    return _maxBlockQueryRange.get(this);
   }
 
-  get confirmationsDepth () {
-    return _confirmationsDepth.get(this);
+  get catchupConfirmationsDepth () {
+    return _catchupConfirmationsDepth.get(this);
   }
 
-  set confirmationsDepth (depth) {
-    _confirmationsDepth.set(this, depth);
+  get generalConfirmationsDepth () {
+    return _generalConfirmationsDepth.get(this);
   }
 }
 
@@ -40,96 +50,125 @@ const _isStarted = new WeakMap();
 const _config = new WeakMap();
 
 class EventGenerator extends EventEmitter {
-  constructor () {
+  constructor (blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth) {
     super();
     _isStarted.set(this, false);
-    _config.set(this, new EventGeneratorConfig());
+    _config.set(this, new EventGeneratorConfig(blockPullDelayMs, maxBlockQueryRange, catchupConfirmationsDepth, generalConfirmationsDepth));
   }
 
   // properties
-
-  get isStarted () {
-    return _isStarted.get(this);
-  }
 
   get config () {
     return _config.get(this);
   }
 
+  // functions
+
+  getConfirmedBlockNumber (latestBlockNo, confirmationsDepth) {
+    const latestConfirmedBlockNo = Math.max(latestBlockNo - confirmationsDepth, 0);
+
+    logger.info(`Block ${latestConfirmedBlockNo} (${latestBlockNo})`);
+
+    return latestConfirmedBlockNo;
+  }
+
+  async getLatestBlockNumber () {
+    const provider = await providerFactory.acquireProvider();
+    const latestBlockNo = await provider.getBlockNumber();
+
+    return latestBlockNo;
+  }
+
+  async getNextEmittedBlockNumber () {
+    const provider = await providerFactory.acquireProvider();
+    const emittedBlockNo = await new Promise(resolve => provider.once('block', resolve));
+
+    return emittedBlockNo;
+  }
+
   // generators
 
-  async * genEstimatedConfirmationDepth () {
-  /*
-    const provider = await providerFactory.acquireProvider();
-    const configContract = await contractRepository.acquireContract('Configuration');
-    const challengeTimeoutSec = (await configContract.settlementChallengeTimeout()).toString();
-    const blockWindowSize = 10;
+  async * genEmittedBlockNumbers () {
+    while (true)
+      yield await this.getNextEmittedBlockNumber();
+  }
 
-    let oldEstimatedConfirmationDepth;
+  async * genCatchupBlockNumbers () {
+    const unconfirmedFromBlock = await this.getLatestBlockNumber();
 
-    while (true) {
-      const latestBlockNo = await provider.getBlockNumber();
-      const blockTimestampSec0 = (await provider.getBlock(Math.max(latestBlockNo - blockWindowSize, 0))).timestamp;
-      const blockTimestampSecLatest = (await provider.getBlock(latestBlockNo)).timestamp;
-      const avgSecPrBlock = Math.trunc((blockTimestampSecLatest - blockTimestampSec0) / Math.max(blockWindowSize, 1));
-      const timeoutMarginFactor = 0.5;
-      const maxConfirmationDepth = Math.trunc(timeoutMarginFactor * challengeTimeoutSec / avgSecPrBlock);
-      const estimatedConfirmationDepth = Math.min(maxConfirmationDepth, this.config.confirmationsDepth());
+    const unconfirmedToBlock = (this.config.catchupConfirmationsDepth === this.config.generalConfirmationsDepth)
+      ? await this.getNextEmittedBlockNumber()
+      : unconfirmedFromBlock;
 
-      yield estimatedConfirmationDepth;
+    const fromBlock = this.getConfirmedBlockNumber(unconfirmedFromBlock, this.config.catchupConfirmationsDepth);
+    const toBlock = this.getConfirmedBlockNumber(unconfirmedToBlock, this.config.generalConfirmationsDepth);
 
-      if (oldEstimatedConfirmationDepth !== estimatedConfirmationDepth) {
-        logger.info(`Confirmation depth: configured ${this.config.confirmationsDepth()},  estimated ${estimatedConfirmationDepth}`);
-        oldEstimatedConfirmationDepth = estimatedConfirmationDepth;
-      }
-    }
-  */
-    const confirmationsDepth = this.config.confirmationsDepth;
-
-    while (true) {
-      await new Promise(resolve => setTimeout(resolve, 0)); // Avoids heap exhaustion
-      yield confirmationsDepth;
-    }
+    yield fromBlock;
+    yield toBlock;
   }
 
   async * genLatestConfirmedBlockNumbers () {
-    try {
-      const provider = await providerFactory.acquireProvider();
+    for await (const latestBlockNo of this.genEmittedBlockNumbers())
+      yield this.getConfirmedBlockNumber(latestBlockNo, this.config.generalConfirmationsDepth);
+  }
 
-      for await (const estimatedConfirmationDepth of this.genEstimatedConfirmationDepth()) {
-        const latestBlockNo = await new Promise(resolve => provider.once('block', resolve));
-        const latestConfirmedBlockNo = Math.max(latestBlockNo - estimatedConfirmationDepth, 0);
+  async * genConfirmedBlockNumbers () {
 
-        logger.info(`Block ${latestConfirmedBlockNo} (${latestBlockNo})`);
+    const catchupStart = Date.now();
+    logger.info(' ');
+    logger.info('CATCHUP started');
 
-        yield latestConfirmedBlockNo;
-      }
-    }
-    catch (err) {
-      throw new NestedError(err, 'Failed to generate block number. ' + err.message);
+    for await (const catchupBlockNo of this.genCatchupBlockNumbers())
+      yield catchupBlockNo;
+
+    const catchupEnd = Date.now();
+    const catchupDuration = moment.duration((catchupEnd - catchupStart) / 1000, 'seconds');
+    logger.info(' ');
+    logger.info('CATCHUP ended after ' + catchupDuration.format('h[h] m[m] s[s]'));
+    logger.info(' ');
+
+    for await (const confirmedBlockNo of this.genLatestConfirmedBlockNumbers())
+      yield confirmedBlockNo;
+  }
+
+  async * genContiguousConfirmedBlockRanges() {
+    const confirmedBlockNumbersItr = this.genConfirmedBlockNumbers();
+    let fromBlock = (await confirmedBlockNumbersItr.next()).value;
+
+    for await (const toBlock of confirmedBlockNumbersItr) {
+      yield { fromBlock, toBlock };
+      fromBlock = toBlock + 1;
     }
   }
 
-  /**
-   * Generate latest block numbers in strictly increasing order of step 1
-   */
-  async * genSequenceOfLatestConfirmedBlockNumbers() {
-    let oldConfirmedBlockNo;
+  async * genClampedConfirmedBlockRanges() {
+    for await (const unclampedBlockRange of this.genContiguousConfirmedBlockRanges()) {
+      const unclampedRangeSize = unclampedBlockRange.toBlock - unclampedBlockRange.fromBlock + 1;
+      const clampedRangeSize = this.config.maxBlockQueryRange;
 
-    for await (const confirmedBlockNo of this.genLatestConfirmedBlockNumbers()) {
-      const startBlockNo = oldConfirmedBlockNo === undefined ? confirmedBlockNo : oldConfirmedBlockNo + 1;
-      for (let i = startBlockNo; i <= confirmedBlockNo; ++i)
-        yield i;
+      const clampedRangeCount = Math.floor(unclampedRangeSize / clampedRangeSize);
+      const remainingRangeSize = unclampedRangeSize % clampedRangeSize;
 
-      oldConfirmedBlockNo = confirmedBlockNo;
+      const q = clampedRangeCount;
+      const r = remainingRangeSize;
+      const b0 = unclampedBlockRange.fromBlock;
+      const s = clampedRangeSize;
+
+      for (let i = 0; i < q; ++i)
+        yield { fromBlock: b0 + s * i, toBlock: b0 + s * (i + 1) - 1 };
+
+      if (r !== 0)
+        yield { fromBlock: b0 + s * q, toBlock: b0 + s * q + r - 1 };
     }
   }
 
   async * genLatestConfirmedLogs(topics) {
     const provider = await providerFactory.acquireProvider();
 
-    for await (const blockNo of this.genSequenceOfLatestConfirmedBlockNumbers()) {
-      const logs = await provider.getLogs({ fromBlock: blockNo, toBlock: blockNo, topics });
+    for await (const { fromBlock, toBlock } of this.genClampedConfirmedBlockRanges()) {
+      t.uint().assert(fromBlock);
+      t.uint().assert(toBlock);
+      const logs = await provider.getLogs({ fromBlock, toBlock, topics });
 
       for (const log of logs)
         yield log;
@@ -141,7 +180,10 @@ class EventGenerator extends EventEmitter {
       const contract = contractRepository.tryGetContractFromAddress(log.address);
 
       if (!contract) {
-        logger.info('Event generator could not find contract with address: ' + contract.address);
+        logger.info(' ');
+        logger.info('SKIPPED: Event generator could not find contract by address: ' + log.address);
+        logger.info('    Possibly event from an old nahmii contract.');
+        await new Promise(resolve => setTimeout(resolve, 0)); // Avoid event starving
         continue;
       }
 
@@ -152,7 +194,7 @@ class EventGenerator extends EventEmitter {
         eventArgs.push(parsedLog.values[i]);
 
       const event = Object.values(contract.interface.events).find(event => event.topic === log.topics[0]);
-      const eventTag = contract.name + '.' + event.name;
+      const eventTag = contract.contractName + '.' + event.name;
 
       yield { blockNo: log.blockNumber, eventTag, eventArgs };
     }
@@ -160,15 +202,22 @@ class EventGenerator extends EventEmitter {
 
   // action
 
-  async start (topics) {
+  async runWhile (topics, shouldRunCB) {
     if (_isStarted.get(this))
       throw new Error('Cannot start event generator that is already started');
     else
       _isStarted.set(this, true);
 
-    for await (const { blockNo, eventTag, eventArgs } of this.genPseudoEvents(topics)) {
-      this.emit(eventTag, blockNo, ...eventArgs);
+    const pseudoEventsItr = this.genPseudoEvents(topics);
+
+    while (shouldRunCB()) {
+      const { blockNo, eventTag, eventArgs } = (await pseudoEventsItr.next()).value;
+
+      for (const callback of this.listeners(eventTag))
+        await callback(blockNo, ...eventArgs);
     }
+
+    _isStarted.set(this, false);
   }
 }
 

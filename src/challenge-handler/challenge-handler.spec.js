@@ -13,7 +13,7 @@ const then = it;
 const MetaServiceNocker = require('../cluster-information/meta-service-nocker');
 const NestedError = require('../utils/nested-error');
 
-const FakeNahmiiContract = require('./contract-repository/fake-nahmii-contract');
+const FakeNahmiiContract = require('../contract-repository/fake-nahmii-contract');
 
 const fakeNahmiiSdk = {
   NahmiiContract: FakeNahmiiContract
@@ -37,7 +37,7 @@ const gasLimit = ethers.utils.bigNumberify(
 );
 
 function proxyquireStubbedContractRepositoryModule (nahmiiSdkModule) {
-  return proxyquire('./contract-repository/contract-repository', {
+  return proxyquire('../contract-repository/contract-repository', {
     'nahmii-sdk': nahmiiSdkModule
   });
 }

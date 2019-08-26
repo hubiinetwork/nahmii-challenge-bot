@@ -18,7 +18,7 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 
 require('../../src/config');
 
-const contractRepository = require('../../src/challenge-handler/contract-repository');
+const contractRepository = require('../../src/contract-repository');
 const EventGenerator = require('../../src/event-generator');
 
 async function acquireTopic(contractName, eventName) {

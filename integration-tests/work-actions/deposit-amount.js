@@ -19,7 +19,7 @@ function promiseNextReceiptFromEvent () {
     });
 
     function invokeReject(msg) {
-      if (! isClosed) {
+      if (!isClosed) {
         isClosed = true;
         socket.close();
         reject(msg);

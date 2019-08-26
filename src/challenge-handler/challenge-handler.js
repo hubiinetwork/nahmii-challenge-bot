@@ -6,7 +6,8 @@ const NestedError = require('../utils/nested-error');
 const { getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
 const ProgressNotifier = require('./progress-notifier');
-const contracts = require('./contract-repository');
+const contracts = require('../contract-repository');
+const Proposal = require('./proposal');
 
 const _wallet = new WeakMap;
 const _gasLimitOpt = new WeakMap;
@@ -63,6 +64,14 @@ class ChallengeHandler {
   async handleDSCStart (initiator, nonce, cumulativeTransferAmount, stagedAmount, targetBalanceAmount, ct, id) {
     _progressNotifier.get(this).notifyDSCStart(initiator, nonce, stagedAmount);
 
+    const proposal = new Proposal(await contracts.getDriipSettlementChallengeByPayment(), initiator, ct, id);
+    const proposalState = await proposal.getProposalState();
+
+    if (proposalState !== Proposal.IsChallengeable) {
+      logger.info(`    SKIPPED: ${Proposal.getDescription(proposalState)}`);
+      return;
+    }
+
     const wallet = _wallet.get(this);
 
     const initiatorReceipt = await getWalletReceiptFromNonce(wallet.provider, initiator, nonce.toNumber());
@@ -107,6 +116,14 @@ class ChallengeHandler {
 
   async handleNSCStart (initiator, nonce, stagedAmount, targetBalanceAmount, ct, id) {
     _progressNotifier.get(this).notifyNSCStart(initiator, stagedAmount, ct, id);
+
+    const proposal = new Proposal(await contracts.getNullSettlementChallengeByPayment(), initiator, ct, id);
+    const proposalState = await proposal.getProposalState();
+
+    if (proposalState !== Proposal.IsChallengeable) {
+      logger.info(`    SKIPPED: ${Proposal.getDescription(proposalState)}`);
+      return;
+    }
 
     const balanceTracker = await contracts.getBalanceTracker();
     const activeBalance = await getActiveBalance(balanceTracker, initiator, ct, id);

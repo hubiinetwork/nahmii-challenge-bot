@@ -13,12 +13,15 @@ config.identity.appId = minikube.appId;
 config.identity.appSecret = minikube.appSecret;
 config.ethereum.nodeUrl = minikube.nodeUrl;
 
-const contracts = require('../../src/challenge-handler/contract-repository');
+const contracts = require('../../src/contract-repository');
 
 async function acquireContract (ctx, contractName) {
   const contract = await contracts.acquireContract(contractName);
   expect(contract).to.be.instanceof(ethers.Contract);
+
+  // FAILS if contract addresses have not been patched
   expect(await contract.validate()).to.be.true;
+
   const code = await ctx.provider.getCode(contract.address);
   expect(code.length).to.be.gt(10);
   return contract;

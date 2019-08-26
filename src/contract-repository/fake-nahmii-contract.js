@@ -1,11 +1,13 @@
 'use strict';
 
 const sinon = require('sinon');
+const ethers = require('ethers');
 
 class FakeNahmiiContract {
   constructor (contractName, _provider) {
     this.contractName = contractName;
     this.callbacks = {};
+    this.address = ethers.utils.id(contractName).substr(0, 42);
 
     switch (contractName) {
 
@@ -29,6 +31,9 @@ class FakeNahmiiContract {
       this.emitChallengeByPaymentEvent = function (...args) {
         this.emit('ChallengeByPaymentEvent', ...args);
       };
+      this.hasProposal = sinon.stub().resolves(true);
+      this.hasProposalTerminated = sinon.stub().resolves(false);
+      this.hasProposalExpired = sinon.stub().resolves(false);
       break;
 
     case 'NullSettlementChallengeByPayment':
@@ -39,14 +44,40 @@ class FakeNahmiiContract {
       this.emitChallengeByPaymentEvent = function (...args) {
         this.emit('ChallengeByPaymentEvent', ...args);
       };
+      this.hasProposal = sinon.stub().resolves(true);
+      this.hasProposalTerminated = sinon.stub().resolves(false);
+      this.hasProposalExpired = sinon.stub().resolves(false);
       break;
 
     case 'BalanceTracker':
-      this.activeBalanceTypes = sinon.stub();
+      this.activeBalanceTypes = sinon.stub().returns([]);
       this.get = sinon.stub();
       this.fungibleRecordByBlockNumber = sinon.stub();
       break;
+
+    case 'Configuration':
+      this.walletLockTimeout = sinon.stub().returns(5 * 60);
+      break;
     }
+
+    this.interface = {
+      events: {},
+      parseLog: sinon.stub().throws(new Error('parseLog() stub is not initialized'))
+    };
+
+    [
+      'StartChallengeFromPaymentEvent',
+      'StartChallengeFromPaymentByProxyEvent',
+      'ChallengeByPaymentEvent',
+      'StartChallengeEvent',
+      'StartChallengeByProxyEvent',
+      'SeizeBalancesEvent'
+    ].forEach(eventName => {
+      this.interface.events[eventName] = {
+        topic: sinon.stub().throws(new Error('topic stub is not initialized')),
+        name: eventName
+      };
+    });
   }
 
   on (eventName, cb) {
@@ -66,19 +97,6 @@ class FakeNahmiiContract {
 
   validate () {
     return true;
-  }
-
-  get interface () {
-    return {
-      events: {
-        'StartChallengeFromPaymentEvent': { topic: 'xxx' },
-        'StartChallengeFromPaymentByProxyEvent': { topic: 'xxx' },
-        'ChallengeByPaymentEvent': { topic: 'xxx' },
-        'StartChallengeEvent': { topic: 'xxx' },
-        'StartChallengeByProxyEvent': { topic: 'xxx' },
-        'SeizeBalancesEvent': { topic: 'xxx' }
-      }
-    };
   }
 }
 
