@@ -10,12 +10,8 @@ spec:
   type: ClusterIP
   selector:
     app: challenge-bot
-    role: web
+    role: agent
   ports:
-  - name: web
-    protocol: TCP
-    port: 8000
-    targetPort: 8000
   - name: metrics
     protocol: TCP
     port: 8079
