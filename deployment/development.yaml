@@ -6,12 +6,12 @@ metadata:
   namespace: test
   labels:
     app: challenge-bot
-    role: web
+    role: agent
 spec:
   type: ClusterIP
   selector:
     app: challenge-bot
-    role: web
+    role: agent
   ports:
   - name: metrics
     protocol: TCP
