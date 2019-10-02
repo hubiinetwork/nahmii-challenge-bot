@@ -56,6 +56,7 @@ async function getRecentWalletReceipts(provider, wallet, ct, id, minSenderNonce,
 }
 
 module.exports = {
+  getPart,
   getWalletReceipts,
   getWalletReceiptFromNonce,
   getRecentWalletReceipts

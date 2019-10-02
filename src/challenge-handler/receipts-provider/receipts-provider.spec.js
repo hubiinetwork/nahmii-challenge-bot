@@ -2,11 +2,14 @@
 
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
-const expect = chai.expect;
 const sinon = require('sinon');
 const NestedError = require('./../../utils/nested-error');
 const ethers = require('ethers');
 const { bigNumberify } = ethers.utils;
+
+const expect = chai.expect;
+const given = describe;
+const when = describe;
 
 const { getWalletReceipts, getWalletReceiptFromNonce, getRecentWalletReceipts } = require('./receipts-provider');
 
@@ -94,6 +97,32 @@ describe('receipts-provider', () => {
       provider.getWalletReceipts.returns(receipts);
       const res = getRecentWalletReceipts(provider, sender, ct, 0, bigNumberify(6), 0);
       return expect(res).to.eventually.have.property('length').equal(0);
+    });
+  });
+
+  given('a receipts provider', () => {
+    when ('providing receipts for a wallet', () => {
+      it ('adds the sender part if wallet is sender', async () => {
+        const receipts = await getRecentWalletReceipts(provider, sender, ct, 0, bigNumberify(0), 0);
+        expect(receipts.length).to.equal(3);
+        for (const receipt of receipts)
+          expect(receipt.part.wallet).to.equal(sender);
+      });
+
+      it ('adds the sender part if wallet is recipient', async () => {
+        const receipts = await getRecentWalletReceipts(provider, recipient, ct, 0, bigNumberify(0), 0);
+        expect(receipts.length).to.equal(3);
+        for (const receipt of receipts)
+          expect(receipt.part.wallet).to.equal(recipient);
+      });
+
+      it ('throws if wallet does not have a part', () => {
+        return expect(getRecentWalletReceipts(provider, ct, ct, 0, bigNumberify(0), 0)).to.eventually.be.rejectedWith(/Wallet not part of receipt/);
+      });
+
+      it ('throws if nonce is of the wrong type', () => {
+        return expect(getRecentWalletReceipts(provider, ct, ct, recipient, 0, 0)).to.eventually.be.rejectedWith(/Expected nonce to be of type BigNumber/);
+      });
     });
   });
 });
