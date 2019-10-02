@@ -6,8 +6,9 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const NestedError = require('./../../utils/nested-error');
 const ethers = require('ethers');
+const { bigNumberify } = ethers.utils;
 
-const { getWalletReceipts, getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
+const { getWalletReceipts, getWalletReceiptFromNonce, getRecentWalletReceipts } = require('./receipts-provider');
 
 const receipts = require('./receipts.spec.data.json');
 const sender = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
@@ -49,9 +50,9 @@ describe('receipts-provider', () => {
 
     it('Throws when sender nonce does not exists', () => {
       provider.getWalletReceipts.returns(receipts);
-      const nonce = 4;
+      const nonce = 40;
       const res = getWalletReceiptFromNonce(provider, sender, nonce);
-      return expect(res).to.eventually.be.rejectedWith('No receipts for address');
+      return expect(res).to.eventually.be.rejectedWith('Expected exactly one receipt for address 0x54a27640b402cb7ca097c31cbf57ff23ea417026 to match nonce 40');
     });
 
     it('Found when recipient nonce exists', () => {
@@ -65,7 +66,7 @@ describe('receipts-provider', () => {
       provider.getWalletReceipts.returns(receipts);
       const nonce = 5;
       const res = getWalletReceiptFromNonce(provider, recipient, nonce);
-      return expect(res).to.eventually.be.rejectedWith('No receipts for address');
+      return expect(res).to.eventually.be.rejectedWith('Expected exactly one receipt for address 0xcaf8bf7c0aab416dde4fe3c20c173e92afff8d72 to match nonce 5');
     });
 
     it('Fails when nonce is of wrong type', () => {
@@ -79,19 +80,19 @@ describe('receipts-provider', () => {
   describe('Can receive recent receipts', () => {
     it('By block number', () => {
       provider.getWalletReceipts.returns(receipts);
-      const res = getRecentSenderReceipts(provider, sender, ct, 0, 0, 853);
+      const res = getRecentWalletReceipts(provider, sender, ct, 0, bigNumberify(0), 853);
       return expect(res).to.eventually.have.property('length').equal(2);
     });
 
-    it('By sender nounce', () => {
+    it('By sender nonce', () => {
       provider.getWalletReceipts.returns(receipts);
-      const res = getRecentSenderReceipts(provider, sender, ct, 0, 3, 0);
+      const res = getRecentWalletReceipts(provider, sender, ct, 0, bigNumberify(3), 0);
       return expect(res).to.eventually.have.property('length').equal(1);
     });
 
     it('Handles no receipts', () => {
       provider.getWalletReceipts.returns(receipts);
-      const res = getRecentSenderReceipts(provider, sender, ct, 0, 6, 0);
+      const res = getRecentWalletReceipts(provider, sender, ct, 0, bigNumberify(6), 0);
       return expect(res).to.eventually.have.property('length').equal(0);
     });
   });
