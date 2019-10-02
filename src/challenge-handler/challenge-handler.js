@@ -3,7 +3,7 @@
 const { logger } = require('@hubiinetwork/logger');
 
 const NestedError = require('../utils/nested-error');
-const { getWalletReceiptFromNonce, getRecentSenderReceipts } = require('./receipts-provider');
+const { getWalletReceiptFromNonce, getRecentWalletReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
 const ProgressNotifier = require('./progress-notifier');
 const contracts = require('../contract-repository');
@@ -43,15 +43,15 @@ class ChallengeHandler {
     return _progressNotifier.get(this);
   }
 
-  static async getProofCandidate(balanceTrackerContract, senderReceipts, sender, ct, id, stagedAmount) {
+  static async getProofCandidate(balanceTrackerContract, initiatorReceipts, initiator, ct, id, stagedAmount) {
 
-    const activeBalance = await getActiveBalance(balanceTrackerContract, sender, ct, id);
-    const sortedReceipts = senderReceipts.sort((a, b) => a.sender.nonce - b.sender.nonce);
+    const activeBalance = await getActiveBalance(balanceTrackerContract, initiator, ct, id);
+    const sortedReceipts = initiatorReceipts.sort((a, b) => a.party.nonce - b.party.nonce);
     const proofCandidate = { receipt: null, targetBalance: null };
 
     for (proofCandidate.receipt of sortedReceipts) {
-      const activeBalanceAtBlock = await getActiveBalanceAtBlock(balanceTrackerContract, sender, ct, id, proofCandidate.receipt.blockNumber);
-      const paymentBalanceAtBlock = proofCandidate.receipt.sender.balances.current;
+      const activeBalanceAtBlock = await getActiveBalanceAtBlock(balanceTrackerContract, initiator, ct, id, proofCandidate.receipt.blockNumber);
+      const paymentBalanceAtBlock = proofCandidate.receipt.party.balances.current;
       proofCandidate.targetBalance = activeBalance.sub(activeBalanceAtBlock).add(paymentBalanceAtBlock).sub(stagedAmount);
 
       if (proofCandidate.targetBalance.lt(0))
@@ -74,10 +74,10 @@ class ChallengeHandler {
 
     const wallet = _wallet.get(this);
 
-    const initiatorReceipt = await getWalletReceiptFromNonce(wallet.provider, initiator, nonce.toNumber());
+    const initiatorReceipt = await getWalletReceiptFromNonce(wallet.provider, initiator, nonce);
     const blockNo = initiatorReceipt.blockNumber;
 
-    const recentPayments = await getRecentSenderReceipts(wallet.provider, initiator, ct, id, nonce, blockNo);
+    const recentPayments = await getRecentWalletReceipts(wallet.provider, initiator, ct, id, nonce, blockNo);
     const balanceTracker = await contracts.getBalanceTracker();
 
     const proofCandidate = await ChallengeHandler.getProofCandidate(balanceTracker, recentPayments, initiator, ct, id, stagedAmount.toString());
@@ -126,14 +126,7 @@ class ChallengeHandler {
     }
 
     const balanceTracker = await contracts.getBalanceTracker();
-    const activeBalance = await getActiveBalance(balanceTracker, initiator, ct, id);
-
-    if (activeBalance.lt(stagedAmount)) {
-      const targetBalance = activeBalance.sub(stagedAmount).toString();
-      throw new Error(`Received unexpected disqualified NSC: balance ${activeBalance.toString()}, staged ${stagedAmount.toString()}, tau ${targetBalance}`);
-    }
-
-    const recentReceipts = await getRecentSenderReceipts(_wallet.get(this).provider, initiator, ct, id, nonce, 0);
+    const recentReceipts = await getRecentWalletReceipts(_wallet.get(this).provider, initiator, ct, id, nonce, 0);
     const proofCandidate = await ChallengeHandler.getProofCandidate(balanceTracker, recentReceipts, initiator, ct, id, stagedAmount.toString());
     const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
 

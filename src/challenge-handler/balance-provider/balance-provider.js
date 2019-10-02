@@ -23,7 +23,7 @@ async function getActiveBalance (balanceTrackerContract, address, ct, id) {
     }
     catch (err) {
       throw new NestedError(err, 'Failed to get balance. ' + err.message);
-    };
+    }
   }
 
   return activeBalance;

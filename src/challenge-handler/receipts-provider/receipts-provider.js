@@ -1,44 +1,54 @@
 'use strict';
 
 const NestedError = require('../../utils/nested-error');
+const { BigNumber } = require('ethers').utils;
 
-async function getWalletReceipts(provider, address) {
+function getParty (wallet, receipt) {
+  if (wallet.toLowerCase() === receipt.sender.wallet.toLowerCase())
+    return receipt.sender;
+  if (wallet.toLowerCase() === receipt.recipient.wallet.toLowerCase())
+    return receipt.recipient;
+
+  throw new Error('Unexpected wallet. Wallet not party of receipt.');
+}
+
+async function getWalletReceipts(provider, wallet) {
   try {
-    return await provider.getWalletReceipts(address, null, 100);
+    return (await provider.getWalletReceipts(wallet, null, 100))
+      .map(receipt => {
+        receipt.party = getParty(wallet, receipt);
+        return receipt;
+      });
   }
   catch (err) {
-    throw new NestedError(err, `Could not retrieve receipts for address ${address}. ${err.message}`);
+    throw new NestedError(err, `Could not retrieve receipts for address ${wallet}. ${err.message}`);
   }
 }
 
-async function getWalletReceiptFromNonce(provider, address, nonce) {
+async function getWalletReceiptFromNonce(provider, wallet, nonce) {
+  if (!(nonce instanceof BigNumber))
+    throw new TypeError('Expected nonce to be of type BigNumber');
 
-  if (typeof nonce !== 'number')
-    throw new TypeError('Nonce must be of type number');
+  const receipts = await getWalletReceipts(provider, wallet);
 
-  const receipts = await getWalletReceipts(provider, address);
-  const lcAddress = address.toLowerCase();
+  const filtered = receipts.filter(receipt => nonce.eq(receipt.party.nonce));
 
-  const filtered = receipts.filter(receipt =>
-    (receipt.sender.wallet.toLowerCase() === lcAddress && receipt.sender.nonce === nonce) ||
-    (receipt.recipient.wallet.toLowerCase() === lcAddress && receipt.recipient.nonce === nonce)
-  );
-
-  if (filtered.length === 0)
-    throw new Error(`No receipts for address ${address} matches nonce ${nonce}`);
+  if (filtered.length !== 1)
+    throw new Error(`Expected exactly one receipt for address ${wallet} to match nonce ${nonce}`);
 
   return filtered[0];
 }
 
-async function getRecentSenderReceipts(provider, sender, ct, id, minSenderNonce, minBlockNo) {
-  const receipts = await getWalletReceipts(provider, sender);
-  const lcSender = sender.toLowerCase();
+async function getRecentWalletReceipts(provider, wallet, ct, id, minSenderNonce, minBlockNo) {
+  if (!(minSenderNonce instanceof BigNumber))
+    throw new TypeError('Expected nonce to be of type BigNumber');
 
-  const filtered = receipts.filter(receipt =>
-    (receipt.sender.wallet.toLowerCase() === lcSender) &&
-    (receipt.currency.ct.toLowerCase() === ct.toLowerCase()) && (receipt.currency.id === id.toString()) &&
-    (receipt.sender.nonce >= minSenderNonce) && (receipt.blockNumber >= minBlockNo)
-  );
+  const receipts = await getWalletReceipts(provider, wallet);
+
+  const filtered = receipts.filter(receipt => {
+    return (receipt.currency.ct.toLowerCase() === ct.toLowerCase()) && (receipt.currency.id === id.toString()) &&
+    minSenderNonce.lte(receipt.party.nonce) && (receipt.blockNumber >= minBlockNo);
+  });
 
   return filtered;
 }
@@ -46,5 +56,5 @@ async function getRecentSenderReceipts(provider, sender, ct, id, minSenderNonce,
 module.exports = {
   getWalletReceipts,
   getWalletReceiptFromNonce,
-  getRecentSenderReceipts
+  getRecentWalletReceipts
 };
