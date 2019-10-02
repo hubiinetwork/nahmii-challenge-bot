@@ -43,15 +43,15 @@ class ChallengeHandler {
     return _progressNotifier.get(this);
   }
 
-  static async getProofCandidate(balanceTrackerContract, senderReceipts, initiator, ct, id, stagedAmount) {
+  static async getProofCandidate(balanceTrackerContract, initiatorReceipts, initiator, ct, id, stagedAmount) {
 
     const activeBalance = await getActiveBalance(balanceTrackerContract, initiator, ct, id);
-    const sortedReceipts = senderReceipts.sort((a, b) => a.part.nonce - b.part.nonce);
+    const sortedReceipts = initiatorReceipts.sort((a, b) => a.party.nonce - b.party.nonce);
     const proofCandidate = { receipt: null, targetBalance: null };
 
     for (proofCandidate.receipt of sortedReceipts) {
       const activeBalanceAtBlock = await getActiveBalanceAtBlock(balanceTrackerContract, initiator, ct, id, proofCandidate.receipt.blockNumber);
-      const paymentBalanceAtBlock = proofCandidate.receipt.part.balances.current;
+      const paymentBalanceAtBlock = proofCandidate.receipt.party.balances.current;
       proofCandidate.targetBalance = activeBalance.sub(activeBalanceAtBlock).add(paymentBalanceAtBlock).sub(stagedAmount);
 
       if (proofCandidate.targetBalance.lt(0))
@@ -74,7 +74,7 @@ class ChallengeHandler {
 
     const wallet = _wallet.get(this);
 
-    const initiatorReceipt = await getWalletReceiptFromNonce(wallet.provider, initiator, nonce.toNumber());
+    const initiatorReceipt = await getWalletReceiptFromNonce(wallet.provider, initiator, nonce);
     const blockNo = initiatorReceipt.blockNumber;
 
     const recentPayments = await getRecentWalletReceipts(wallet.provider, initiator, ct, id, nonce, blockNo);
