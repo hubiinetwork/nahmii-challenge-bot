@@ -1,7 +1,7 @@
 'use strict';
 
 const providerFactory = require('../../nahmii-provider-factory');
-const t = require('../../utils/type-validator');
+const t = require('../../runtime-types');
 
 class SearchRange {
   constructor (provider, fromBlock, toBlock) {

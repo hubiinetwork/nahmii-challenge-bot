@@ -6,7 +6,7 @@ const moment = require('../utils/moment');
 
 const contractRepository = require('../contract-repository');
 const providerFactory = require('../nahmii-provider-factory');
-const t = require('../utils/type-validator');
+const t = require('../runtime-types');
 
 // EventGeneratorConfig
 const _blockPullDelayMs = new WeakMap();
