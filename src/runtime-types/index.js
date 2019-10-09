@@ -4,5 +4,7 @@
 require('./int-type');
 require('./uint-type');
 require('./ethereum-address-type');
+require('./address-string-type');
+require('./ethers-big-number-type');
 
 module.exports = require('flow-runtime');
