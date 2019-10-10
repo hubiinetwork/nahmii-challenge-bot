@@ -3,12 +3,12 @@
 const Proposal = require('./proposal');
 
 const FakeContractRepository = require('../../contract-repository/fake-contract-repository');
+const ethers = require('ethers');
+const { EthereumAddress } = require('nahmii-ethereum-address');
 
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const expect = chai.expect;
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 
 const given = describe;
 const when = describe;
@@ -18,8 +18,9 @@ describe('proposal', () => {
   let proposal;
 
   beforeEach(async () => {
-    ct = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
-    id = 0;
+    walletAddr = EthereumAddress.from('0x54a27640b402cb7ca097c31cbf57ff23ea417026');
+    ct = EthereumAddress.from('0x0000000000000000000000000000000000000000');
+    id = ethers.constants.Zero;
   });
 
   afterEach(() => {

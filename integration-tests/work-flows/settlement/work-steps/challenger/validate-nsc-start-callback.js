@@ -5,6 +5,7 @@ const chai = require('chai');
 const expect = chai.expect;
 const { formatUnits } = require('ethers').utils;
 const assert = require('assert');
+const t = require('../../../../../src/runtime-types');
 const config = require('../../../../../src/config');
 
 module.exports = function (ctx, challengerName, walletName, stageAmount, symbol) {
@@ -23,11 +24,16 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
 
   step('NSC-start payload is valid', async function () {
     const { initiatorWallet, stagedAmount, stagedCt, stageId } = await ctx.purses[challengerName].NSCStartPromise;
+    t.EthereumAddress().assert(initiatorWallet);
+    t.EthersBigNumber().assert(stagedAmount);
+    t.EthereumAddress().assert(stagedCt);
+    t.EthersBigNumber().assert(stageId);
+
     const unit = ctx.currencies[symbol].unit;
 
-    expect(initiatorWallet).to.equal(ctx.wallets[walletName].address);
+    expect(initiatorWallet.isEqual(ctx.wallets[walletName].address)).to.be.true;
     expect(formatUnits(stagedAmount, unit)).to.equal(stageAmount);
-    expect(stagedCt.toLowerCase()).to.equal(ctx.currencies[symbol].ct.toLowerCase());
+    expect(stagedCt.isEqual(ctx.currencies[symbol].ct)).to.be.true;
     expect(stageId.toString()).to.equal('0');
   });
 };

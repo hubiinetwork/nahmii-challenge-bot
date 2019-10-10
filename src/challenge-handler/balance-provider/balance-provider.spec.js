@@ -6,6 +6,7 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const balances = require('./balance-provider');
 const ethers = require('ethers');
+const { EthereumAddress } = require('nahmii-ethereum-address');
 
 const balanceTrackerContractMock = {
   activeBalanceTypes: sinon.stub(),
@@ -14,9 +15,9 @@ const balanceTrackerContractMock = {
 };
 
 const bnZero = ethers.utils.bigNumberify(0);
-const address = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
-const ct = '0x0000000000000000000000000000000000000000';
-const id = 0;
+const address = EthereumAddress.from('0x54a27640b402cb7ca097c31cbf57ff23ea417026');
+const ct = EthereumAddress.from('0x0000000000000000000000000000000000000000');
+const id = bnZero;
 const blockNo = 0;
 
 describe('balance-provider', () => {

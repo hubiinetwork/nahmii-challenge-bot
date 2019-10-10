@@ -5,6 +5,7 @@ const chai = require('chai');
 const expect = chai.expect;
 const assert = require('assert');
 const config = require('../../../../../src/config');
+const t = require('../../../../../src/runtime-types');
 
 module.exports = function (ctx, challengerName, walletName, symbol) {
   assert(typeof ctx === 'object');
@@ -20,9 +21,14 @@ module.exports = function (ctx, challengerName, walletName, symbol) {
   step('Wallet-locked payload is valid', async function () {
     this.timeout(8000);
     const { challengerWallet, lockedWallet, ct, id } = await ctx.purses[challengerName].WalletLockedPromise;
-    expect(challengerWallet).to.equal(ctx.wallets[challengerName].address);
-    expect(lockedWallet).to.equal(ctx.wallets[walletName].address);
-    expect(ct.toLowerCase()).to.equal(ctx.currencies[symbol].ct.toLowerCase());
+    t.EthereumAddress().assert(challengerWallet);
+    t.EthereumAddress().assert(lockedWallet);
+    t.EthereumAddress().assert(ct);
+    t.EthersBigNumber().assert(id);
+
+    expect(challengerWallet.isEqual(ctx.wallets[challengerName].address)).to.be.true;
+    expect(lockedWallet.isEqual(ctx.wallets[walletName].address)).to.be.true;
+    expect(ct.isEqual(ctx.currencies[symbol].ct)).to.be.true;
   });
 };
 

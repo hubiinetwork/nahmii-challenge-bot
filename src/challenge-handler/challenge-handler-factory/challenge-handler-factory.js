@@ -2,15 +2,19 @@
 
 const { logger } = require('@hubiinetwork/logger');
 
+const t = require('../../runtime-types');
 const ChallengeHandler = require('../challenge-handler');
 const contracts = require('../../contract-repository');
 const NestedError = require('../../utils/nested-error');
 const EventGeneratorFactory = require('../../event-generator-factory');
+const { EthereumAddress } = require('nahmii-ethereum-address');
 
 
-async function create (wallet, gasLimit) {
+async function create (challenger, gasLimit) {
+  t.NahmiiWallet().assert(challenger);
+
   const eventGenerator = await EventGeneratorFactory.create();
-  const handler = new ChallengeHandler(wallet, gasLimit);
+  const handler = new ChallengeHandler(challenger, gasLimit);
   const topics = [];
 
   try {
@@ -28,32 +32,107 @@ async function create (wallet, gasLimit) {
       });
     };
 
-    await subscribe('DriipSettlementChallengeByPayment.StartChallengeFromPaymentEvent', async (wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id) => {
-      await handler.handleDSCStart(wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
+    await subscribe('DriipSettlementChallengeByPayment.StartChallengeFromPaymentEvent', async (initiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id) => {
+      t.AddressString().assert(initiator);
+      t.EthersBigNumber().assert(nonce);
+      t.EthersBigNumber().assert(cumulativeTransferAmount);
+      t.EthersBigNumber().assert(stageAmount);
+      t.EthersBigNumber().assert(targetBalanceAmount);
+      t.AddressString().assert(ct);
+      t.EthersBigNumber().assert(id);
+
+      const ethInitiator = EthereumAddress.from(initiator);
+      const ethCt = EthereumAddress.from(ct);
+
+      await handler.handleDSCStart(ethInitiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ethCt, id);
     });
 
-    await subscribe('DriipSettlementChallengeByPayment.StartChallengeFromPaymentByProxyEvent', async (wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
-      await handler.handleDSCStart(wallet, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id);
+    await subscribe('DriipSettlementChallengeByPayment.StartChallengeFromPaymentByProxyEvent', async (initiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
+      t.AddressString().assert(initiator);
+      t.EthersBigNumber().assert(nonce);
+      t.EthersBigNumber().assert(cumulativeTransferAmount);
+      t.EthersBigNumber().assert(stageAmount);
+      t.EthersBigNumber().assert(targetBalanceAmount);
+      t.AddressString().assert(ct);
+      t.EthersBigNumber().assert(id);
+
+      const ethInitiator = EthereumAddress.from(initiator);
+      const ethCt = EthereumAddress.from(ct);
+
+      await handler.handleDSCStart(ethInitiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ethCt, id);
     });
 
-    await subscribe('DriipSettlementChallengeByPayment.ChallengeByPaymentEvent', async (challengedWallet, nonce, _cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
-      await handler.handleWalletLocked('DSC Locked', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
+    await subscribe('DriipSettlementChallengeByPayment.ChallengeByPaymentEvent', async (initiator, nonce, _cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, challenger) => {
+      t.AddressString().assert(initiator);
+      t.EthersBigNumber().assert(nonce);
+      t.EthersBigNumber().assert(stageAmount);
+      t.EthersBigNumber().assert(targetBalanceAmount);
+      t.AddressString().assert(ct);
+      t.EthersBigNumber().assert(id);
+      t.AddressString().assert(challenger);
+
+      const ethInitiator = EthereumAddress.from(initiator);
+      const ethCt = EthereumAddress.from(ct);
+      const ethChallenger = EthereumAddress.from(challenger);
+
+      await handler.handleWalletLocked('DSC Locked', ethInitiator, nonce, stageAmount, targetBalanceAmount, ethCt, id, ethChallenger);
     });
 
-    await subscribe('NullSettlementChallengeByPayment.StartChallengeEvent', async (wallet, nonce, stageAmount, targetBalanceAmount, ct, id) => {
-      await handler.handleNSCStart(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
+    await subscribe('NullSettlementChallengeByPayment.StartChallengeEvent', async (initiator, nonce, stageAmount, targetBalanceAmount, ct, id) => {
+      t.AddressString().assert(initiator);
+      t.EthersBigNumber().assert(nonce);
+      t.EthersBigNumber().assert(stageAmount);
+      t.EthersBigNumber().assert(targetBalanceAmount);
+      t.AddressString().assert(ct);
+      t.EthersBigNumber().assert(id);
+
+      const ethInitiator = EthereumAddress.from(initiator);
+      const ethCt = EthereumAddress.from(ct);
+
+      await handler.handleNSCStart(ethInitiator, nonce, stageAmount, targetBalanceAmount, ethCt, id);
     });
 
-    await subscribe('NullSettlementChallengeByPayment.StartChallengeByProxyEvent', async (wallet, nonce, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
-      await handler.handleNSCStart(wallet, nonce, stageAmount, targetBalanceAmount, ct, id);
+    await subscribe('NullSettlementChallengeByPayment.StartChallengeByProxyEvent', async (initiator, nonce, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
+      t.AddressString().assert(initiator);
+      t.EthersBigNumber().assert(nonce);
+      t.EthersBigNumber().assert(stageAmount);
+      t.EthersBigNumber().assert(targetBalanceAmount);
+      t.AddressString().assert(ct);
+      t.EthersBigNumber().assert(id);
+
+      const ethInitiator = EthereumAddress.from(initiator);
+      const ethCt = EthereumAddress.from(ct);
+
+      await handler.handleNSCStart(ethInitiator, nonce, stageAmount, targetBalanceAmount, ethCt, id);
     });
 
-    await subscribe('NullSettlementChallengeByPayment.ChallengeByPaymentEvent', async (challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet) => {
-      await handler.handleWalletLocked('NSC Locked', challengedWallet, nonce, stageAmount, targetBalanceAmount, ct, id, challengerWallet);
+    await subscribe('NullSettlementChallengeByPayment.ChallengeByPaymentEvent', async (initiator, nonce, stageAmount, targetBalanceAmount, ct, id, challenger) => {
+      t.AddressString().assert(initiator);
+      t.EthersBigNumber().assert(nonce);
+      t.EthersBigNumber().assert(stageAmount);
+      t.EthersBigNumber().assert(targetBalanceAmount);
+      t.AddressString().assert(ct);
+      t.EthersBigNumber().assert(id);
+      t.AddressString().assert(challenger);
+
+      const ethInitiator = EthereumAddress.from(initiator);
+      const ethCt = EthereumAddress.from(ct);
+      const ethChallenger = EthereumAddress.from(challenger);
+
+      await handler.handleWalletLocked('NSC Locked', ethInitiator, nonce, stageAmount, targetBalanceAmount, ethCt, id, ethChallenger);
     });
 
-    await subscribe('ClientFund.SeizeBalancesEvent', async (seizedWallet, seizerWallet, value, ct, id) => {
-      await handler.handleBalancesSeized(seizedWallet, seizerWallet, value, ct, id);
+    await subscribe('ClientFund.SeizeBalancesEvent', async (initiator, challenger, value, ct, id) => {
+      t.AddressString().assert(initiator);
+      t.AddressString().assert(challenger);
+      t.AddressString().assert(ct);
+      t.EthersBigNumber().assert(id);
+
+      const ethInitiator = EthereumAddress.from(initiator);
+      const ethChallenger = EthereumAddress.from(challenger);
+      const ethCt = EthereumAddress.from(ct);
+
+      await handler.handleBalancesSeized(ethInitiator, ethChallenger, value, ethCt, id);
     });
 
     eventGenerator.runWhile([topics], () => true);

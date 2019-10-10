@@ -6,8 +6,9 @@ const NestedError = require('../utils/nested-error');
 const { getWalletReceiptFromNonce, getRecentWalletReceipts } = require('./receipts-provider');
 const { getActiveBalance, getActiveBalanceAtBlock } = require('./balance-provider');
 const ProgressNotifier = require('./progress-notifier');
-const contracts = require('../contract-repository');
 const Proposal = require('./proposal');
+const contracts = require('../contract-repository');
+const t = require('../runtime-types');
 
 const _wallet = new WeakMap;
 const _gasLimitOpt = new WeakMap;
@@ -26,6 +27,8 @@ function logReceipt (verdict, receipt, targetBalance) {
 class ChallengeHandler {
 
   constructor(wallet, gasLimit) {
+    t.NahmiiWallet().assert(wallet);
+
     // ISSUE: Some nodes (e.g. ganache) is pecky about address format in filters.
     //        https://github.com/ethers-io/ethers.js/issues/165
     //        https://github.com/trufflesuite/ganache-cli/issues/494
@@ -44,13 +47,18 @@ class ChallengeHandler {
   }
 
   static async getProofCandidate(balanceTrackerContract, initiatorReceipts, initiator, ct, id, stagedAmount) {
+    t.EthereumAddress().assert(initiator);
+    t.EthereumAddress().assert(ct);
+    t.EthersBigNumber().assert(id);
+    t.EthersBigNumber().assert(stagedAmount);
 
     const activeBalance = await getActiveBalance(balanceTrackerContract, initiator, ct, id);
     const sortedReceipts = initiatorReceipts.sort((a, b) => a.party.nonce - b.party.nonce);
     const proofCandidate = { receipt: null, targetBalance: null };
 
     for (proofCandidate.receipt of sortedReceipts) {
-      const activeBalanceAtBlock = await getActiveBalanceAtBlock(balanceTrackerContract, initiator, ct, id, proofCandidate.receipt.blockNumber);
+      const blockNo = Number.parseInt(proofCandidate.receipt.blockNumber);
+      const activeBalanceAtBlock = await getActiveBalanceAtBlock(balanceTrackerContract, initiator, ct, id, blockNo);
       const paymentBalanceAtBlock = proofCandidate.receipt.party.balances.current;
       proofCandidate.targetBalance = activeBalance.sub(activeBalanceAtBlock).add(paymentBalanceAtBlock).sub(stagedAmount);
 
@@ -62,6 +70,14 @@ class ChallengeHandler {
   }
 
   async handleDSCStart (initiator, nonce, cumulativeTransferAmount, stagedAmount, targetBalanceAmount, ct, id) {
+    t.EthereumAddress().assert(initiator);
+    t.EthersBigNumber().assert(nonce);
+    t.EthersBigNumber().assert(cumulativeTransferAmount);
+    t.EthersBigNumber().assert(stagedAmount);
+    t.EthersBigNumber().assert(targetBalanceAmount);
+    t.EthereumAddress().assert(ct);
+    t.EthersBigNumber().assert(id);
+
     _progressNotifier.get(this).notifyDSCStart(initiator, nonce, stagedAmount);
 
     const proposal = new Proposal(await contracts.getDriipSettlementChallengeByPayment(), initiator, ct, id);
@@ -75,25 +91,25 @@ class ChallengeHandler {
     const wallet = _wallet.get(this);
 
     const initiatorReceipt = await getWalletReceiptFromNonce(wallet.provider, initiator, nonce);
-    const blockNo = initiatorReceipt.blockNumber;
+    const blockNo = Number.parseInt(initiatorReceipt.blockNumber);
 
     const recentPayments = await getRecentWalletReceipts(wallet.provider, initiator, ct, id, nonce, blockNo);
     const balanceTracker = await contracts.getBalanceTracker();
 
-    const proofCandidate = await ChallengeHandler.getProofCandidate(balanceTracker, recentPayments, initiator, ct, id, stagedAmount.toString());
+    const proofCandidate = await ChallengeHandler.getProofCandidate(balanceTracker, recentPayments, initiator, ct, id, stagedAmount);
     const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
 
     if (hasProof) {
       try {
         const finalReceipt = proofCandidate.receipt;
-        const targetBalance = proofCandidate.targetBalance.toString();
+        const targetBalance = proofCandidate.targetBalance;
         const gasLimitOpt = _gasLimitOpt.get(this);
         const driipSettlementChallengeByPayment = (await contracts.getDriipSettlementChallengeByPayment()).connect(wallet);
 
         let disputeResult;
 
         try {
-          await driipSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
+          await driipSettlementChallengeByPayment.challengeByPayment(initiator.toString(), finalReceipt, gasLimitOpt);
           disputeResult = 'ACCEPTED.';
         }
         catch (err) {
@@ -103,7 +119,7 @@ class ChallengeHandler {
         if (/ACCEPTED/.test(disputeResult))
           _progressNotifier.get(this).notifyDSCDisputed(initiator, finalReceipt, targetBalance);
 
-        logReceipt(`DSC Dispute ${disputeResult}`, finalReceipt, targetBalance);
+        logReceipt(`DSC Dispute ${disputeResult}`, finalReceipt, targetBalance.toString());
       }
       catch (err) {
         throw new NestedError(err, 'Failed to challenge by payment. ' + err.message);
@@ -115,6 +131,13 @@ class ChallengeHandler {
   }
 
   async handleNSCStart (initiator, nonce, stagedAmount, targetBalanceAmount, ct, id) {
+    t.EthereumAddress().assert(initiator);
+    t.EthersBigNumber().assert(nonce);
+    t.EthersBigNumber().assert(stagedAmount);
+    t.EthersBigNumber().assert(targetBalanceAmount);
+    t.EthereumAddress().assert(ct);
+    t.EthersBigNumber().assert(id);
+
     _progressNotifier.get(this).notifyNSCStart(initiator, stagedAmount, ct, id);
 
     const proposal = new Proposal(await contracts.getNullSettlementChallengeByPayment(), initiator, ct, id);
@@ -127,12 +150,12 @@ class ChallengeHandler {
 
     const balanceTracker = await contracts.getBalanceTracker();
     const recentReceipts = await getRecentWalletReceipts(_wallet.get(this).provider, initiator, ct, id, nonce, 0);
-    const proofCandidate = await ChallengeHandler.getProofCandidate(balanceTracker, recentReceipts, initiator, ct, id, stagedAmount.toString());
+    const proofCandidate = await ChallengeHandler.getProofCandidate(balanceTracker, recentReceipts, initiator, ct, id, stagedAmount);
     const hasProof = proofCandidate.targetBalance && proofCandidate.targetBalance.lt(0);
 
     if (hasProof) {
       const finalReceipt = proofCandidate.receipt;
-      const targetBalance = proofCandidate.targetBalance.toString();
+      const targetBalance = proofCandidate.targetBalance;
 
       try {
         const wallet = _wallet.get(this);
@@ -142,7 +165,7 @@ class ChallengeHandler {
         let disputeResult;
 
         try {
-          await nullSettlementChallengeByPayment.challengeByPayment(initiator, finalReceipt, gasLimitOpt);
+          await nullSettlementChallengeByPayment.challengeByPayment(initiator.toString(), finalReceipt, gasLimitOpt);
           disputeResult = 'ACCEPTED.';
         }
         catch (err) {
@@ -152,7 +175,7 @@ class ChallengeHandler {
         if (/ACCEPTED/.test(disputeResult))
           _progressNotifier.get(this).notifyNSCDisputed(initiator, finalReceipt, targetBalance);
 
-        logReceipt(`NSC Dispute ${disputeResult}`, finalReceipt, targetBalance);
+        logReceipt(`NSC Dispute ${disputeResult}`, finalReceipt, targetBalance.toString());
       }
       catch (err) {
         throw new NestedError(err, 'Failed to challenge null payment. ' + err.message);
@@ -163,10 +186,15 @@ class ChallengeHandler {
     }
   }
 
-  async handleWalletLocked(caption, challengedWallet, _nonce, _stageAmount, _targetBalanceAmount, ct, id, challengerWallet) {
+  async handleWalletLocked(caption, initiator, _nonce, _stageAmount, _targetBalanceAmount, ct, id, challenger) {
+    t.EthereumAddress().assert(initiator);
+    t.EthereumAddress().assert(ct);
+    t.EthersBigNumber().assert(id);
+    t.EthereumAddress().assert(challenger);
+
     const wallet = _wallet.get(this);
 
-    if (challengerWallet.toLowerCase() === wallet.address.toLowerCase()) {
+    if (challenger.isEqual(wallet.address)) {
       try {
         const signedClientFund = (await contracts.getClientFund()).connect(wallet);
         const gasLimitOpt = _gasLimitOpt.get(this);
@@ -187,17 +215,22 @@ class ChallengeHandler {
       caption += ' IGNORED (not mine):';
     }
 
-    _progressNotifier.get(this).notifyWalletLocked(caption, challengerWallet, challengedWallet, ct, id);
+    _progressNotifier.get(this).notifyWalletLocked(caption, challenger, initiator, ct, id);
   }
 
-  handleBalancesSeized (seizedWallet, seizerWallet, value, ct, id) {
+  handleBalancesSeized (initiator, challenger, value, ct, id) {
+    t.EthereumAddress().assert(initiator);
+    t.EthereumAddress().assert(ct);
+    t.EthersBigNumber().assert(id);
+    t.EthereumAddress().assert(challenger);
+
     const wallet = _wallet.get(this);
     const notifier = _progressNotifier.get(this);
 
-    if (seizerWallet.toLowerCase() === wallet.address.toLowerCase())
-      notifier.notifyBalancesSeized('Seizing OK.', seizedWallet, seizerWallet, value, ct, id);
+    if (challenger.isEqual(wallet.address))
+      notifier.notifyBalancesSeized('Seizing OK.', initiator, challenger, value, ct, id);
     else
-      notifier.logBalancesSeized('Seizing IGNORED.', seizedWallet, seizerWallet, value, ct, id);
+      notifier.logBalancesSeized('Seizing IGNORED.', initiator, challenger, value, ct, id);
   }
 }
 

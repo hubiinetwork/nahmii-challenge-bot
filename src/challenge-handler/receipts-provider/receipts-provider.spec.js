@@ -6,7 +6,7 @@ const sinon = require('sinon');
 const NestedError = require('./../../utils/nested-error');
 const ethers = require('ethers');
 const { bigNumberify } = ethers.utils;
-
+const { EthereumAddress } = require('nahmii-ethereum-address');
 const expect = chai.expect;
 const given = describe;
 const when = describe;
@@ -14,9 +14,10 @@ const when = describe;
 const { getWalletReceipts, getWalletReceiptFromNonce, getRecentWalletReceipts } = require('./receipts-provider');
 
 const receipts = require('./receipts.spec.data.json');
-const sender = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
-const recipient = '0xcaf8bf7c0aab416dde4fe3c20c173e92afff8d72';
-const ct = '0x0000000000000000000000000000000000000000';
+const sender = EthereumAddress.from('0x54a27640b402cb7ca097c31cbf57ff23ea417026');
+const recipient = EthereumAddress.from('0xcaf8bf7c0aab416dde4fe3c20c173e92afff8d72');
+const ct = EthereumAddress.from('0x0000000000000000000000000000000000000000');
+const id = ethers.constants.Zero;
 
 const provider = {
   getWalletReceipts: sinon.stub() // (address, null, 100)
@@ -76,36 +77,36 @@ describe('receipts-provider', () => {
       provider.getWalletReceipts.returns(receipts);
       const nonce = 4;
       const res = getWalletReceiptFromNonce(provider, recipient, nonce);
-      return expect(res).to.eventually.be.rejectedWith('Expected nonce to be of type BigNumber');
+      return expect(res).to.eventually.be.rejectedWith('Value must be an ethers BigNumber');
     });
   });
 
   describe('Can receive recent receipts', () => {
     it('By block number', () => {
       provider.getWalletReceipts.returns(receipts);
-      const nonce = bigNumberify(0);
-      const res = getRecentWalletReceipts(provider, sender, ct, 0, nonce, 853);
+      const nonce = ethers.constants.Zero;
+      const res = getRecentWalletReceipts(provider, sender, ct, id, nonce, 853);
       return expect(res).to.eventually.have.property('length').equal(2);
     });
 
     it('By sender nonce', () => {
       provider.getWalletReceipts.returns(receipts);
       const nonce = bigNumberify(3);
-      const res = getRecentWalletReceipts(provider, sender, ct, 0, nonce, 0);
+      const res = getRecentWalletReceipts(provider, sender, ct, id, nonce, 0);
       return expect(res).to.eventually.have.property('length').equal(1);
     });
 
     it('By recipient nonce', () => {
       provider.getWalletReceipts.returns(receipts);
       const nonce = bigNumberify(3);
-      const res = getRecentWalletReceipts(provider, recipient, ct, 0, nonce, 0);
+      const res = getRecentWalletReceipts(provider, recipient, ct, id, nonce, 0);
       return expect(res).to.eventually.have.property('length').equal(2);
     });
 
     it('Handles no receipts', () => {
       provider.getWalletReceipts.returns(receipts);
       const nonce = bigNumberify(6);
-      const res = getRecentWalletReceipts(provider, sender, ct, 0, nonce, 0);
+      const res = getRecentWalletReceipts(provider, sender, ct, id, nonce, 0);
       return expect(res).to.eventually.have.property('length').equal(0);
     });
   });
@@ -114,27 +115,27 @@ describe('receipts-provider', () => {
     when ('providing receipts for a wallet', () => {
       it ('adds the sender party if initiator is sender', async () => {
         const nonce = bigNumberify(0);
-        const receipts = await getRecentWalletReceipts(provider, sender, ct, 0, nonce, 0);
+        const receipts = await getRecentWalletReceipts(provider, sender, ct, id, nonce, 0);
         expect(receipts.length).to.equal(3);
         for (const receipt of receipts)
-          expect(receipt.party.wallet).to.equal(sender);
+          expect(receipt.party.wallet).to.equal(sender.toString());
       });
 
       it ('adds the recipient party if initiator is recipient', async () => {
         const nonce = bigNumberify(0);
-        const receipts = await getRecentWalletReceipts(provider, recipient, ct, 0, nonce, 0);
+        const receipts = await getRecentWalletReceipts(provider, recipient, ct, id, nonce, 0);
         expect(receipts.length).to.equal(3);
         for (const receipt of receipts)
-          expect(receipt.party.wallet).to.equal(recipient);
+          expect(receipt.party.wallet).to.equal(recipient.toString());
       });
 
       it ('throws if wallet does not have a party', () => {
         const nonce = bigNumberify(0);
-        return expect(getRecentWalletReceipts(provider, ct, ct, 0, nonce, 0)).to.eventually.be.rejectedWith(/Wallet not party of receipt/);
+        return expect(getRecentWalletReceipts(provider, ct, ct, id, nonce, 0)).to.eventually.be.rejectedWith(/Wallet not party of receipt/);
       });
 
       it ('throws if nonce is of the wrong type', () => {
-        return expect(getRecentWalletReceipts(provider, ct, ct, recipient, 0, 0)).to.eventually.be.rejectedWith(/Expected nonce to be of type BigNumber/);
+        return expect(getRecentWalletReceipts(provider, ct, ct, recipient, 0, 0)).to.eventually.be.rejectedWith(/Value must be an ethers BigNumber/);
       });
     });
   });
