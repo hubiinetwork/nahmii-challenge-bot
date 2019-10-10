@@ -1,5 +1,6 @@
 'use strict';
 
+const t = require('../../runtime-types');
 const NestedError = require('../../utils/nested-error');
 const ethers = require('ethers');
 const { bigNumberify } = ethers.utils;
@@ -13,12 +14,16 @@ async function getActiveBalanceTypes (balanceTrackerContract) {
 }
 
 async function getActiveBalance (balanceTrackerContract, address, ct, id) {
+  t.EthereumAddress().assert(address);
+  t.EthereumAddress().assert(ct);
+  t.EthersBigNumber().assert(id);
+
   const balanceTypes = await getActiveBalanceTypes(balanceTrackerContract);
   let activeBalance = bigNumberify(0);
 
   for (let i = 0; i < balanceTypes.length; ++i) {
     try {
-      const balance = await balanceTrackerContract.get(address, balanceTypes[i], ct, bigNumberify(id));
+      const balance = await balanceTrackerContract.get(address.toString(), balanceTypes[i], ct.toString(), id);
       activeBalance = activeBalance.add(balance);
     }
     catch (err) {
@@ -30,17 +35,22 @@ async function getActiveBalance (balanceTrackerContract, address, ct, id) {
 }
 
 async function getActiveBalanceAtBlock (balanceTrackerContract, address, ct, id, blockNo) {
+  t.EthereumAddress().assert(address);
+  t.EthereumAddress().assert(ct);
+  t.EthersBigNumber().assert(id);
+  t.uint().assert(blockNo);
+
   const balanceTypes = await getActiveBalanceTypes(balanceTrackerContract);
   let activeBalance = bigNumberify(0);
 
   for (let i = 0; i < balanceTypes.length; ++i) {
     try {
-      const { amount } = await balanceTrackerContract.fungibleRecordByBlockNumber(address, balanceTypes[i], ct, id, blockNo);
+      const { amount } = await balanceTrackerContract.fungibleRecordByBlockNumber(address.toString(), balanceTypes[i], ct.toString(), id, blockNo);
       activeBalance = activeBalance.add(amount);
     }
     catch (err) {
       throw new NestedError(err, 'Failed to get tracker record. ' + err.message);
-    };
+    }
   }
 
   return activeBalance;

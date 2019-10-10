@@ -1,16 +1,17 @@
 'use strict';
 
+const t = require('../../runtime-types');
 const NestedError = require('../../utils/nested-error');
 
 
 const _contract = new WeakMap();
-const _walletAddress = new WeakMap();
+const _address = new WeakMap();
 const _ct = new WeakMap();
 const _id = new WeakMap();
 
 async function hasProposal () {
   try {
-    return await _contract.get(this).hasProposal(_walletAddress.get(this), _ct.get(this), _id.get(this));
+    return await _contract.get(this).hasProposal(_address.get(this).toString(), _ct.get(this).toString(), _id.get(this));
   }
   catch (err) {
     throw new NestedError(err, 'Failed to check if proposal exists. ' + err.message);
@@ -19,7 +20,7 @@ async function hasProposal () {
 
 async function hasProposalTerminated () {
   try {
-    return await _contract.get(this).hasProposalTerminated(_walletAddress.get(this), _ct.get(this), _id.get(this));
+    return await _contract.get(this).hasProposalTerminated(_address.get(this).toString(), _ct.get(this).toString(), _id.get(this));
   }
   catch (err) {
     throw new NestedError(err, 'Failed to check if proposal has terminated. ' + err.message);
@@ -28,7 +29,7 @@ async function hasProposalTerminated () {
 
 async function hasProposalExpired () {
   try {
-    return await _contract.get(this).hasProposalExpired(_walletAddress.get(this), _ct.get(this), _id.get(this));
+    return await _contract.get(this).hasProposalExpired(_address.get(this).toString(), _ct.get(this).toString(), _id.get(this));
   }
   catch (err) {
     throw new NestedError(err, 'Failed to check if proposal has expired. ' + err.message);
@@ -41,9 +42,13 @@ const IsExpired = Symbol('Proposal has expired.');
 const IsChallengeable = Symbol('Proposal is challengeable.');
 
 class Proposal {
-  constructor (contract, walletAddress, ct, id) {
+  constructor (contract, address, ct, id) {
+    t.EthereumAddress().assert(address);
+    t.EthereumAddress().assert(ct);
+    t.EthersBigNumber().assert(id);
+
     _contract.set(this, contract);
-    _walletAddress.set(this, walletAddress);
+    _address.set(this, address);
     _ct.set(this, ct);
     _id.set(this, id);
   }

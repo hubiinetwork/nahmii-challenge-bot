@@ -29,7 +29,7 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol)
 */
     return expect(ctx.purses[challengerName].NSCDisputedPromise.then(res => {
       const walletAddress = ctx.wallets[walletName].address;
-      expect(res.initiatorAddress).to.equal(walletAddress);
+      expect(res.initiatorAddress.isEqual(walletAddress)).to.be.true;
       expect(res.finalReceipt).have.property('sender').property('wallet').equal(walletAddress.toLowerCase());
       expect(bigNumberify(res.targetBalance).lt(0)).to.be.true;
       return Promise.resolve();

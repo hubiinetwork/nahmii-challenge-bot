@@ -1,20 +1,25 @@
 'use strict';
 
+const t = require('../../runtime-types');
 const NestedError = require('../../utils/nested-error');
 const { BigNumber } = require('ethers').utils;
 
 function getParty (wallet, receipt) {
-  if (wallet.toLowerCase() === receipt.sender.wallet.toLowerCase())
+  t.EthereumAddress().assert(wallet);
+
+  if (wallet.isEqual(receipt.sender.wallet))
     return receipt.sender;
-  if (wallet.toLowerCase() === receipt.recipient.wallet.toLowerCase())
+  if (wallet.isEqual(receipt.recipient.wallet))
     return receipt.recipient;
 
   throw new Error('Unexpected wallet. Wallet not party of receipt.');
 }
 
 async function getWalletReceipts(provider, wallet) {
+  t.EthereumAddress().assert(wallet);
+
   try {
-    return (await provider.getWalletReceipts(wallet, null, 100))
+    return (await provider.getWalletReceipts(wallet.toString(), null, 100))
       .map(receipt => {
         receipt.party = getParty(wallet, receipt);
         return receipt;
@@ -26,8 +31,8 @@ async function getWalletReceipts(provider, wallet) {
 }
 
 async function getWalletReceiptFromNonce(provider, wallet, nonce) {
-  if (!(nonce instanceof BigNumber))
-    throw new TypeError('Expected nonce to be of type BigNumber');
+  t.EthereumAddress().assert(wallet);
+  t.EthersBigNumber().assert(nonce);
 
   const receipts = await getWalletReceipts(provider, wallet);
 
@@ -40,14 +45,17 @@ async function getWalletReceiptFromNonce(provider, wallet, nonce) {
 }
 
 async function getRecentWalletReceipts(provider, wallet, ct, id, minSenderNonce, minBlockNo) {
-  if (!(minSenderNonce instanceof BigNumber))
-    throw new TypeError('Expected nonce to be of type BigNumber');
+  t.EthereumAddress().assert(wallet);
+  t.EthereumAddress().assert(ct);
+  t.EthersBigNumber().assert(id);
+  t.EthersBigNumber().assert(minSenderNonce);
+  t.uint().assert(minBlockNo);
 
   const receipts = await getWalletReceipts(provider, wallet);
 
   const filtered = receipts.filter(receipt => {
-    return (receipt.currency.ct.toLowerCase() === ct.toLowerCase()) && (receipt.currency.id === id.toString()) &&
-    minSenderNonce.lte(receipt.party.nonce) && (receipt.blockNumber >= minBlockNo);
+    return ct.isEqual(receipt.currency.ct) && id.eq(receipt.currency.id) &&
+    minSenderNonce.lte(receipt.party.nonce) && (Number.parseInt(receipt.blockNumber) >= minBlockNo);
   });
 
   return filtered;

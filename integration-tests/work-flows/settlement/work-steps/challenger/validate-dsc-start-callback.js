@@ -6,6 +6,7 @@ const expect = chai.expect;
 const { formatUnits, BigNumber } = require('ethers').utils;
 const assert = require('assert');
 const config = require('../../../../../src/config');
+const t = require('../../../../../src/runtime-types');
 
 module.exports = function (ctx, challengerName, walletName, stageAmount, symbol, dummy) {
   assert(typeof ctx === 'object');
@@ -24,8 +25,12 @@ module.exports = function (ctx, challengerName, walletName, stageAmount, symbol,
 
   step('DSC-start payload is valid', async function () {
     const { initiator, nonce, stagedAmount } = await ctx.purses[challengerName].DSCStartPromise;
+    t.EthereumAddress().assert(initiator);
+    t.EthersBigNumber().assert(nonce);
+    t.EthersBigNumber().assert(stagedAmount);
+
     const unit = ctx.currencies[symbol].unit;
-    expect(initiator).to.equal(ctx.wallets[walletName].address);
+    expect(initiator.isEqual(ctx.wallets[walletName].address)).to.be.true;
     expect(nonce).to.be.instanceOf(BigNumber);
     expect(formatUnits(stagedAmount, unit)).to.equal(stageAmount);
   });

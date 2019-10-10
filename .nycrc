@@ -3,6 +3,7 @@
     "src/**/*.js"
   ],
   "exclude": [
+    "**/index.js",
     "coverage/**",
     "**/node_modules/**",
     "**/*.spec.js"

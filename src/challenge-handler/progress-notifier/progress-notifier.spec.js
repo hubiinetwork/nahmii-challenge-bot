@@ -5,18 +5,19 @@ chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 const sinon = require('sinon');
 const ethers = require('ethers');
+const { EthereumAddress } = require('nahmii-ethereum-address');
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
 
 describe('progress-notifier', () => {
   let notifier;
 
   const receipts = require('../receipts-provider/receipts.spec.data.json');
-  const initiator = '0x54a27640b402cb7ca097c31cbf57ff23ea417026';
+  const initiator = EthereumAddress.from('0x54a27640b402cb7ca097c31cbf57ff23ea417026');
   const challenger = initiator;
   const lockedWallet = initiator;
-  const ct = '0x0000000000000000000000000000000000000000';
-  const id = 0;
-  const nonce = 0;
+  const ct = EthereumAddress.from('0x0000000000000000000000000000000000000000');
+  const id = ethers.constants.Zero;
+  const nonce = ethers.constants.Zero;
   const stagedAmount = ethers.utils.bigNumberify(10);
   const targetBalance = stagedAmount;
   const amount = stagedAmount;
