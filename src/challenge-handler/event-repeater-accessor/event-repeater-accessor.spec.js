@@ -36,7 +36,7 @@ describe('event-repeater-accessor', () => {
         const repeater2 = accessor.acquireEventRepeater();
 
         expect(repeater1).to.be.instanceOf(FakeEventRepeater);
-        expect(repeater2).to.equal(repeater2);
+        expect(repeater1).to.equal(repeater2);
       });
     });
   });
