@@ -66,6 +66,15 @@ class Proposal {
     return IsChallengeable;
   }
 
+  async getProposalExpirationTime () {
+    try {
+      return await _contract.get(this).proposalExpirationTime(_address.get(this).toString(), _ct.get(this).toString(), _id.get(this));
+    }
+    catch (err) {
+      throw new NestedError(err, 'Failed to get proposal expiration time. ' + err.message);
+    }
+  }
+
   static getDescription (proposalState) {
     // See Symbol Description: https://itnext.io/status-of-javascript-ecmascript-2019-beyond-5efca6a2d233
     return proposalState.toString().replace('Symbol(', '').replace(')', '');
