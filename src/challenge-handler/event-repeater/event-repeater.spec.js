@@ -26,8 +26,8 @@ class FakeProposal {
 
 function getStubbedEventRepeater () {
   return proxyquire('./event-repeater', {
-    '../../../contract-repository': fakeContracts,
-    '../../proposal': FakeProposal
+    '../../contract-repository': fakeContracts,
+    '../proposal': FakeProposal
   });
 }
 

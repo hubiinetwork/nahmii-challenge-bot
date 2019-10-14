@@ -8,6 +8,7 @@ const contracts = require('../../contract-repository');
 const NestedError = require('../../utils/nested-error');
 const EventGeneratorFactory = require('../../event-generator-factory');
 const { EthereumAddress } = require('nahmii-ethereum-address');
+const EventRepeater = require('../event-repeater');
 
 
 async function create (challenger, gasLimit) {
@@ -44,7 +45,7 @@ async function create (challenger, gasLimit) {
       const ethInitiator = EthereumAddress.from(initiator);
       const ethCt = EthereumAddress.from(ct);
 
-      await handler.handleDSCStart(ethInitiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ethCt, id);
+      await EventRepeater.handleDSCStart(ethInitiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ethCt, id, async (...args) => await handler.handleDSCStart(...args));
     });
 
     await subscribe('DriipSettlementChallengeByPayment.StartChallengeFromPaymentByProxyEvent', async (initiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
@@ -59,7 +60,7 @@ async function create (challenger, gasLimit) {
       const ethInitiator = EthereumAddress.from(initiator);
       const ethCt = EthereumAddress.from(ct);
 
-      await handler.handleDSCStart(ethInitiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ethCt, id);
+      await EventRepeater.handleDSCStart(ethInitiator, nonce, cumulativeTransferAmount, stageAmount, targetBalanceAmount, ethCt, id, async (...args) => await handler.handleDSCStart(...args));
     });
 
     await subscribe('DriipSettlementChallengeByPayment.ChallengeByPaymentEvent', async (initiator, nonce, _cumulativeTransferAmount, stageAmount, targetBalanceAmount, ct, id, challenger) => {
@@ -89,7 +90,7 @@ async function create (challenger, gasLimit) {
       const ethInitiator = EthereumAddress.from(initiator);
       const ethCt = EthereumAddress.from(ct);
 
-      await handler.handleNSCStart(ethInitiator, nonce, stageAmount, targetBalanceAmount, ethCt, id);
+      await EventRepeater.handleNSCStart(ethInitiator, nonce, stageAmount, targetBalanceAmount, ethCt, id, (...args) => handler.handleNSCStart(...args));
     });
 
     await subscribe('NullSettlementChallengeByPayment.StartChallengeByProxyEvent', async (initiator, nonce, stageAmount, targetBalanceAmount, ct, id, _proxy) => {
@@ -103,7 +104,7 @@ async function create (challenger, gasLimit) {
       const ethInitiator = EthereumAddress.from(initiator);
       const ethCt = EthereumAddress.from(ct);
 
-      await handler.handleNSCStart(ethInitiator, nonce, stageAmount, targetBalanceAmount, ethCt, id);
+      await EventRepeater.handleNSCStart(ethInitiator, nonce, stageAmount, targetBalanceAmount, ethCt, id, (...args) => handler.handleDSCStart(...args));
     });
 
     await subscribe('NullSettlementChallengeByPayment.ChallengeByPaymentEvent', async (initiator, nonce, stageAmount, targetBalanceAmount, ct, id, challenger) => {

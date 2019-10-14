@@ -34,6 +34,7 @@ class FakeNahmiiContract {
       this.hasProposal = sinon.stub().resolves(true);
       this.hasProposalTerminated = sinon.stub().resolves(false);
       this.hasProposalExpired = sinon.stub().resolves(false);
+      this.proposalExpirationTime = sinon.stub().resolves(0);
       break;
 
     case 'NullSettlementChallengeByPayment':
@@ -47,6 +48,7 @@ class FakeNahmiiContract {
       this.hasProposal = sinon.stub().resolves(true);
       this.hasProposalTerminated = sinon.stub().resolves(false);
       this.hasProposalExpired = sinon.stub().resolves(false);
+      this.proposalExpirationTime = sinon.stub().resolves(0);
       break;
 
     case 'BalanceTracker':

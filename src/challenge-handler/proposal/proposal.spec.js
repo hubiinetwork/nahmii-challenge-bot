@@ -71,6 +71,11 @@ describe('proposal', () => {
       return expect(proposal.getProposalState()).to.eventually.equal(Proposal.IsTerminated);
     });
 
+    it('identifies termination state', () => {
+      contract.proposalExpirationTime.returns(42);
+      return expect(proposal.getProposalExpirationTime()).to.eventually.equal(42);
+    });
+
     it ('fails if contract throws on existence state', () => {
       contract.hasProposal.throws(new Error('hasProposal failed'));
       return expect(proposal.getProposalState()).to.eventually.be.rejectedWith(/Failed to check if proposal exists/);
@@ -84,6 +89,11 @@ describe('proposal', () => {
     it ('fails if contract throws on expiration state', () => {
       contract.hasProposalExpired.throws(new Error('hasProposalExpired failed'));
       return expect(proposal.getProposalState()).to.eventually.be.rejectedWith(/Failed to check if proposal has expired/);
+    });
+
+    it ('fails if contract throws when getting expiration time', () => {
+      contract.proposalExpirationTime.throws(new Error('proposalExpirationTime failed'));
+      return expect(proposal.getProposalExpirationTime()).to.eventually.be.rejectedWith(/Failed to get proposal expiration time/);
     });
   }
 
@@ -100,7 +110,7 @@ describe('proposal', () => {
 
   given('a NSC Proposal', () => {
     beforeEach(async () => {
-      contract = await FakeContractRepository.getDriipSettlementChallengeByPayment();
+      contract = await FakeContractRepository.getNullSettlementChallengeByPayment();
       proposal = await new Proposal(contract, walletAddr, ct, id);
     });
 
