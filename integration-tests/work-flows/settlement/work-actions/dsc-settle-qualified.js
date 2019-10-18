@@ -18,12 +18,11 @@ module.exports = function (ctx, walletName, paymentName, settleAmount, symbol) {
   require('../../../work-steps/balances/capture-nahmii-balance-before-action')(ctx, walletName, symbol);
   require('../../../work-steps/balances/capture-staged-balance-before-action')(ctx, walletName, symbol);
 
-  // Proposalse
+  // Proposals
   require('../work-steps/proposals/capture-dsc-proposal-expiration-time')(ctx, walletName, symbol);
   require('../work-steps/proposals/advance-blockchain-by-captured-proposal-expiration-time')(ctx, walletName);
 
   // Action
-  //require('../work-steps/settlement/settlement-settle')(ctx, walletName, symbol);
   require('../../../work-steps/contracts/DriipSettlement/SettlePayment')(ctx, walletName, paymentName, symbol);
 
   // Events
